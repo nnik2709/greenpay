@@ -11,14 +11,14 @@ import { useAuth } from '@/contexts/AuthContext';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
+    setLoading(true);
     const success = login(email, password);
     if (success) {
       toast({
@@ -27,17 +27,17 @@ const Login = () => {
       });
       navigate('/');
     } else {
-      setError('Invalid email or password. Please try again.');
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: 'Invalid email or password.',
+        description: 'Please check your credentials and try again.',
       });
     }
+    setLoading(false);
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
+    <div className="flex items-center justify-center min-h-screen p-4 bg-emerald-50/50">
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -46,7 +46,7 @@ const Login = () => {
       >
         <div className="text-center mb-8">
           <div className="inline-block bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 p-3 rounded-2xl shadow-xl mb-4 transform rotate-3 hover:rotate-0 transition-transform duration-300">
-            <img src="https://png-data.sprep.org/themes/custom/inform_png/logo.png" alt="Green Fees Logo" className="w-20 h-20 object-contain" />
+             <img alt="Green Fees Logo" className="w-20 h-20 object-contain" src="https://images.unsplash.com/photo-1596394723541-3555aa6b843a" />
           </div>
           <h1 className="text-3xl md:whitespace-nowrap font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
             Green Fees System
@@ -68,6 +68,7 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -83,27 +84,23 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
-
-            {error && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-sm font-medium text-red-500"
-              >
-                {error}
-              </motion.p>
-            )}
 
             <Button
               type="submit"
               size="lg"
               className="w-full h-12 text-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+              disabled={loading}
             >
-              <LogIn className="w-5 h-5" />
-              Sign In
+              {loading ? 'Signing In...' : (
+                <>
+                  <LogIn className="w-5 h-5" />
+                  Sign In
+                </>
+              )}
             </Button>
           </form>
         </div>
