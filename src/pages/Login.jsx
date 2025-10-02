@@ -37,34 +37,47 @@ const Login = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-emerald-50/50">
+    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-slate-50 via-emerald-50/40 to-teal-50/50 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(16,185,129,0.1),rgba(255,255,255,0))]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(6,182,212,0.1),rgba(255,255,255,0))]" />
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+        transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
+        className="w-full max-w-md relative z-10"
       >
-        <div className="text-center mb-8">
-          <div className="inline-block bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 p-3 rounded-2xl shadow-xl mb-4 transform rotate-3 hover:rotate-0 transition-transform duration-300">
-             <img alt="Green Fees Logo" className="w-20 h-20 object-contain" src="https://images.unsplash.com/photo-1596394723541-3555aa6b843a" />
-          </div>
-          <h1 className="text-3xl md:whitespace-nowrap font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-            Green Fees System
+        <div className="text-center mb-10">
+          <motion.div
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ duration: 0.6, type: "spring", stiffness: 120, delay: 0.1 }}
+            whileHover={{ scale: 1.05, rotate: 5 }}
+            className="inline-block bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 p-4 rounded-3xl shadow-2xl mb-6"
+          >
+             <img alt="Green Fees Logo" className="w-24 h-24 object-contain" src="https://images.unsplash.com/photo-1596394723541-3555aa6b843a" />
+          </motion.div>
+          <h1 className="text-4xl md:text-5xl md:whitespace-nowrap font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
+            PNG Green Fees
           </h1>
-          <p className="text-slate-500">Please sign in to continue</p>
+          <p className="text-slate-600 text-lg">Welcome back! Please sign in to continue</p>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-emerald-100">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="glass-effect rounded-3xl p-10 shadow-2xl"
+        >
+          <form onSubmit={handleSubmit} className="space-y-7">
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email" className="text-sm font-medium text-slate-700">Email Address</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="e.g., admin@example.com"
-                  className="pl-10 h-12 border-emerald-200"
+                  className="pl-12 h-14 text-base border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -73,14 +86,14 @@ const Login = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium text-slate-700">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                 <Input
                   id="password"
                   type="password"
                   placeholder="Enter your password"
-                  className="pl-10 h-12 border-emerald-200"
+                  className="pl-12 h-14 text-base border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -89,24 +102,36 @@ const Login = () => {
               </div>
             </div>
 
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full h-12 text-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-              disabled={loading}
-            >
-              {loading ? 'Signing In...' : (
-                <>
-                  <LogIn className="w-5 h-5" />
-                  Sign In
-                </>
-              )}
-            </Button>
+            <motion.div whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }}>
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 text-white shadow-lg hover:shadow-2xl transition-all flex items-center justify-center gap-3"
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Signing In...
+                  </div>
+                ) : (
+                  <>
+                    <LogIn className="w-5 h-5" />
+                    Sign In
+                  </>
+                )}
+              </Button>
+            </motion.div>
           </form>
-        </div>
-        <div className="mt-6 text-center text-sm text-slate-500">
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-8 text-center text-sm text-slate-500"
+        >
           <p>© 2025 Eywa Systems. All rights reserved.</p>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );

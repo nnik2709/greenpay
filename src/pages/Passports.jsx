@@ -83,62 +83,64 @@ const Passports = () => {
         className="max-w-4xl mx-auto"
       >
         <motion.div variants={itemVariants} className="text-center mb-12">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-3">
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
             Passport Management
           </h1>
-          <p className="text-slate-600 text-lg">Search, create, or scan passports to begin.</p>
+          <p className="text-slate-600 text-lg">Search, create, or scan passports to begin your journey.</p>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-emerald-100 space-y-8">
+        <motion.div variants={itemVariants} className="glass-effect rounded-3xl p-10 space-y-10">
           <form onSubmit={handleSearch}>
-            <label htmlFor="passport-search" className="block text-lg font-semibold text-slate-700 mb-3">
+            <label htmlFor="passport-search" className="block text-xl font-semibold text-slate-800 mb-4">
               Search for a Passport
             </label>
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <div className="relative flex-grow">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-6 h-6" />
                 <Input
                   id="passport-search"
                   placeholder="Enter Passport Number or Name..."
-                  className="pl-12 h-14 text-lg border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500"
+                  className="pl-14 h-16 text-lg border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all rounded-xl"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Button
-                type="submit"
-                size="lg"
-                className="h-14 bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg hover:shadow-xl transition-all"
-              >
-                Search
-              </Button>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="h-16 px-8 text-lg font-semibold bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 text-white shadow-lg hover:shadow-2xl transition-all rounded-xl"
+                >
+                  Search
+                </Button>
+              </motion.div>
             </div>
           </form>
 
           <div className="relative flex items-center">
-            <div className="flex-grow border-t border-slate-200"></div>
-            <span className="flex-shrink mx-4 text-slate-500">Or</span>
-            <div className="flex-grow border-t border-slate-200"></div>
+            <div className="flex-grow border-t border-slate-300"></div>
+            <span className="flex-shrink mx-6 text-slate-500 font-medium">Or</span>
+            <div className="flex-grow border-t border-slate-300"></div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <motion.div whileHover={{ scale: 1.03 }}>
+            <motion.div whileHover={{ scale: 1.03, y: -4 }} whileTap={{ scale: 0.98 }}>
               <Button
                 onClick={handleCreateNew}
                 variant="outline"
-                className="w-full h-24 text-lg flex items-center justify-center gap-3 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                className="w-full h-28 text-lg font-semibold flex items-center justify-center gap-3 border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-400 rounded-2xl transition-all shadow-md hover:shadow-xl"
               >
-                <UserPlus className="w-6 h-6" />
+                <UserPlus className="w-7 h-7" />
                 Create New Passport
               </Button>
             </motion.div>
-            <motion.div whileHover={{ scale: 1.03 }}>
+            <motion.div whileHover={{ scale: 1.03, y: -4 }} whileTap={{ scale: 0.98 }}>
               <Button
                 onClick={() => setIsScanModalOpen(true)}
                 variant="outline"
-                className="w-full h-24 text-lg flex items-center justify-center gap-3 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                className="w-full h-28 text-lg font-semibold flex items-center justify-center gap-3 border-2 border-teal-300 text-teal-700 hover:bg-teal-50 hover:text-teal-800 hover:border-teal-400 rounded-2xl transition-all shadow-md hover:shadow-xl"
               >
-                <ScanLine className="w-6 h-6" />
+                <ScanLine className="w-7 h-7" />
                 Scan with Camera
               </Button>
             </motion.div>
@@ -146,24 +148,35 @@ const Passports = () => {
         </motion.div>
 
         {hasSearched && (
-          <motion.div variants={itemVariants} className="mt-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Search Results</CardTitle>
+          <motion.div
+            variants={itemVariants}
+            initial="hidden"
+            animate="visible"
+            className="mt-10"
+          >
+            <Card className="glass-effect border-slate-200">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-2xl font-semibold text-slate-800">Search Results</CardTitle>
               </CardHeader>
               <CardContent>
                 {searchResults.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {searchResults.map((passport) => (
-                      <motion.div key={passport.id} variants={itemVariants}>
-                        <Card className="overflow-hidden">
-                          <CardHeader className="bg-slate-50 border-b">
-                            <CardTitle className="flex items-center gap-2 text-lg">
-                              <FileText className="text-emerald-600" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {searchResults.map((passport, index) => (
+                      <motion.div
+                        key={passport.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        whileHover={{ scale: 1.02, y: -4 }}
+                      >
+                        <Card className="overflow-hidden card-hover border-slate-200">
+                          <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100">
+                            <CardTitle className="flex items-center gap-3 text-lg font-semibold text-slate-800">
+                              <FileText className="text-emerald-600 w-5 h-5" />
                               {passport.givenName} {passport.surname}
                             </CardTitle>
                           </CardHeader>
-                          <CardContent className="p-4 space-y-2 text-sm">
+                          <CardContent className="p-5 space-y-3 text-sm">
                             <div className="flex items-center gap-2">
                               <Hash className="w-4 h-4 text-slate-500" />
                               <strong>Passport No:</strong> {passport.passportNumber}

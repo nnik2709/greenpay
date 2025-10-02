@@ -24,10 +24,12 @@ const StatCard = ({ title, value, index }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.05 }}
-      className="bg-gradient-to-br from-green-400 to-emerald-500 text-white rounded-2xl p-4 shadow-lg"
+      whileHover={{ y: -4, scale: 1.02 }}
+      className="bg-gradient-to-br from-emerald-500 via-emerald-400 to-teal-500 text-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-shadow relative overflow-hidden group"
     >
-      <h3 className="text-sm font-medium mb-1 opacity-90">{title}</h3>
-      <p className="text-3xl font-bold">{value}</p>
+      <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-300" />
+      <h3 className="text-sm font-medium mb-2 opacity-90 relative z-10">{title}</h3>
+      <p className="text-3xl md:text-4xl font-bold relative z-10">{value}</p>
     </motion.div>
   );
 };
@@ -125,20 +127,23 @@ const Dashboard = () => {
       transition={{ duration: 0.5 }}
       className="space-y-6"
     >
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-          Dashboard
-        </h1>
-        <div className="flex flex-wrap items-end gap-4 bg-white/80 p-4 rounded-lg shadow-sm">
-          <div className="grid gap-1.5">
-            <Label htmlFor="from-date">From Date</Label>
-            <Input id="from-date" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="bg-white" />
+      <div className="flex flex-wrap items-center justify-between gap-6 mb-2">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+            Dashboard
+          </h1>
+          <p className="text-slate-600 text-lg">Monitor your green fees performance</p>
+        </div>
+        <div className="flex flex-wrap items-end gap-4 glass-effect p-5 rounded-xl">
+          <div className="grid gap-2">
+            <Label htmlFor="from-date" className="text-sm font-medium text-slate-700">From Date</Label>
+            <Input id="from-date" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="bg-white border-slate-200 h-11" />
           </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="to-date">To Date</Label>
-            <Input id="to-date" type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="bg-white" />
+          <div className="grid gap-2">
+            <Label htmlFor="to-date" className="text-sm font-medium text-slate-700">To Date</Label>
+            <Input id="to-date" type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="bg-white border-slate-200 h-11" />
           </div>
-          <Button onClick={handleFilter} className="bg-emerald-600 hover:bg-emerald-700 text-white">Filter</Button>
+          <Button onClick={handleFilter} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white h-11 px-6 shadow-md hover:shadow-lg transition-all">Filter</Button>
         </div>
       </div>
 
@@ -149,9 +154,9 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-1 bg-white/80 backdrop-blur-sm shadow-lg border-emerald-100">
-          <CardHeader>
-            <CardTitle>Individual Purchases</CardTitle>
+        <Card className="lg:col-span-1 glass-effect card-hover border-slate-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-semibold text-slate-800">Individual Purchases</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -166,9 +171,9 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-1 bg-white/80 backdrop-blur-sm shadow-lg border-emerald-100">
-          <CardHeader>
-            <CardTitle>Corporate Purchases</CardTitle>
+        <Card className="lg:col-span-1 glass-effect card-hover border-slate-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-semibold text-slate-800">Corporate Purchases</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -183,9 +188,9 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-1 bg-white/80 backdrop-blur-sm shadow-lg border-emerald-100">
-          <CardHeader>
-            <CardTitle>Overall Revenue</CardTitle>
+        <Card className="lg:col-span-1 glass-effect card-hover border-slate-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-semibold text-slate-800">Overall Revenue</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -202,9 +207,9 @@ const Dashboard = () => {
         </Card>
       </div>
       
-      <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-emerald-100">
-        <CardHeader>
-          <CardTitle>Revenue by Nationality (Kina)</CardTitle>
+      <Card className="glass-effect card-hover border-slate-200">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl font-semibold text-slate-800">Revenue by Nationality (Kina)</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={400}>

@@ -250,14 +250,15 @@ const Header = () => {
     logout
   } = useAuth();
   const userNavItems = navItemsByRole[user?.role] || [];
-  return <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 px-4 md:px-6 shadow-lg">
-      <div className="flex items-center gap-2 font-semibold text-white">
-        <motion.div whileHover={{
-        rotate: 15
-      }} className="bg-white/30 p-1.5 rounded-md">
-          <img src="https://png-data.sprep.org/themes/custom/inform_png/logo.png" alt="Logo" className="h-6 w-6" />
+  return <header className="sticky top-0 z-50 flex h-18 items-center gap-4 border-b border-emerald-700/20 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 px-6 md:px-8 shadow-lg backdrop-blur-sm">
+      <div className="flex items-center gap-3 font-bold text-white">
+        <motion.div
+          whileHover={{ rotate: 12, scale: 1.05 }}
+          transition={{ type: "spring", stiffness: 300 }}
+          className="bg-white/20 p-2 rounded-xl shadow-lg backdrop-blur-sm">
+          <img src="https://png-data.sprep.org/themes/custom/inform_png/logo.png" alt="Logo" className="h-7 w-7" />
         </motion.div>
-        <span className="hidden md:inline-block whitespace-nowrap">Green Fees</span>
+        <span className="hidden md:inline-block whitespace-nowrap text-lg tracking-tight">PNG Green Fees</span>
       </div>
       
       <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
@@ -266,8 +267,8 @@ const Header = () => {
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full bg-white/20 hover:bg-white/30">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white">
+            <Button variant="ghost" className="relative h-10 w-10 rounded-full bg-white/20 hover:bg-white/30 transition-all hover:scale-105">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-lg shadow-inner">
                 {user?.email.charAt(0).toUpperCase()}
               </div>
             </Button>
@@ -284,7 +285,7 @@ const Header = () => {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout}>
+            <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-700 focus:bg-red-50">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>
