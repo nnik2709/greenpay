@@ -28,27 +28,22 @@ const navItemsByRole = {
     icon: <Users className="h-4 w-4" />,
     label: 'Users'
   }, {
-    title: 'Passports & Purchases',
+    title: 'Passports',
     icon: <FileText className="h-4 w-4" />,
     base_path: '/passports',
     subItems: [{
       to: '/passports',
       icon: <FileText className="h-4 w-4" />,
-      label: 'Search Passports'
+      label: 'All Passports'
     }, {
       to: '/passports/create',
       icon: <FilePlus className="h-4 w-4" />,
-      label: 'Individual Purchase'
+      label: 'Individual Exit Pass'
     }, {
       to: '/passports/bulk-upload',
       icon: <UploadCloud className="h-4 w-4" />,
       label: 'Bulk Upload'
-    }]
-  }, {
-    title: 'Corporate',
-    icon: <Building className="h-4 w-4" />,
-    base_path: '/purchases',
-    subItems: [{
+    }, {
       to: '/purchases/corporate-exit-pass',
       icon: <Building className="h-4 w-4" />,
       label: 'Corporate Exit Pass'
@@ -60,15 +55,15 @@ const navItemsByRole = {
       to: '/purchases/offline-upload',
       icon: <UploadCloud className="h-4 w-4" />,
       label: 'Offline Upload'
+    }, {
+      to: '/scan',
+      icon: <ScanSearch className="h-4 w-4" />,
+      label: 'Scan Exit Pass'
     }]
-  }, {
-    to: '/scan',
-    icon: <ScanSearch className="h-4 w-4" />,
-    label: 'Scan & Validate'
   }, {
     to: '/payments',
     icon: <CreditCard className="h-4 w-4" />,
-    label: 'Payments'
+    label: 'Purchases'
   }, {
     to: '/quotations',
     icon: <FileSignature className="h-4 w-4" />,
@@ -97,17 +92,22 @@ const navItemsByRole = {
     icon: <LayoutDashboard className="h-4 w-4" />,
     label: 'Dashboard'
   }, {
-    to: '/passports',
+    title: 'Passports',
     icon: <FileText className="h-4 w-4" />,
-    label: 'Search Passports'
-  }, {
-    to: '/purchases/corporate-exit-pass',
-    icon: <Building className="h-4 w-4" />,
-    label: 'Corporate Exit Pass'
-  }, {
-    to: '/scan',
-    icon: <ScanSearch className="h-4 w-4" />,
-    label: 'Scan & Validate'
+    base_path: '/passports',
+    subItems: [{
+      to: '/passports',
+      icon: <FileText className="h-4 w-4" />,
+      label: 'All Passports'
+    }, {
+      to: '/purchases/corporate-exit-pass',
+      icon: <Building className="h-4 w-4" />,
+      label: 'Corporate Exit Pass'
+    }, {
+      to: '/scan',
+      icon: <ScanSearch className="h-4 w-4" />,
+      label: 'Scan Exit Pass'
+    }]
   }, {
     to: '/quotations',
     icon: <FileSignature className="h-4 w-4" />,
@@ -123,27 +123,22 @@ const navItemsByRole = {
     icon: <LayoutDashboard className="h-4 w-4" />,
     label: 'Dashboard'
   }, {
-    title: 'Passports & Purchases',
+    title: 'Passports',
     icon: <FileText className="h-4 w-4" />,
     base_path: '/passports',
     subItems: [{
       to: '/passports',
       icon: <FileText className="h-4 w-4" />,
-      label: 'Search Passports'
+      label: 'All Passports'
     }, {
       to: '/passports/create',
       icon: <FilePlus className="h-4 w-4" />,
-      label: 'Individual Purchase'
+      label: 'Individual Exit Pass'
     }, {
       to: '/passports/bulk-upload',
       icon: <UploadCloud className="h-4 w-4" />,
       label: 'Bulk Upload'
-    }]
-  }, {
-    title: 'Corporate',
-    icon: <Building className="h-4 w-4" />,
-    base_path: '/purchases',
-    subItems: [{
+    }, {
       to: '/purchases/corporate-exit-pass',
       icon: <Building className="h-4 w-4" />,
       label: 'Corporate Exit Pass'
@@ -155,15 +150,15 @@ const navItemsByRole = {
       to: '/purchases/offline-upload',
       icon: <UploadCloud className="h-4 w-4" />,
       label: 'Offline Upload'
+    }, {
+      to: '/scan',
+      icon: <ScanSearch className="h-4 w-4" />,
+      label: 'Scan Exit Pass'
     }]
-  }, {
-    to: '/scan',
-    icon: <ScanSearch className="h-4 w-4" />,
-    label: 'Scan & Validate'
   }, {
     to: '/payments',
     icon: <CreditCard className="h-4 w-4" />,
-    label: 'Payments'
+    label: 'Purchases'
   }],
   IT_Support: [{
     to: '/',
@@ -174,9 +169,18 @@ const navItemsByRole = {
     icon: <Users className="h-4 w-4" />,
     label: 'Users'
   }, {
-    to: '/scan',
-    icon: <ScanSearch className="h-4 w-4" />,
-    label: 'Scan & Validate'
+    title: 'Passports',
+    icon: <FileText className="h-4 w-4" />,
+    base_path: '/passports',
+    subItems: [{
+      to: '/passports',
+      icon: <FileText className="h-4 w-4" />,
+      label: 'All Passports'
+    }, {
+      to: '/scan',
+      icon: <ScanSearch className="h-4 w-4" />,
+      label: 'Scan Exit Pass'
+    }]
   }, {
     title: 'Reports',
     icon: <BarChart2 className="h-4 w-4" />,
