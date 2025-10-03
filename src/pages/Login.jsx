@@ -47,15 +47,6 @@ const Login = () => {
         className="w-full max-w-md relative z-10"
       >
         <div className="text-center mb-10">
-          <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ duration: 0.6, type: "spring", stiffness: 120, delay: 0.1 }}
-            whileHover={{ scale: 1.05, rotate: 5 }}
-            className="inline-block bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 p-4 rounded-3xl shadow-2xl mb-6"
-          >
-             <img alt="Green Fees Logo" className="w-24 h-24 object-contain" src="https://images.unsplash.com/photo-1596394723541-3555aa6b843a" />
-          </motion.div>
           <h1 className="text-4xl md:text-5xl md:whitespace-nowrap font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
             PNG Green Fees
           </h1>
