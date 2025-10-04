@@ -31,14 +31,17 @@ const AdminPasswordResetModal = ({ isOpen, onClose }) => {
         .eq('active', true)
         .order('email');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
       setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch users. Please try again.",
+        description: `Failed to fetch users: ${error.message}`,
         variant: "destructive",
       });
     } finally {

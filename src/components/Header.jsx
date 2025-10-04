@@ -261,6 +261,10 @@ const Header = () => {
   const userNavItems = navItemsByRole[user?.role] || [];
   const isAdmin = user?.role === 'Flex_Admin';
   
+  // Debug logging
+  console.log('Header - User role:', user?.role);
+  console.log('Header - Is admin:', isAdmin);
+  
   return (
     <>
       <header className="sticky top-0 z-50 flex h-18 items-center gap-4 border-b border-emerald-700/20 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 px-6 md:px-8 shadow-lg backdrop-blur-sm">
