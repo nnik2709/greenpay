@@ -49,9 +49,9 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ### 2. Real Config Files (Local Only, Git-Ignored)
 ```env
-# .env - NEVER committed
-VITE_SUPABASE_URL=https://gzaezpexrtwwpntclonu.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+# .env - NEVER committed (contains actual credentials)
+VITE_SUPABASE_URL=https://your-actual-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6... (actual JWT token)
 ```
 
 ### 3. Git Ignore Protection
