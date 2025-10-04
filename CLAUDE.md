@@ -125,10 +125,10 @@ The application uses **Supabase** as the backend:
 
 **Setup:**
 1. Run `supabase-schema.sql` in Supabase SQL Editor to create all tables
-2. Configure environment variables in `.env`:
+2. Copy `.env.example` to `.env` and configure your Supabase credentials:
    ```
-   VITE_SUPABASE_URL=https://gzaezpexrtwwpntclonu.supabase.co
-   VITE_SUPABASE_ANON_KEY=your_anon_key
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 3. See `SUPABASE_SETUP.md` for complete setup instructions
 

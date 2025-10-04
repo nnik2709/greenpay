@@ -4,9 +4,8 @@ This guide walks you through setting up the Supabase database for the PNG Green 
 
 ## Prerequisites
 
-- Supabase account and project created
-- Project URL: `https://gzaezpexrtwwpntclonu.supabase.co`
-- Anon/Public Key available
+- Supabase account and project created at https://app.supabase.com
+- Your project URL and Anon/Public Key (available in project settings)
 
 ## Step 1: Run the Database Schema
 
@@ -26,14 +25,26 @@ This will create:
 
 ## Step 2: Configure Environment Variables
 
-The `.env` file has already been created with your Supabase credentials:
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
 
-```env
-VITE_SUPABASE_URL=https://gzaezpexrtwwpntclonu.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key
-```
+2. Open `.env` and add your Supabase credentials:
+   ```env
+   VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+   VITE_SUPABASE_ANON_KEY=your_anon_key_here
+   ```
 
-**Important:** The `.env` file is in `.gitignore` and will not be committed to version control.
+3. Get your credentials from Supabase:
+   - Go to your project in Supabase dashboard
+   - Navigate to **Settings** > **API**
+   - Copy **Project URL** and **anon/public key**
+
+**Important:**
+- The `.env` file is in `.gitignore` and will not be committed to version control
+- Never commit real credentials to the repository
+- For production, use `env.production.example` as a template
 
 ## Step 3: Create Initial Admin User
 
