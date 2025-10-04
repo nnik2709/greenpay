@@ -85,7 +85,6 @@ export const AuthProvider = ({ children }) => {
         .eq('id', data.user.id)
         .single();
 
-      console.log('AuthContext - Login profile loaded:', profile);
       setUser({
         id: profile.id,
         email: profile.email,

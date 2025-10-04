@@ -8,7 +8,6 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import PasswordChangeModal from '@/components/PasswordChangeModal';
-import AdminPasswordResetModal from '@/components/AdminPasswordResetModal';
 
 const reportSubItems = [
     { to: '/reports', icon: <BarChart2 className="h-4 w-4" />, label: 'Reports Dashboard' },
@@ -256,14 +255,9 @@ const Header = () => {
     logout
   } = useAuth();
   const [isPasswordChangeOpen, setIsPasswordChangeOpen] = useState(false);
-  const [isAdminPasswordResetOpen, setIsAdminPasswordResetOpen] = useState(false);
   
   const userNavItems = navItemsByRole[user?.role] || [];
   const isAdmin = user?.role === 'Flex_Admin';
-  
-  // Debug logging
-  console.log('Header - User role:', user?.role);
-  console.log('Header - Is admin:', isAdmin);
   
   return (
     <>
@@ -304,12 +298,6 @@ const Header = () => {
                   <Lock className="mr-2 h-4 w-4" />
                   <span>Change Password</span>
                 </DropdownMenuItem>
-                {isAdmin && (
-                  <DropdownMenuItem onClick={() => setIsAdminPasswordResetOpen(true)}>
-                    <Key className="mr-2 h-4 w-4" />
-                    <span>Reset User Password</span>
-                  </DropdownMenuItem>
-                )}
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-700 focus:bg-red-50">
@@ -328,13 +316,6 @@ const Header = () => {
         onClose={() => setIsPasswordChangeOpen(false)} 
       />
       
-      {/* Admin Password Reset Modal */}
-      {isAdmin && (
-        <AdminPasswordResetModal 
-          isOpen={isAdminPasswordResetOpen} 
-          onClose={() => setIsAdminPasswordResetOpen(false)} 
-        />
-      )}
     </>
   );
 };

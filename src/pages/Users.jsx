@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { UserPlus, Search } from 'lucide-react';
+import { UserPlus, Search, Key, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { users as initialUsers } from '@/lib/authData';
+import { supabase } from '@/lib/supabaseClient';
 import {
   Dialog,
   DialogContent,
@@ -33,9 +34,11 @@ const Users = () => {
   const [isAddUserModalOpen, setAddUserModalOpen] = useState(false);
   const [isEditUserModalOpen, setEditUserModalOpen] = useState(false);
   const [isDeactivateModalOpen, setDeactivateModalOpen] = useState(false);
+  const [isPasswordResetModalOpen, setPasswordResetModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [newUser, setNewUser] = useState({ email: '', password: '', role: '' });
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   useEffect(() => {
     setUsers(initialUsers.map(u => ({...u, active: true})));
@@ -97,6 +100,40 @@ const Users = () => {
     });
   };
 
+  const openPasswordResetModal = (user) => {
+    setSelectedUser(user);
+    setPasswordResetModalOpen(true);
+  };
+
+  const handlePasswordReset = async () => {
+    if (!selectedUser) return;
+
+    setIsResettingPassword(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(selectedUser.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password Reset Email Sent! 📧",
+        description: `A password reset link has been sent to ${selectedUser.email}`,
+      });
+
+      setPasswordResetModalOpen(false);
+    } catch (error) {
+      console.error('Password reset error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send password reset email",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   return (
     <>
       <motion.div
@@ -155,6 +192,15 @@ const Users = () => {
                     </td>
                     <td className="px-6 py-4 flex gap-2">
                       <Button size="sm" variant="outline" onClick={() => openEditModal(user)}>Edit</Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => openPasswordResetModal(user)}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <Key className="w-3 h-3 mr-1" />
+                        Reset Password
+                      </Button>
                       <Button size="sm" variant={user.active ? "destructive" : "outline"} onClick={() => openDeactivateModal(user)}>
                         {user.active ? 'Deactivate' : 'Activate'}
                       </Button>
@@ -275,6 +321,31 @@ const Users = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeactivateUser}>
               Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isPasswordResetModalOpen} onOpenChange={setPasswordResetModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-blue-600" />
+              Send Password Reset Email
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will send a password reset email to <span className="font-bold">{selectedUser?.email}</span>. 
+              The user will receive a secure link to reset their password, which will expire in 24 hours.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handlePasswordReset}
+              disabled={isResettingPassword}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isResettingPassword ? 'Sending...' : 'Send Reset Email'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
