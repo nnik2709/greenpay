@@ -54,11 +54,11 @@ pm2 restart png-green-fees
 
 ### Authentication System
 
-The app uses dual authentication contexts:
-1. **AuthContext** (`src/contexts/AuthContext.jsx`) - Mock authentication with localStorage (currently active)
-2. **SupabaseAuthContext** (`src/contexts/SupabaseAuthContext.jsx`) - Supabase-based authentication (available)
-
-Authentication is configured in `src/main.jsx` where you can switch between contexts.
+The app now uses **Supabase Authentication**:
+- **AuthContext** (`src/contexts/AuthContext.jsx`) - Supabase-based authentication (active)
+- User profiles are stored in the `profiles` table linked to Supabase Auth
+- Session management handled by Supabase Auth
+- Legacy mock authentication (`authData.js`) kept for reference only
 
 ### Role-Based Access Control
 
@@ -78,11 +78,18 @@ src/
 │   └── ui/             # shadcn/ui components (buttons, dialogs, forms, etc.)
 ├── contexts/           # React contexts (AuthContext, SupabaseAuthContext)
 ├── lib/                # Utilities and data access
-│   ├── supabaseClient.js          # Supabase client instance
-│   ├── customSupabaseClient.js    # Custom Supabase wrapper
-│   ├── authData.js                # Mock user data
-│   ├── *Storage.js                # Local storage utilities
-│   └── *Data.js                   # Data fetch/validation utilities
+│   ├── supabaseClient.js                 # Supabase client instance
+│   ├── passportsService.js               # Passport operations
+│   ├── individualPurchasesService.js     # Individual purchases
+│   ├── corporateVouchersService.js       # Corporate vouchers
+│   ├── quotationsService.js              # Quotations
+│   ├── usersService.js                   # User management
+│   ├── bulkUploadsService.js             # Bulk uploads
+│   ├── reportsService.js                 # Reports & analytics
+│   ├── paymentModesStorage.js            # Payment modes (Supabase)
+│   ├── ticketStorage.js                  # Tickets (Supabase)
+│   ├── authData.js                       # Legacy mock data (reference)
+│   └── *Data.js                          # Legacy mock data (reference)
 ├── pages/              # Route pages
 │   ├── admin/          # Admin-only pages (PaymentModes, EmailTemplates)
 │   └── reports/        # Reporting pages (6 different report types)
@@ -112,13 +119,45 @@ src/
 - Email templates management
 - QR code scanning and validation (`ScanAndValidate.jsx`)
 
-### Environment Variables
+### Database & Backend (Supabase)
 
-Required for Supabase integration (in `.env.local` or `.env.production`):
-```
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+The application uses **Supabase** as the backend:
+
+**Setup:**
+1. Run `supabase-schema.sql` in Supabase SQL Editor to create all tables
+2. Configure environment variables in `.env`:
+   ```
+   VITE_SUPABASE_URL=https://gzaezpexrtwwpntclonu.supabase.co
+   VITE_SUPABASE_ANON_KEY=your_anon_key
+   ```
+3. See `SUPABASE_SETUP.md` for complete setup instructions
+
+**Database Tables:**
+- `profiles` - User accounts with roles (linked to Supabase Auth)
+- `passports` - Passport records
+- `individual_purchases` - Individual voucher purchases
+- `corporate_vouchers` - Corporate vouchers
+- `quotations` - Quotation management
+- `bulk_uploads` - Bulk upload tracking
+- `payment_modes` - Payment methods
+- `tickets` - Support tickets
+- `email_templates` - Email templates
+- `transactions` - Transaction history for reporting
+
+**Data Access Layer:**
+All database operations go through service files in `src/lib/`:
+- `passportsService.js` - Passport CRUD operations
+- `individualPurchasesService.js` - Individual purchases & voucher validation
+- `corporateVouchersService.js` - Corporate voucher management
+- `quotationsService.js` - Quotation operations
+- `usersService.js` - User/profile management
+- `bulkUploadsService.js` - Bulk upload processing
+- `reportsService.js` - Reporting and analytics
+- `paymentModesStorage.js` - Payment mode management
+- `ticketStorage.js` - Ticket system
+
+**Row Level Security (RLS):**
+All tables have RLS policies enforcing role-based access control at the database level.
 
 ### Vite Configuration
 
@@ -149,6 +188,13 @@ Tailwind configured with custom theme in `tailwind.config.js`:
 
 - All components use `.jsx` extension
 - Import paths use `@/` alias for src directory
-- Authentication state persists in localStorage as `png_user`
-- Mock user credentials are in `src/lib/authData.js`
-- The app is designed for both online (Supabase) and offline (localStorage) operation modes
+- **Database Migration Complete**: Application now fully uses Supabase for all data
+- Legacy mock data files (`*Data.js`) kept for reference only
+- Authentication managed by Supabase Auth with session persistence
+- All CRUD operations use service files that interact with Supabase
+
+## Testing
+
+- `src/lib/testSupabase.js` - Auto-runs in dev mode to verify Supabase connection
+- Check browser console for connection test results
+- Ensure all tables are created before testing (run `supabase-schema.sql`)
