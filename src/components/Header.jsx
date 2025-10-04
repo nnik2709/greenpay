@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Users, CreditCard, FileText, BarChart2, Settings, LogOut, ChevronDown, Ticket, FilePlus, UploadCloud, Building, FileSignature, Mail, ScanSearch, Menu } from 'lucide-react';
+import { LayoutDashboard, Users, CreditCard, FileText, BarChart2, Settings, LogOut, ChevronDown, Ticket, FilePlus, UploadCloud, Building, FileSignature, Mail, ScanSearch, Menu, Lock, Key } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuGroup, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import PasswordChangeModal from '@/components/PasswordChangeModal';
+import AdminPasswordResetModal from '@/components/AdminPasswordResetModal';
 
 const reportSubItems = [
     { to: '/reports', icon: <BarChart2 className="h-4 w-4" />, label: 'Reports Dashboard' },
@@ -253,50 +255,83 @@ const Header = () => {
     user,
     logout
   } = useAuth();
+  const [isPasswordChangeOpen, setIsPasswordChangeOpen] = useState(false);
+  const [isAdminPasswordResetOpen, setIsAdminPasswordResetOpen] = useState(false);
+  
   const userNavItems = navItemsByRole[user?.role] || [];
-  return <header className="sticky top-0 z-50 flex h-18 items-center gap-4 border-b border-emerald-700/20 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 px-6 md:px-8 shadow-lg backdrop-blur-sm">
-      <div className="flex items-center gap-3 font-bold text-white">
-        <motion.div
-          whileHover={{ rotate: 12, scale: 1.05 }}
-          transition={{ type: "spring", stiffness: 300 }}
-          className="bg-white/20 p-2 rounded-xl shadow-lg backdrop-blur-sm">
-          <img src="https://png-data.sprep.org/themes/custom/inform_png/logo.png" alt="Logo" className="h-7 w-7" />
-        </motion.div>
-        <span className="hidden md:inline-block whitespace-nowrap text-lg tracking-tight">PNG Green Fees</span>
-      </div>
-      
-      <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
-        <div className="ml-auto flex-1 sm:flex-initial">
-          <NavMenu items={userNavItems} />
+  const isAdmin = user?.role === 'Flex_Admin';
+  
+  return (
+    <>
+      <header className="sticky top-0 z-50 flex h-18 items-center gap-4 border-b border-emerald-700/20 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 px-6 md:px-8 shadow-lg backdrop-blur-sm">
+        <div className="flex items-center gap-3 font-bold text-white">
+          <motion.div
+            whileHover={{ rotate: 12, scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300 }}
+            className="bg-white/20 p-2 rounded-xl shadow-lg backdrop-blur-sm">
+            <img src="https://png-data.sprep.org/themes/custom/inform_png/logo.png" alt="Logo" className="h-7 w-7" />
+          </motion.div>
+          <span className="hidden md:inline-block whitespace-nowrap text-lg tracking-tight">PNG Green Fees</span>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full bg-white/20 hover:bg-white/30 transition-all hover:scale-105">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-lg shadow-inner">
-                {user?.email.charAt(0).toUpperCase()}
-              </div>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link to="/settings">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
+        
+        <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
+          <div className="ml-auto flex-1 sm:flex-initial">
+            <NavMenu items={userNavItems} />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full bg-white/20 hover:bg-white/30 transition-all hover:scale-105">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-lg shadow-inner">
+                  {user?.email.charAt(0).toUpperCase()}
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsPasswordChangeOpen(true)}>
+                  <Lock className="mr-2 h-4 w-4" />
+                  <span>Change Password</span>
+                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem onClick={() => setIsAdminPasswordResetOpen(true)}>
+                    <Key className="mr-2 h-4 w-4" />
+                    <span>Reset User Password</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-700 focus:bg-red-50">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
               </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-700 focus:bg-red-50">
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <MobileNav items={userNavItems} />
-      </div>
-    </header>;
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <MobileNav items={userNavItems} />
+        </div>
+      </header>
+      
+      {/* Password Change Modal */}
+      <PasswordChangeModal 
+        isOpen={isPasswordChangeOpen} 
+        onClose={() => setIsPasswordChangeOpen(false)} 
+      />
+      
+      {/* Admin Password Reset Modal */}
+      {isAdmin && (
+        <AdminPasswordResetModal 
+          isOpen={isAdminPasswordResetOpen} 
+          onClose={() => setIsAdminPasswordResetOpen(false)} 
+        />
+      )}
+    </>
+  );
 };
 export default Header;

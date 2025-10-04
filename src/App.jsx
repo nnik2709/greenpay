@@ -29,6 +29,7 @@ import BulkPassportUploadReports from '@/pages/reports/BulkPassportUploadReports
 import QuotationsReports from '@/pages/reports/QuotationsReports';
 import ScanAndValidate from '@/pages/ScanAndValidate';
 import AgentLanding from '@/pages/AgentLanding';
+import ResetPassword from '@/pages/ResetPassword';
 import RoleBasedRedirect from '@/components/RoleBasedRedirect';
 
 const PrivateRoute = ({ children, roles }) => {
@@ -54,6 +55,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route 
         path="/" 
         element={
