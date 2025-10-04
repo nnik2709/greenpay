@@ -16,10 +16,14 @@ const PaymentModes = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    setPaymentModes(getPaymentModes());
+    const fetchPaymentModes = async () => {
+      const modes = await getPaymentModes();
+      setPaymentModes(modes);
+    };
+    fetchPaymentModes();
   }, []);
 
-  const handleAddMode = () => {
+  const handleAddMode = async () => {
     if (!newModeName.trim()) {
       toast({
         title: "Validation Error",
@@ -28,24 +32,42 @@ const PaymentModes = () => {
       });
       return;
     }
-    addPaymentMode({
-      name: newModeName,
-      collectCardDetails: newModeCollectCard,
-      active: newModeActive,
-    });
-    setPaymentModes(getPaymentModes());
-    setNewModeName('');
-    setNewModeCollectCard(false);
-    setNewModeActive(true);
-    toast({
-      title: "Success",
-      description: "New payment mode added.",
-    });
+    try {
+      await addPaymentMode({
+        name: newModeName,
+        collectCardDetails: newModeCollectCard,
+        active: newModeActive,
+      });
+      const modes = await getPaymentModes();
+      setPaymentModes(modes);
+      setNewModeName('');
+      setNewModeCollectCard(false);
+      setNewModeActive(true);
+      toast({
+        title: "Success",
+        description: "New payment mode added.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add payment mode. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleToggleActive = (id, currentStatus) => {
-    updatePaymentMode(id, { active: !currentStatus });
-    setPaymentModes(getPaymentModes());
+  const handleToggleActive = async (id, currentStatus) => {
+    try {
+      await updatePaymentMode(id, { active: !currentStatus });
+      const modes = await getPaymentModes();
+      setPaymentModes(modes);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update payment mode. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

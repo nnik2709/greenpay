@@ -23,14 +23,22 @@ const TicketList = ({ tickets, onViewTicket, onTicketsUpdated }) => {
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
-  const handleDelete = (ticketId, ticketNumber) => {
+  const handleDelete = async (ticketId, ticketNumber) => {
     if (window.confirm(`Are you sure you want to delete ticket #${ticketNumber}?`)) {
-      deleteTicket(ticketId);
-      toast({
-        title: "Ticket Deleted",
-        description: `Ticket #${ticketNumber} has been removed`,
-      });
-      onTicketsUpdated();
+      try {
+        await deleteTicket(ticketId);
+        toast({
+          title: "Ticket Deleted",
+          description: `Ticket #${ticketNumber} has been removed`,
+        });
+        onTicketsUpdated();
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete ticket. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

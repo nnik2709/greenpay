@@ -16,24 +16,33 @@ const Login = () => {
   const { login } = useAuth();
   const { toast } = useToast();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const success = login(email, password);
-    if (success) {
-      toast({
-        title: 'Login Successful!',
-        description: 'Welcome back to the Green Fees System.',
-      });
-      navigate('/');
-    } else {
+    try {
+      const success = await login(email, password);
+      if (success) {
+        toast({
+          title: 'Login Successful!',
+          description: 'Welcome back to the Green Fees System.',
+        });
+        navigate('/');
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: 'Please check your credentials and try again.',
+        });
+      }
+    } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Login Failed',
-        description: 'Please check your credentials and try again.',
+        title: 'Login Error',
+        description: 'An error occurred during login. Please try again.',
       });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

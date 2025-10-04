@@ -5,15 +5,17 @@ import TicketDashboard from '@/components/TicketDashboard';
 import CreateTicket from '@/components/CreateTicket';
 import TicketDetail from '@/components/TicketDetail';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Tickets = () => {
   const [view, setView] = useState('dashboard');
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const fetchTickets = useCallback(() => {
-    const storedTickets = getTickets();
+  const fetchTickets = useCallback(async () => {
+    const storedTickets = await getTickets();
     setTickets(storedTickets);
   }, []);
 
@@ -21,14 +23,22 @@ const Tickets = () => {
     fetchTickets();
   }, [fetchTickets]);
 
-  const handleCreateTicket = (ticketData) => {
-    createTicket(ticketData);
-    toast({
-      title: "Ticket Created!",
-      description: `Ticket #${ticketData.ticketNumber} has been successfully created.`,
-    });
-    fetchTickets();
-    setView('dashboard');
+  const handleCreateTicket = async (ticketData) => {
+    try {
+      const newTicket = await createTicket(ticketData, user?.id);
+      toast({
+        title: "Ticket Created!",
+        description: `Ticket #${newTicket.ticketNumber} has been successfully created.`,
+      });
+      fetchTickets();
+      setView('dashboard');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create ticket. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleViewTicket = (ticket) => {
@@ -41,29 +51,43 @@ const Tickets = () => {
     setView('dashboard');
   };
 
-  const handleUpdateTicket = (ticketId, updates) => {
-    updateTicket(ticketId, updates);
-    toast({
-      title: "Ticket Updated",
-      description: "The ticket status has been changed.",
-    });
-    fetchTickets();
-    // Also update the selected ticket if it's the one being viewed
-    if (selectedTicket && selectedTicket.id === ticketId) {
-      setSelectedTicket(prev => ({ ...prev, ...updates }));
+  const handleUpdateTicket = async (ticketId, updates) => {
+    try {
+      const updated = await updateTicket(ticketId, updates);
+      toast({
+        title: "Ticket Updated",
+        description: "The ticket status has been changed.",
+      });
+      fetchTickets();
+      if (selectedTicket && selectedTicket.id === ticketId && updated) {
+        setSelectedTicket(updated);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update ticket. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleAddResponse = (ticketId, message) => {
-    addResponseToStorage(ticketId, message);
-    toast({
-      title: "Response Added",
-      description: "Your response has been added to the ticket.",
-    });
-    fetchTickets();
-    if (selectedTicket && selectedTicket.id === ticketId) {
-        const updatedTicket = getTickets().find(t => t.id === ticketId);
-        setSelectedTicket(updatedTicket);
+  const handleAddResponse = async (ticketId, message) => {
+    try {
+      const updated = await addResponseToStorage(ticketId, message);
+      toast({
+        title: "Response Added",
+        description: "Your response has been added to the ticket.",
+      });
+      fetchTickets();
+      if (selectedTicket && selectedTicket.id === ticketId && updated) {
+        setSelectedTicket(updated);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add response. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
