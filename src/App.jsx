@@ -28,6 +28,8 @@ import RevenueGeneratedReports from '@/pages/reports/RevenueGeneratedReports';
 import BulkPassportUploadReports from '@/pages/reports/BulkPassportUploadReports';
 import QuotationsReports from '@/pages/reports/QuotationsReports';
 import ScanAndValidate from '@/pages/ScanAndValidate';
+import AgentLanding from '@/pages/AgentLanding';
+import RoleBasedRedirect from '@/components/RoleBasedRedirect';
 
 const PrivateRoute = ({ children, roles }) => {
   const { isAuthenticated, user } = useAuth();
@@ -60,7 +62,13 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       >
-        <Route index element={<Dashboard />} />
+        <Route index element={<RoleBasedRedirect />} />
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="agent" element={
+          <PrivateRoute roles={['Counter_Agent']}>
+            <AgentLanding />
+          </PrivateRoute>
+        } />
         <Route path="users" element={
           <PrivateRoute roles={['Flex_Admin', 'IT_Support']}>
             <Users />

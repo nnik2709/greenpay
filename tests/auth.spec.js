@@ -22,7 +22,10 @@ test.describe('Authentication Tests', () => {
     await page.fill('input[type="password"]', TEST_USERS.admin.password);
     await page.click('button[type="submit"]');
 
-    // Wait for dashboard heading to appear
+    // Wait for login to complete and dashboard to load
+    await page.waitForTimeout(3000);
+    
+    // Wait for dashboard heading to appear (admin goes to dashboard)
     await expect(page.locator('h1:has-text("Dashboard")')).toBeVisible({ timeout: 10000 });
   });
 
@@ -33,6 +36,10 @@ test.describe('Authentication Tests', () => {
     await page.fill('input[type="password"]', TEST_USERS.finance.password);
     await page.click('button[type="submit"]');
 
+    // Wait for login to complete and dashboard to load
+    await page.waitForTimeout(3000);
+    
+    // Wait for dashboard heading to appear (finance manager goes to dashboard)
     await expect(page.locator('h1:has-text("Dashboard")')).toBeVisible({ timeout: 10000 });
   });
 
@@ -43,7 +50,11 @@ test.describe('Authentication Tests', () => {
     await page.fill('input[type="password"]', TEST_USERS.agent.password);
     await page.click('button[type="submit"]');
 
-    await expect(page.locator('h1:has-text("Dashboard")')).toBeVisible({ timeout: 10000 });
+    // Wait for login to complete and agent landing page to load
+    await page.waitForTimeout(3000);
+    
+    // Wait for agent landing page heading to appear
+    await expect(page.locator('h1:has-text("Counter Agent Portal")')).toBeVisible({ timeout: 10000 });
   });
 
   test('should login as IT support', async ({ page }) => {
@@ -53,6 +64,10 @@ test.describe('Authentication Tests', () => {
     await page.fill('input[type="password"]', TEST_USERS.support.password);
     await page.click('button[type="submit"]');
 
+    // Wait for login to complete and dashboard to load
+    await page.waitForTimeout(3000);
+    
+    // Wait for dashboard heading to appear (IT support goes to dashboard)
     await expect(page.locator('h1:has-text("Dashboard")')).toBeVisible({ timeout: 10000 });
   });
 

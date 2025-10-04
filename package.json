@@ -13,7 +13,18 @@
     "test:report": "playwright show-report",
     "test:local": "PLAYWRIGHT_BASE_URL=http://localhost:3002 playwright test",
     "test:remote": "PLAYWRIGHT_BASE_URL=https://eywademo.cloud playwright test",
-    "test:production": "PLAYWRIGHT_BASE_URL=https://eywademo.cloud playwright test"
+    "test:production": "PLAYWRIGHT_BASE_URL=https://eywademo.cloud playwright test",
+    "test:smoke": "node test-scripts.cjs smoke",
+    "test:regression": "node test-scripts.cjs regression",
+    "test:navigation": "node test-scripts.cjs navigation",
+    "test:data-creation": "node test-scripts.cjs dataCreation",
+    "test:data-verification": "node test-scripts.cjs dataVerification",
+    "test:comprehensive": "node test-scripts.cjs comprehensive",
+    "test:smoke:prod": "node test-scripts.cjs smoke production",
+    "test:regression:prod": "node test-scripts.cjs regression production",
+    "test:navigation:prod": "node test-scripts.cjs navigation production",
+    "test:data-verification:prod": "node test-scripts.cjs dataVerification production",
+    "test:comprehensive:prod": "node test-scripts.cjs comprehensive production"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "^1.3.1",
