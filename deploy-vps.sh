@@ -58,6 +58,7 @@ server {
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
     add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
     
+    
     # Handle client-side routing
     location / {
         try_files \$uri \$uri/ /index.html;
@@ -94,6 +95,21 @@ ufw allow 'Nginx Full'
 
 echo "🔒 Setting up SSL certificate..."
 certbot --nginx -d $DOMAIN -d www.$DOMAIN --non-interactive --agree-tos --email admin@$DOMAIN
+
+echo "📝 Setting up environment variables..."
+cat > $APP_DIR/.env.production << 'EOF'
+# Production Environment Variables
+NODE_ENV=production
+
+# Supabase Configuration
+# Replace these with your actual Supabase credentials
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key_here
+EOF
+
+echo "🔧 Setting environment file permissions..."
+chown www-data:www-data $APP_DIR/.env.production
+chmod 600 $APP_DIR/.env.production
 
 echo "✅ Deployment completed successfully!"
 echo ""

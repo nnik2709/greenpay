@@ -23,6 +23,23 @@ echo "📦 Installing all dependencies..."
 npm install
 
 echo "🔧 Building application..."
+
+# Check if environment variables are provided
+if [ -f ".env.production" ]; then
+    echo "📝 Using .env.production file for build..."
+    export $(cat .env.production | grep -v '^#' | xargs)
+elif [ -n "$VITE_SUPABASE_URL" ] && [ -n "$VITE_SUPABASE_ANON_KEY" ]; then
+    echo "📝 Using environment variables for build..."
+else
+    echo "⚠️  No environment variables found!"
+    echo "   Please create .env.production file or set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY"
+    echo "   Example .env.production:"
+    echo "   VITE_SUPABASE_URL=https://your-project-ref.supabase.co"
+    echo "   VITE_SUPABASE_ANON_KEY=your_anon_key_here"
+    echo ""
+    echo "   Continuing with build using default values..."
+fi
+
 npm run build
 
 # Check if build was successful

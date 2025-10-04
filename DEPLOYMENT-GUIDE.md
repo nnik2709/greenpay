@@ -90,6 +90,39 @@ scp -r dist/ root@195.200.14.62:/var/www/png-green-fees/
 - Gzip compression
 - Static asset caching
 
+## 🧪 Testing
+
+### Test Local Development
+```bash
+# Test local development environment
+./test-deployment.sh local
+# or
+npm run test:local
+```
+
+### Test Production Environment
+```bash
+# Test production environment
+./test-deployment.sh remote
+# or
+npm run test:production
+```
+
+### Test Both Environments
+```bash
+# Test both local and production
+./test-deployment.sh all
+```
+
+### Available Test Commands
+- `npm run test` - Default test (localhost)
+- `npm run test:local` - Explicit local testing
+- `npm run test:remote` - Test production environment
+- `npm run test:production` - Same as remote
+- `npm run test:ui` - Interactive test UI
+- `npm run test:headed` - Run tests with browser visible
+- `npm run test:report` - View HTML test report
+
 ## 📊 Monitoring & Maintenance
 
 ### Check Application Status
@@ -162,10 +195,31 @@ ssh root@195.200.14.62
 
 ## 🔄 Environment Variables
 
+### Option 1: Automated Setup (Recommended)
+```bash
+# On VPS, run the environment setup script
+ssh root@195.200.14.62
+./setup-env.sh
+```
+
+### Option 2: Manual Setup
 Create `.env.production` on VPS with:
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+### Option 3: Local Build with Environment Variables
+```bash
+# Create .env.production locally
+echo "VITE_SUPABASE_URL=https://your-project-ref.supabase.co" > .env.production
+echo "VITE_SUPABASE_ANON_KEY=your_anon_key_here" >> .env.production
+
+# Build with environment variables
+./build-production.sh
+
+# Upload (environment variables will be included)
+./upload-to-vps.sh
 ```
 
 ## 📈 Performance Optimization

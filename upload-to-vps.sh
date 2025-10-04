@@ -30,6 +30,18 @@ ssh root@$VPS_IP "mkdir -p $APP_DIR"
 echo "📤 Uploading application files..."
 rsync -avz --delete $LOCAL_DIST/ root@$VPS_IP:$APP_DIR/dist/
 
+echo "📝 Checking for environment variables..."
+if [ -f ".env.production" ]; then
+    echo "📤 Uploading environment variables..."
+    scp .env.production root@$VPS_IP:$APP_DIR/.env.production
+    ssh root@$VPS_IP "chown www-data:www-data $APP_DIR/.env.production && chmod 600 $APP_DIR/.env.production"
+    echo "✅ Environment variables uploaded and secured"
+else
+    echo "⚠️  No .env.production file found locally"
+    echo "   You may need to set up environment variables on the VPS:"
+    echo "   ssh root@$VPS_IP './setup-env.sh'"
+fi
+
 echo "🔧 Setting proper permissions..."
 ssh root@$VPS_IP "chown -R www-data:www-data $APP_DIR && chmod -R 755 $APP_DIR"
 
