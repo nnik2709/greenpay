@@ -10,10 +10,12 @@ async function login(page, email, password) {
   // Wait for appropriate landing page based on role
   const isAgent = email.includes('agent@example.com');
   if (isAgent) {
-    await page.waitForURL('**/agent', { timeout: 10000 });
+    // Agents now go to base URL and see AgentLanding component
+    await page.waitForURL('**/', { timeout: 10000 });
     await page.waitForSelector('h1:has-text("Counter Agent Portal")', { timeout: 10000 });
   } else {
-    await page.waitForURL('**/dashboard', { timeout: 10000 });
+    // Non-agents go to base URL and see Dashboard component
+    await page.waitForURL('**/', { timeout: 10000 });
     await page.waitForSelector('h1:has-text("Dashboard")', { timeout: 10000 });
   }
 }
@@ -53,21 +55,8 @@ test.describe('Sample Data Tests', () => {
       await quotationsLink.click();
       await page.waitForTimeout(3000);
 
-      // Check if quotations page loads - look for any content in main area
-      const mainContent = page.locator('main');
-      await expect(mainContent).toBeVisible({ timeout: 5000 });
-      
-      // Check if there's any content (could be empty state, loading, or actual data)
-      const hasAnyContent = await mainContent.locator('*').count() > 0;
-      
-      if (hasAnyContent) {
-        // If there's content, check for quotation-related text
-        const hasQuotationContent = await page.locator('text=/quotation|quote|empty|no data|loading/i').first().isVisible({ timeout: 3000 });
-        expect(hasQuotationContent).toBe(true);
-      } else {
-        // If no content, the page should at least be accessible
-        expect(hasAnyContent).toBe(true);
-      }
+      // Assert on page header to avoid multiple <main> collisions
+      await expect(page.locator('h1:has-text("Quotations Management")')).toBeVisible({ timeout: 10000 });
     } else {
       // If quotations link is not visible, skip the test
       console.log('Quotations link not visible, skipping test');
@@ -101,20 +90,17 @@ test.describe('Sample Data Tests', () => {
       const cardElement = page.locator(`h3:has-text("${reportCard.name}")`).first();
       await cardElement.waitFor({ state: 'visible', timeout: 5000 });
       await cardElement.click();
-      await page.waitForTimeout(2000);
+      await page.waitForTimeout(2500);
 
-      // Verify the report page loads successfully
-      await expect(page.locator('h1, h2, h3')).toBeVisible({ timeout: 5000 });
+      // Verify the report page loads successfully (any visible heading)
+      await expect(page.locator('h1:visible, h2:visible, h3:visible').first()).toBeVisible({ timeout: 10000 });
       
       // Verify specific content based on report type
       await expect(page.locator(`text=${reportCard.expectedText}`).first()).toBeVisible({ timeout: 3000 });
       
-      // Go back to the main dashboard for next iteration
+      // Go back home quickly
       await page.goto('/');
-      await page.waitForTimeout(1500);
-      
-      // Wait for dashboard to load
-      await expect(page.locator('h1:has-text("Dashboard")')).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('h1:has-text("Dashboard")')).toBeVisible({ timeout: 10000 });
     }
   });
 

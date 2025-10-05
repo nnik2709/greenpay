@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, UserPlus, ScanLine, FileText, User, Calendar, Hash } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { passports as mockPassports } from '@/lib/passportData';
+import { supabase } from '@/lib/supabaseClient';
 
 const Passports = () => {
   const { toast } = useToast();
@@ -23,6 +24,77 @@ const Passports = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkEmail, setBulkEmail] = useState('');
+  const [bulkMessage, setBulkMessage] = useState('');
+  const [bulkSending, setBulkSending] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [selectedPassport, setSelectedPassport] = useState(null);
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
+  const defaultVoucherTemplate = useMemo(() => ({
+    subject: 'Your PNG Green Fee Voucher',
+    html: `<p>Dear traveller,</p>
+<p>Thank you for your payment. Your PNG Green Fee voucher is now ready.</p>
+<p><strong>Voucher Code:</strong> {{VOUCHER_CODE}}<br/>
+<strong>Passport No:</strong> {{PASSPORT_NUMBER}}<br/>
+<strong>Issued On:</strong> {{ISSUE_DATE}}</p>
+<p>Please keep this voucher for airport checks. For any questions, reply to this email.</p>
+<p>Kind regards,<br/>PNG Green Fees Team</p>`
+  }), []);
+
+  const openSendEmail = (passport) => {
+    setSelectedPassport(passport);
+    setRecipientEmail('');
+    setIsEmailModalOpen(true);
+  };
+
+  const fillPlaceholders = (html) => {
+    if (!selectedPassport) return html;
+    return html
+      .replaceAll('{{VOUCHER_CODE}}', selectedPassport.voucherCode || '—')
+      .replaceAll('{{PASSPORT_NUMBER}}', selectedPassport.passportNumber || '—')
+      .replaceAll('{{ISSUE_DATE}}', new Date().toLocaleDateString());
+  };
+
+  const handleSendVoucherEmail = async () => {
+    if (!recipientEmail) {
+      toast({ variant: 'destructive', title: 'Recipient required', description: 'Enter a recipient email.' });
+      return;
+    }
+    setIsSending(true);
+    try {
+      // Try to read template from Supabase
+      const { data } = await supabase
+        .from('email_templates')
+        .select('subject, html, body')
+        .eq('template_key', 'individual_voucher')
+        .maybeSingle();
+
+      const subject = (data?.subject) || defaultVoucherTemplate.subject;
+      const htmlRaw = (data?.body ?? data?.html ?? defaultVoucherTemplate.html);
+      const html = fillPlaceholders(htmlRaw);
+
+      const { error: fnError } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: recipientEmail,
+          subject,
+          html,
+          templateId: 'individual_voucher',
+        }
+      });
+      if (fnError) throw fnError;
+
+      toast({ title: 'Email sent', description: 'Voucher email sent to recipient.' });
+      setIsEmailModalOpen(false);
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Send failed', description: e?.message || 'Unable to send email.' });
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -46,6 +118,7 @@ const Passports = () => {
         `${passport.givenName.toLowerCase()} ${passport.surname.toLowerCase()}`.includes(lowercasedQuery)
     );
     setSearchResults(results);
+    setSelectedIds([]);
 
     toast({
       title: "Search Complete",
@@ -160,6 +233,14 @@ const Passports = () => {
               </CardHeader>
               <CardContent>
                 {searchResults.length > 0 ? (
+                  <>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-sm text-slate-600">Selected: {selectedIds.length}</div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setBulkOpen(true)} disabled={selectedIds.length === 0}>Send Bulk Email</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])} disabled={selectedIds.length === 0}>Clear Selection</Button>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {searchResults.map((passport, index) => (
                       <motion.div
@@ -169,7 +250,7 @@ const Passports = () => {
                         transition={{ delay: index * 0.1 }}
                         whileHover={{ scale: 1.02, y: -4 }}
                       >
-                        <Card className="overflow-hidden card-hover border-slate-200">
+                        <Card className={`overflow-hidden card-hover border-slate-200 ${selectedIds.includes(passport.id) ? 'ring-2 ring-emerald-300' : ''}`}>
                           <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100">
                             <CardTitle className="flex items-center gap-3 text-lg font-semibold text-slate-800">
                               <FileText className="text-emerald-600 w-5 h-5" />
@@ -177,6 +258,17 @@ const Passports = () => {
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="p-5 space-y-3 text-sm">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="rounded border-slate-300"
+                                checked={selectedIds.includes(passport.id)}
+                                onChange={(e) => {
+                                  setSelectedIds(prev => e.target.checked ? [...prev, passport.id] : prev.filter(id => id !== passport.id));
+                                }}
+                              />
+                              <span className="text-slate-600">Select</span>
+                            </div>
                             <div className="flex items-center gap-2">
                               <Hash className="w-4 h-4 text-slate-500" />
                               <strong>Passport No:</strong> {passport.passportNumber}
@@ -189,11 +281,17 @@ const Passports = () => {
                               <Calendar className="w-4 h-4 text-slate-500" />
                               <strong>Expiry Date:</strong> {passport.dateOfExpiry}
                             </div>
+                            <div className="pt-2">
+                              <Button size="sm" variant="outline" onClick={() => openSendEmail(passport)}>
+                                Send Voucher Email
+                              </Button>
+                            </div>
                           </CardContent>
                         </Card>
                       </motion.div>
                     ))}
                   </div>
+                  </>
                 ) : (
                   <p className="text-center text-slate-500 py-8">No passports found matching your search.</p>
                 )}
@@ -216,6 +314,83 @@ const Passports = () => {
           </div>
           <DialogFooter>
             <Button onClick={() => setIsScanModalOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Voucher Email Modal */}
+      <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Voucher Email</DialogTitle>
+            <DialogDescription>
+              Send the voucher to the traveller’s email address.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="block text-sm text-slate-600">Recipient Email</label>
+            <Input
+              type="email"
+              placeholder="traveller@example.com"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEmailModalOpen(false)} disabled={isSending}>Cancel</Button>
+            <Button onClick={handleSendVoucherEmail} disabled={isSending}>
+              {isSending ? 'Sending…' : 'Send Email'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Send Modal */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Bulk Voucher Emails</DialogTitle>
+            <DialogDescription>
+              {selectedIds.length} selected passport(s) will be included.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm text-slate-600 mb-1">Recipient Email</label>
+              <Input type="email" value={bulkEmail} onChange={(e) => setBulkEmail(e.target.value)} placeholder="recipient@example.com" />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-600 mb-1">Message (optional)</label>
+              <Input value={bulkMessage} onChange={(e) => setBulkMessage(e.target.value)} placeholder="Short message to include" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkSending}>Cancel</Button>
+            <Button
+              disabled={bulkSending || selectedIds.length === 0}
+              onClick={async () => {
+                if (!bulkEmail) {
+                  toast({ variant: 'destructive', title: 'Recipient required', description: 'Enter a recipient email.' });
+                  return;
+                }
+                setBulkSending(true);
+                try {
+                  const { error: fnError } = await supabase.functions.invoke('send-bulk-passport-vouchers', {
+                    body: { passportIds: selectedIds, email: bulkEmail, message: bulkMessage || undefined }
+                  });
+                  if (fnError) throw fnError;
+                  toast({ title: 'Bulk email queued', description: 'Vouchers will be generated and emailed.' });
+                  setBulkOpen(false);
+                  setSelectedIds([]);
+                } catch (e) {
+                  toast({ variant: 'destructive', title: 'Bulk send failed', description: e?.message || 'Unable to send bulk vouchers.' });
+                } finally {
+                  setBulkSending(false);
+                }
+              }}
+            >
+              {bulkSending ? 'Sending…' : 'Send Bulk Email'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -32,6 +32,20 @@ import AgentLanding from '@/pages/AgentLanding';
 import ResetPassword from '@/pages/ResetPassword';
 import RoleBasedRedirect from '@/components/RoleBasedRedirect';
 
+// Special route for /scan that redirects agents directly to scan page
+const ScanRoute = () => {
+  const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // If user is authenticated, show the scan page directly
+  // This allows direct access to /scan after login
+  return <ScanAndValidate />;
+};
+
 const PrivateRoute = ({ children, roles }) => {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
@@ -91,11 +105,7 @@ const AppRoutes = () => {
             <BulkPassportUpload />
           </PrivateRoute>
         } />
-        <Route path="scan" element={
-          <PrivateRoute roles={['Flex_Admin', 'Counter_Agent', 'Finance_Manager', 'IT_Support']}>
-            <ScanAndValidate />
-          </PrivateRoute>
-        } />
+        <Route path="scan" element={<ScanRoute />} />
         <Route path="purchases/corporate-exit-pass" element={
           <PrivateRoute roles={['Flex_Admin', 'Counter_Agent', 'Finance_Manager']}>
             <CorporateExitPass />

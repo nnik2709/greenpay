@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const { toast } = useToast();
 
@@ -26,7 +27,14 @@ const Login = () => {
           title: 'Login Successful!',
           description: 'Welcome back to the Green Fees System.',
         });
-        navigate('/');
+        
+        // Check if user was trying to access /scan directly
+        const from = location.state?.from?.pathname;
+        if (from === '/scan') {
+          navigate('/scan');
+        } else {
+          navigate('/');
+        }
       } else {
         toast({
           variant: 'destructive',

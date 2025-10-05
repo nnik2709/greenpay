@@ -7,7 +7,7 @@ test.describe('Comprehensive Menu Navigation Tests', () => {
     await page.fill('input[type="email"]', 'admin@example.com');
     await page.fill('input[type="password"]', 'admin123');
     await page.click('button:has-text("Sign In")');
-    await page.waitForURL('/dashboard');
+    await page.waitForURL('/');
     await page.waitForTimeout(2000);
   });
 

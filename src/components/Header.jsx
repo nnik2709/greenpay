@@ -59,7 +59,7 @@ const navItemsByRole = {
     }, {
       to: '/scan',
       icon: <ScanSearch className="h-4 w-4" />,
-      label: 'Scan Exit Pass'
+      label: 'Scan & Validate'
     }]
   }, {
     to: '/payments',
@@ -107,7 +107,7 @@ const navItemsByRole = {
     }, {
       to: '/scan',
       icon: <ScanSearch className="h-4 w-4" />,
-      label: 'Scan Exit Pass'
+      label: 'Scan & Validate'
     }]
   }, {
     to: '/quotations',
@@ -154,7 +154,7 @@ const navItemsByRole = {
     }, {
       to: '/scan',
       icon: <ScanSearch className="h-4 w-4" />,
-      label: 'Scan Exit Pass'
+      label: 'Scan & Validate'
     }]
   }, {
     to: '/payments',
@@ -181,6 +181,10 @@ const navItemsByRole = {
       to: '/scan',
       icon: <ScanSearch className="h-4 w-4" />,
       label: 'Scan Exit Pass'
+    }, {
+      to: '/scanner',
+      icon: <ScanSearch className="h-4 w-4" />,
+      label: 'Voucher Scanner'
     }]
   }, {
     title: 'Reports',

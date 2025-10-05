@@ -20,15 +20,16 @@ const RoleBasedRedirect = () => {
   }
   
   // Render the appropriate component based on user role
-  switch (user?.role) {
-    case 'Counter_Agent':
-      return <AgentLanding />;
-    case 'Flex_Admin':
-    case 'Finance_Manager':
-    case 'IT_Support':
-    default:
-      return <Dashboard />;
-  }
+        switch (user?.role) {
+          case 'Counter_Agent':
+            // Show agent landing page with all capabilities
+            return <AgentLanding />;
+          case 'Flex_Admin':
+          case 'Finance_Manager':
+          case 'IT_Support':
+          default:
+            return <Dashboard />;
+        }
 };
 
 export default RoleBasedRedirect;

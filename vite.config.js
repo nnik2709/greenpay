@@ -7,7 +7,7 @@ import iframeRouteRestorationPlugin from './plugins/vite-plugin-iframe-route-res
 
 const isDev = process.env.NODE_ENV !== 'production';
 
-const configHorizonsViteErrorHandler = `
+const configPNGGreenFeesViteErrorHandler = `
 const observer = new MutationObserver((mutations) => {
 	for (const mutation of mutations) {
 		for (const addedNode of mutation.addedNodes) {
@@ -54,7 +54,7 @@ function handleViteOverlay(node) {
 }
 `;
 
-const configHorizonsRuntimeErrorHandler = `
+const configPNGGreenFeesRuntimeErrorHandler = `
 window.onerror = (message, source, lineno, colno, errorObj) => {
 	const errorDetails = errorObj ? JSON.stringify({
 		name: errorObj.name,
@@ -73,7 +73,7 @@ window.onerror = (message, source, lineno, colno, errorObj) => {
 };
 `;
 
-const configHorizonsConsoleErrroHandler = `
+const configPNGGreenFeesConsoleErrorHandler = `
 const originalConsoleError = console.error;
 console.error = function(...args) {
 	originalConsoleError.apply(console, args);
@@ -145,19 +145,19 @@ const addTransformIndexHtml = {
 			{
 				tag: 'script',
 				attrs: { type: 'module' },
-				children: configHorizonsRuntimeErrorHandler,
+				children: configPNGGreenFeesRuntimeErrorHandler,
 				injectTo: 'head',
 			},
 			{
 				tag: 'script',
 				attrs: { type: 'module' },
-				children: configHorizonsViteErrorHandler,
+				children: configPNGGreenFeesViteErrorHandler,
 				injectTo: 'head',
 			},
 			{
 				tag: 'script',
 				attrs: {type: 'module'},
-				children: configHorizonsConsoleErrroHandler,
+				children: configPNGGreenFeesConsoleErrorHandler,
 				injectTo: 'head',
 			},
 			{

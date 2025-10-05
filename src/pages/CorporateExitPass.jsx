@@ -6,7 +6,9 @@
     import { Label } from '@/components/ui/label';
     import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
     import { useToast } from '@/components/ui/use-toast';
-    import { Search, Plus, History } from 'lucide-react';
+    import { Search, Plus, History, Send } from 'lucide-react';
+    import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+    import { supabase } from '@/lib/supabaseClient';
 
     const CorporateExitPass = () => {
       const { toast } = useToast();
@@ -14,6 +16,9 @@
       const [discount, setDiscount] = useState(0);
       const [collectedAmount, setCollectedAmount] = useState(50);
       const voucherValue = 50;
+      const [sendOpen, setSendOpen] = useState(false);
+      const [recipient, setRecipient] = useState('');
+      const [sending, setSending] = useState(false);
 
       const totalAmount = totalVouchers * voucherValue;
       const amountAfterDiscount = totalAmount - (totalAmount * (discount / 100));
@@ -91,7 +96,10 @@
                     </div>
                   </div>
 
-                  <div className="flex justify-end pt-4">
+                  <div className="flex justify-end pt-4 gap-2">
+                    <Button type="button" variant="outline" onClick={() => setSendOpen(true)}>
+                      <Send className="w-4 h-4 mr-2" /> Send via Email (ZIP)
+                    </Button>
                     <Button type="submit" size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white">
                       Get Exit Pass
                     </Button>
@@ -116,6 +124,42 @@
               </div>
             </div>
           </div>
+          <Dialog open={sendOpen} onOpenChange={setSendOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Send Voucher Batch</DialogTitle>
+                <DialogDescription>Enter recipient email address for this batch.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3">
+                <Label>Recipient Email</Label>
+                <Input type="email" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="client@example.com" />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSendOpen(false)} disabled={sending}>Cancel</Button>
+                <Button
+                  disabled={sending || !recipient}
+                  onClick={async () => {
+                    setSending(true);
+                    try {
+                      const batchId = 1; // TODO: replace with real batch id once created
+                      const { error: fnError } = await supabase.functions.invoke('send-voucher-batch', {
+                        body: { batchId, email: recipient }
+                      });
+                      if (fnError) throw fnError;
+                      toast({ title: 'Batch email queued', description: 'Vouchers ZIP will be emailed.' });
+                      setSendOpen(false);
+                    } catch (e) {
+                      toast({ variant: 'destructive', title: 'Send failed', description: e?.message || 'Unable to send batch.' });
+                    } finally {
+                      setSending(false);
+                    }
+                  }}
+                >
+                  {sending ? 'Sending…' : 'Send'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </motion.div>
       );
     };

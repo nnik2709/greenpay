@@ -54,6 +54,37 @@ export const createUser = async (userData) => {
       .single();
 
     if (error) throw error;
+
+    // Non-blocking notifications: welcome_user to the new user and admin alert
+    try {
+      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@example.com';
+      const toUser = userData.email;
+
+      // Send welcome email with magic link guidance (do not send plain password)
+      await supabase.functions.invoke('send-email', {
+        body: {
+          to: toUser,
+          templateId: 'welcome_user',
+          subject: 'Welcome to PNG Green Fees',
+          html: `<p>Your account has been created.</p><p>Please use the password reset link on the login page to set a secure password.</p>`
+        }
+      });
+
+      // Admin notification
+      if (adminEmail && adminEmail !== 'admin@example.com') {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            to: adminEmail,
+            templateId: 'new_user_notification',
+            subject: 'New User Created',
+            html: `<p>A new user has been created.</p><p><strong>Email:</strong> ${toUser}<br/><strong>Role:</strong> ${userData.role}</p>`
+          }
+        });
+      }
+    } catch (e) {
+      // ignore email errors in user creation flow
+    }
+
     return data;
   } catch (error) {
     console.error('Error creating user:', error);
