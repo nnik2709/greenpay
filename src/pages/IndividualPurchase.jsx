@@ -222,6 +222,13 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
               </Select>
             </div>
             <div>
+              <label htmlFor="dateOfExpiry">Passport Expiry Date</label>
+              <div className="relative mt-1">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Input id="dateOfExpiry" name="dateOfExpiry" type="date" placeholder="dd/mm/yyyy" className="pl-9" value={passportInfo.dateOfExpiry || ''} onChange={handleInputChange} />
+              </div>
+            </div>
+            <div>
               <label>Passport Photo</label>
               <div className="mt-1 flex items-center gap-3 rounded-lg border p-3">
                 <Button type="button" variant="outline" onClick={() => document.getElementById('passportPhoto').click()}>
