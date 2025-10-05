@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ScanLine, User, Globe, Calendar, VenetianMask, Hash, Upload, ArrowRight, ArrowLeft, Check, DollarSign, Ticket } from 'lucide-react';
+import { Search, ScanLine, User, Globe, Calendar, VenetianMask, Hash, Upload, ArrowRight, ArrowLeft, Check, DollarSign, Ticket, CreditCard, Shield, QrCode, Printer, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { passports as mockPassports } from '@/lib/passportData';
+import { getPassportByNumber, createPassport } from '@/lib/passportsService';
+import { createIndividualPurchase } from '@/lib/individualPurchasesService';
+import { getPaymentModes } from '@/lib/paymentModesStorage';
+import { useAuth } from '@/contexts/AuthContext';
+import VoucherPrint from '@/components/VoucherPrint';
 
 const StepIndicator = ({ currentStep }) => {
   const steps = [
@@ -246,61 +253,378 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
   );
 };
 
-const PaymentStep = ({ onNext, onBack }) => (
-  <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}>
-    <Card>
-      <CardHeader>
-        <CardTitle>Payment Details</CardTitle>
-      </CardHeader>
-      <CardContent className="text-center py-16">
-        <h2 className="text-2xl font-semibold text-slate-700">Payment Section</h2>
-        <p className="text-slate-500 mt-2">This feature is under construction.</p>
-      </CardContent>
-    </Card>
-    <div className="flex justify-between mt-8">
-      <Button onClick={onBack} variant="outline" size="lg">
-        <ArrowLeft className="mr-2 w-5 h-5" /> Back
-      </Button>
-      <Button onClick={onNext} size="lg">
-        Generate Voucher <ArrowRight className="ml-2 w-5 h-5" />
-      </Button>
-    </div>
-  </motion.div>
-);
+const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
+  const { toast } = useToast();
+  const [paymentModes, setPaymentModes] = useState([]);
+  const [selectedMode, setSelectedMode] = useState('');
+  const [amount, setAmount] = useState(50);
+  const [discount, setDiscount] = useState(0);
+  const [collectedAmount, setCollectedAmount] = useState(50);
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cvc, setCvc] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
-const VoucherStep = ({ onBack }) => (
-  <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}>
-    <Card>
-      <CardHeader>
-        <CardTitle>Voucher Generation</CardTitle>
-      </CardHeader>
-      <CardContent className="text-center py-16">
-        <h2 className="text-2xl font-semibold text-slate-700">Voucher Section</h2>
-        <p className="text-slate-500 mt-2">This feature is under construction.</p>
-      </CardContent>
-    </Card>
-    <div className="flex justify-start mt-8">
-      <Button onClick={onBack} variant="outline" size="lg">
-        <ArrowLeft className="mr-2 w-5 h-5" /> Back
-      </Button>
-    </div>
-  </motion.div>
-);
+  useEffect(() => {
+    const loadPaymentModes = async () => {
+      const modes = await getPaymentModes();
+      const activeModes = modes.filter(m => m.active);
+      setPaymentModes(activeModes);
+      if (activeModes.length > 0) {
+        setSelectedMode(activeModes[0].name);
+      }
+    };
+    loadPaymentModes();
+  }, []);
+
+  const amountAfterDiscount = amount - (amount * (discount / 100));
+  const returnedAmount = collectedAmount - amountAfterDiscount;
+  const selectedModeObj = paymentModes.find(m => m.name === selectedMode);
+  const requiresCardDetails = selectedModeObj?.collectCardDetails;
+
+  const handleProceed = async () => {
+    if (!selectedMode) {
+      toast({ variant: "destructive", title: "No Payment Mode", description: "Please select a payment mode." });
+      return;
+    }
+
+    if (collectedAmount < amountAfterDiscount) {
+      toast({ variant: "destructive", title: "Insufficient Amount", description: "Collected amount is less than the total." });
+      return;
+    }
+
+    if (requiresCardDetails && (!cardNumber || !expiry || !cvc)) {
+      toast({ variant: "destructive", title: "Card Details Required", description: "Please enter all card details." });
+      return;
+    }
+
+    setIsProcessing(true);
+
+    // Store payment data
+    setPaymentData({
+      paymentMethod: selectedMode,
+      amount: amountAfterDiscount,
+      discount,
+      collectedAmount,
+      returnedAmount: returnedAmount > 0 ? returnedAmount : 0,
+      cardLastFour: requiresCardDetails ? cardNumber.slice(-4) : null,
+    });
+
+    toast({ title: "Payment Accepted", description: `Payment of PGK ${amountAfterDiscount.toFixed(2)} processed successfully.` });
+
+    setTimeout(() => {
+      setIsProcessing(false);
+      onNext();
+    }, 800);
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="w-6 h-6" />
+            Payment Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Amount Details */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Total Amount (PGK)</Label>
+              <Input type="number" value={amount} onChange={(e) => setAmount(parseFloat(e.target.value) || 0)} className="font-bold" />
+            </div>
+            <div className="space-y-2">
+              <Label>Discount (%)</Label>
+              <Input type="number" value={discount} onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Amount After Discount</Label>
+              <Input value={amountAfterDiscount.toFixed(2)} readOnly className="bg-slate-100 font-bold" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Collected Amount (PGK)</Label>
+              <Input type="number" value={collectedAmount} onChange={(e) => setCollectedAmount(parseFloat(e.target.value) || 0)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Change/Returned Amount</Label>
+              <Input value={returnedAmount > 0 ? returnedAmount.toFixed(2) : '0.00'} readOnly className="bg-slate-100" />
+            </div>
+          </div>
+
+          {/* Payment Mode Selection */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Payment Method</Label>
+            <RadioGroup value={selectedMode} onValueChange={setSelectedMode} className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {paymentModes.map(mode => (
+                <div key={mode.id} className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-slate-50">
+                  <RadioGroupItem value={mode.name} id={mode.name} />
+                  <Label htmlFor={mode.name} className="font-normal cursor-pointer flex-1">{mode.name}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          {/* Card Details (if required) */}
+          {requiresCardDetails && (
+            <div className="space-y-4 border-t pt-4">
+              <h3 className="font-semibold text-slate-700">Card Information</h3>
+              <div className="space-y-2">
+                <Label>Card Number</Label>
+                <div className="relative">
+                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                  <Input placeholder="0000 0000 0000 0000" className="pl-10" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} maxLength={19} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Expiry Date</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <Input placeholder="MM/YY" className="pl-10" value={expiry} onChange={(e) => setExpiry(e.target.value)} maxLength={5} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>CVC</Label>
+                  <div className="relative">
+                    <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <Input placeholder="123" className="pl-10" value={cvc} onChange={(e) => setCvc(e.target.value)} maxLength={4} type="password" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <div className="flex justify-between mt-8">
+        <Button onClick={onBack} variant="outline" size="lg" disabled={isProcessing}>
+          <ArrowLeft className="mr-2 w-5 h-5" /> Back
+        </Button>
+        <Button onClick={handleProceed} size="lg" disabled={isProcessing} className="bg-gradient-to-r from-emerald-500 to-teal-600">
+          {isProcessing ? 'Processing...' : 'Process Payment'} <ArrowRight className="ml-2 w-5 h-5" />
+        </Button>
+      </div>
+    </motion.div>
+  );
+};
+
+const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+
+  if (!voucher) {
+    return (
+      <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}>
+        <Card>
+          <CardContent className="py-16 text-center">
+            <p className="text-slate-500">Generating voucher...</p>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}>
+      <Card className="border-green-200">
+        <CardHeader className="bg-green-50">
+          <CardTitle className="flex items-center gap-2 text-green-700">
+            <Check className="w-6 h-6" />
+            Voucher Generated Successfully!
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 space-y-6">
+          {/* Success Message */}
+          <div className="bg-green-100 border border-green-300 rounded-lg p-4">
+            <p className="text-green-800 font-semibold">
+              Exit pass voucher has been created for {passportInfo.givenName} {passportInfo.surname}
+            </p>
+          </div>
+
+          {/* Voucher Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h3 className="font-semibold text-slate-700 border-b pb-2">Passport Information</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Passport Number:</span>
+                  <span className="font-semibold">{voucher.passport_number}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Name:</span>
+                  <span className="font-semibold">{passportInfo.givenName} {passportInfo.surname}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Nationality:</span>
+                  <span className="font-semibold">{passportInfo.nationality}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-semibold text-slate-700 border-b pb-2">Voucher Details</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Voucher Code:</span>
+                  <span className="font-mono font-bold text-green-600">{voucher.voucher_code}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Amount:</span>
+                  <span className="font-semibold">PGK {voucher.amount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Payment Method:</span>
+                  <span className="font-semibold">{voucher.payment_method}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Valid Until:</span>
+                  <span className="font-semibold">{new Date(voucher.valid_until).toLocaleDateString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-3 pt-4 border-t">
+            <Button onClick={() => setShowPrintDialog(true)} className="flex-1 bg-emerald-600 hover:bg-emerald-700">
+              <Printer className="w-4 h-4 mr-2" />
+              Print Voucher
+            </Button>
+            <Button variant="outline" className="flex-1">
+              <QrCode className="w-4 h-4 mr-2" />
+              Show QR Code
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-between mt-8">
+        <Button onClick={onBack} variant="outline" size="lg">
+          <ArrowLeft className="mr-2 w-5 h-5" /> Create Another
+        </Button>
+        <Button onClick={() => window.location.href = '/'} size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-600">
+          <Check className="mr-2 w-5 h-5" /> Done
+        </Button>
+      </div>
+
+      {/* Print Dialog */}
+      <VoucherPrint
+        voucher={voucher}
+        isOpen={showPrintDialog}
+        onClose={() => setShowPrintDialog(false)}
+        voucherType="Individual"
+      />
+    </motion.div>
+  );
+};
 
 const IndividualPurchase = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [passportInfo, setPassportInfo] = useState({});
+  const [paymentData, setPaymentData] = useState(null);
+  const [voucher, setVoucher] = useState(null);
+  const [isCreatingVoucher, setIsCreatingVoucher] = useState(false);
 
   const handleNext = () => setStep((prev) => Math.min(prev + 1, 2));
   const handleBack = () => setStep((prev) => Math.max(prev - 1, 0));
+
+  // Generate voucher when moving to step 2
+  useEffect(() => {
+    if (step === 2 && paymentData && !voucher && !isCreatingVoucher) {
+      createVoucherAndPassport();
+    }
+  }, [step, paymentData, voucher, isCreatingVoucher]);
+
+  const createVoucherAndPassport = async () => {
+    setIsCreatingVoucher(true);
+    try {
+      // First, check if passport exists or create it
+      let passport = await getPassportByNumber(passportInfo.passportNumber);
+
+      if (!passport) {
+        // Create passport if it doesn't exist
+        passport = await createPassport({
+          passportNumber: passportInfo.passportNumber,
+          nationality: passportInfo.nationality,
+          surname: passportInfo.surname,
+          givenName: passportInfo.givenName,
+          dob: passportInfo.dob,
+          sex: passportInfo.sex,
+          dateOfExpiry: passportInfo.dateOfExpiry,
+        }, user?.id);
+      }
+
+      // Create individual purchase voucher
+      const purchaseData = {
+        passportId: passport.id,
+        passportNumber: passport.passport_number,
+        amount: paymentData.amount,
+        paymentMethod: paymentData.paymentMethod,
+        cardLastFour: paymentData.cardLastFour,
+        nationality: passport.nationality,
+      };
+
+      const createdVoucher = await createIndividualPurchase(purchaseData, user?.id);
+      setVoucher(createdVoucher);
+
+      toast({
+        title: "Success!",
+        description: "Voucher generated successfully.",
+      });
+    } catch (error) {
+      console.error('Error creating voucher:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate voucher. Please try again.",
+      });
+      setStep(1); // Go back to payment step
+    } finally {
+      setIsCreatingVoucher(false);
+    }
+  };
+
+  const resetFlow = () => {
+    setStep(0);
+    setPassportInfo({});
+    setPaymentData(null);
+    setVoucher(null);
+  };
 
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
       <StepIndicator currentStep={step} />
       <AnimatePresence mode="wait">
-        {step === 0 && <PassportDetailsStep key="step0" onNext={handleNext} setPassportInfo={setPassportInfo} passportInfo={passportInfo} />}
-        {step === 1 && <PaymentStep key="step1" onNext={handleNext} onBack={handleBack} />}
-        {step === 2 && <VoucherStep key="step2" onBack={handleBack} />}
+        {step === 0 && (
+          <PassportDetailsStep
+            key="step0"
+            onNext={handleNext}
+            setPassportInfo={setPassportInfo}
+            passportInfo={passportInfo}
+          />
+        )}
+        {step === 1 && (
+          <PaymentStep
+            key="step1"
+            onNext={handleNext}
+            onBack={handleBack}
+            passportInfo={passportInfo}
+            setPaymentData={setPaymentData}
+          />
+        )}
+        {step === 2 && (
+          <VoucherStep
+            key="step2"
+            onBack={resetFlow}
+            passportInfo={passportInfo}
+            paymentData={paymentData}
+            voucher={voucher}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
