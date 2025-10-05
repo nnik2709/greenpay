@@ -1,19 +1,20 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Printer, X } from 'lucide-react';
 
 const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
-  const qrCanvasRef = useRef(null);
   const [qrError, setQrError] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState('');
 
   useEffect(() => {
-    if (isOpen && voucher && voucher.voucher_code && qrCanvasRef.current) {
+    if (isOpen && voucher && voucher.voucher_code) {
       console.log('Generating QR code for:', voucher.voucher_code);
       setQrError(false);
-      QRCode.toCanvas(
-        qrCanvasRef.current,
+      setQrDataUrl('');
+
+      QRCode.toDataURL(
         voucher.voucher_code,
         {
           width: 200,
@@ -23,17 +24,18 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
             light: '#ffffff'
           }
         },
-        (error) => {
+        (error, url) => {
           if (error) {
             console.error('QR Code generation error:', error);
             setQrError(true);
           } else {
             console.log('QR Code generated successfully');
+            setQrDataUrl(url);
           }
         }
       );
     } else {
-      console.log('QR Code generation skipped:', { isOpen, hasVoucher: !!voucher, hasCode: !!voucher?.voucher_code, hasRef: !!qrCanvasRef.current });
+      console.log('QR Code generation skipped:', { isOpen, hasVoucher: !!voucher, hasCode: !!voucher?.voucher_code });
     }
   }, [isOpen, voucher]);
 
@@ -118,8 +120,12 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
                   <div className="w-[200px] h-[200px] border-2 border-red-300 rounded flex items-center justify-center bg-red-50">
                     <p className="text-red-600 text-sm text-center px-4">QR Code generation failed</p>
                   </div>
+                ) : qrDataUrl ? (
+                  <img src={qrDataUrl} alt="QR Code" className="w-[200px] h-[200px] border-2 border-gray-200 rounded" />
                 ) : (
-                  <canvas ref={qrCanvasRef} className="border-2 border-gray-200 rounded"></canvas>
+                  <div className="w-[200px] h-[200px] border-2 border-gray-300 rounded flex items-center justify-center bg-gray-50">
+                    <p className="text-gray-500 text-sm">Generating QR Code...</p>
+                  </div>
                 )}
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600 font-mono tracking-wider break-all">
