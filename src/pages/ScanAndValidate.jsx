@@ -15,8 +15,35 @@ const ScanAndValidate = () => {
   const [validationResult, setValidationResult] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [showSuccessFlash, setShowSuccessFlash] = useState(false);
   const lastScannedCode = useRef(null);
   const lastScanTime = useRef(0);
+  const audioContext = useRef(null);
+
+  // Initialize audio context
+  useEffect(() => {
+    audioContext.current = new (window.AudioContext || window.webkitAudioContext)();
+  }, []);
+
+  // Success beep function
+  const playSuccessBeep = () => {
+    if (!audioContext.current) return;
+
+    const oscillator = audioContext.current.createOscillator();
+    const gainNode = audioContext.current.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.current.destination);
+
+    oscillator.frequency.value = 800; // Hz
+    oscillator.type = 'sine';
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.current.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.current.currentTime + 0.2);
+
+    oscillator.start(audioContext.current.currentTime);
+    oscillator.stop(audioContext.current.currentTime + 0.2);
+  };
 
   const parseMrz = (mrzString) => {
     try {
@@ -66,60 +93,59 @@ const ScanAndValidate = () => {
 
   const validateVoucher = async (code) => {
     try {
-      // Query the vouchers table for the scanned code
-      const { data, error } = await supabase
-        .from('vouchers')
-        .select(`
-          *,
-          VoucherBatch:VoucherBatchId (
-            batch_name,
-            created_at,
-            expiry_date
-          )
-        `)
+      // Try individual purchases first
+      const { data: individualData } = await supabase
+        .from('individual_purchases')
+        .select('*')
         .eq('voucher_code', code.trim())
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        throw error;
-      }
+      // Try corporate vouchers if not found
+      const { data: corporateData } = await supabase
+        .from('corporate_vouchers')
+        .select('*')
+        .eq('voucher_code', code.trim())
+        .maybeSingle();
 
-      if (data) {
-        const now = new Date();
-        const expiryDate = new Date(data.VoucherBatch?.expiry_date);
-        const isExpired = expiryDate < now;
-        const isUsed = data.is_used;
+      const data = individualData || corporateData;
+      const voucherType = individualData ? 'Individual' : corporateData ? 'Corporate' : null;
 
-        if (isUsed) {
-          return { 
-            type: 'voucher', 
-            status: 'error', 
-            message: 'Voucher has already been used.', 
-            data: data 
-          };
-        }
-
-        if (isExpired) {
-          return { 
-            type: 'voucher', 
-            status: 'error', 
-            message: 'Voucher has expired.', 
-            data: data 
-          };
-        }
-
-        return { 
-          type: 'voucher', 
-          status: 'success', 
-          message: 'Voucher is valid and ready to use.', 
-          data: data 
-        };
-      } else {
+      if (!data) {
         return { type: 'error', status: 'error', message: 'Voucher code not found.' };
       }
+
+      const now = new Date();
+      const expiryDate = new Date(data.valid_until);
+      const isExpired = expiryDate < now;
+      const isUsed = data.used_at !== null;
+
+      if (isUsed) {
+        return {
+          type: 'voucher',
+          status: 'error',
+          message: `${voucherType} voucher has already been used on ${new Date(data.used_at).toLocaleDateString()}.`,
+          data: { ...data, voucherType }
+        };
+      }
+
+      if (isExpired) {
+        return {
+          type: 'voucher',
+          status: 'error',
+          message: `${voucherType} voucher has expired.`,
+          data: { ...data, voucherType }
+        };
+      }
+
+      return {
+        type: 'voucher',
+        status: 'success',
+        message: `${voucherType} voucher is valid and ready to use!`,
+        data: { ...data, voucherType }
+      };
     } catch (error) {
       console.error('Voucher validation error:', error);
-      return { type: 'error', status: 'error', message: 'Voucher code not found.' };
+      return { type: 'error', status: 'error', message: 'Error validating voucher.' };
     }
   };
 
@@ -146,6 +172,13 @@ const ScanAndValidate = () => {
       }
       setValidationResult(result);
       setInputValue('');
+
+      // Play beep and show flash on success
+      if (result.status === 'success') {
+        playSuccessBeep();
+        setShowSuccessFlash(true);
+        setTimeout(() => setShowSuccessFlash(false), 1000);
+      }
     } catch (error) {
       console.error('Validation error:', error);
       setValidationResult({ type: 'error', status: 'error', message: 'Validation failed. Please try again.' });
@@ -232,13 +265,13 @@ const ScanAndValidate = () => {
             )}
             {result.type === 'voucher' && result.data && (
               <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-slate-500" /><strong>Type:</strong> {result.data.voucherType} Voucher</div>
                 <div className="flex items-center gap-2"><Hash className="w-4 h-4 text-slate-500" /><strong>Voucher Code:</strong> {result.data.voucher_code}</div>
-                {result.data.VoucherBatch && (
-                  <>
-                    <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-slate-500" /><strong>Batch:</strong> {result.data.VoucherBatch.batch_name}</div>
-                    <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-slate-500" /><strong>Expires:</strong> {new Date(result.data.VoucherBatch.expiry_date).toLocaleDateString()}</div>
-                  </>
+                <div className="flex items-center gap-2"><User className="w-4 h-4 text-slate-500" /><strong>Passport:</strong> {result.data.passport_number}</div>
+                {result.data.company_name && (
+                  <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-slate-500" /><strong>Company:</strong> {result.data.company_name}</div>
                 )}
+                <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-slate-500" /><strong>Valid Until:</strong> {new Date(result.data.valid_until).toLocaleDateString()}</div>
               </div>
             )}
           </CardContent>
@@ -251,8 +284,19 @@ const ScanAndValidate = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-2xl mx-auto p-4"
+      className="max-w-2xl mx-auto p-4 relative"
     >
+      {/* Success Flash Overlay */}
+      <AnimatePresence>
+        {showSuccessFlash && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.3 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-green-500 pointer-events-none z-50"
+          />
+        )}
+      </AnimatePresence>
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-3">
           Scan & Validate

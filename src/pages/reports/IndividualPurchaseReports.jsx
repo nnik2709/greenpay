@@ -1,28 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Copy, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import { Copy, FileSpreadsheet, FileText, Printer, QrCode } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabaseClient';
+import VoucherPrint from '@/components/VoucherPrint';
 
-const data = [
-  { id: 1, exitPassNo: 'EP12345', passportNo: 'PA123456', nationality: 'PNG', total: 100, discount: 10, totalAfterDiscount: 90, collectedAmount: 90, paymentMethod: 'CASH', paymentDate: '2025-10-01 10:00', used: true },
-  { id: 2, exitPassNo: 'EP12346', passportNo: 'PB654321', nationality: 'AUS', total: 100, discount: 0, totalAfterDiscount: 100, collectedAmount: 100, paymentMethod: 'CREDIT CARD', paymentDate: '2025-10-01 11:30', used: false },
-];
-
-const columns = [
-  { name: 'Exit Pass Number', selector: row => row.exitPassNo, sortable: true },
-  { name: 'Passport No', selector: row => row.passportNo, sortable: true },
-  { name: 'Nationality', selector: row => row.nationality, sortable: true },
-  { name: 'Total', selector: row => row.total, sortable: true, right: true },
-  { name: 'Discount', selector: row => row.discount, sortable: true, right: true },
-  { name: 'Total After Discount', selector: row => row.totalAfterDiscount, sortable: true, right: true },
-  { name: 'Collected Amount', selector: row => row.collectedAmount, sortable: true, right: true },
-  { name: 'Payment Method', selector: row => row.paymentMethod, sortable: true },
-  { name: 'Payment Date', selector: row => row.paymentDate, sortable: true },
-  { name: 'Used', selector: row => (row.used ? 'Yes' : 'No'), sortable: true },
-];
 
 const customStyles = {
   header: { style: { minHeight: '56px' } },
@@ -40,6 +25,69 @@ const StatCard = ({ title, value }) => (
 
 const IndividualPurchaseReports = () => {
   const { toast } = useToast();
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedVoucher, setSelectedVoucher] = useState(null);
+  const [showPrint, setShowPrint] = useState(false);
+
+  useEffect(() => {
+    fetchVouchers();
+  }, []);
+
+  const fetchVouchers = async () => {
+    try {
+      const { data: vouchers, error } = await supabase
+        .from('individual_purchases')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setData(vouchers || []);
+    } catch (error) {
+      console.error('Error fetching vouchers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load vouchers",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePrintVoucher = (voucher) => {
+    setSelectedVoucher(voucher);
+    setShowPrint(true);
+  };
+
+  const columns = [
+    { name: 'Voucher Code', selector: row => row.voucher_code, sortable: true, width: '150px' },
+    { name: 'Passport No', selector: row => row.passport_number, sortable: true },
+    { name: 'Amount', selector: row => `PGK ${row.amount}`, sortable: true, right: true },
+    { name: 'Payment Method', selector: row => row.payment_method, sortable: true },
+    { name: 'Created', selector: row => new Date(row.created_at).toLocaleDateString(), sortable: true },
+    { name: 'Valid Until', selector: row => new Date(row.valid_until).toLocaleDateString(), sortable: true },
+    { name: 'Status', selector: row => row.used_at ? 'Used' : 'Valid', sortable: true, cell: row => (
+      <span className={`px-2 py-1 rounded text-xs font-semibold ${row.used_at ? 'bg-gray-200 text-gray-700' : 'bg-green-100 text-green-700'}`}>
+        {row.used_at ? 'Used' : 'Valid'}
+      </span>
+    )},
+    {
+      name: 'Actions',
+      cell: row => (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handlePrintVoucher(row)}
+          disabled={row.used_at !== null}
+          title={row.used_at ? 'Cannot print used voucher' : 'Print voucher'}
+        >
+          <QrCode className="w-4 h-4" />
+        </Button>
+      ),
+      width: '100px'
+    }
+  ];
 
   const handleAction = (action) => {
     toast({
@@ -76,10 +124,10 @@ const IndividualPurchaseReports = () => {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Records" value="2" />
-        <StatCard title="Total Amount" value="$200.00" />
-        <StatCard title="Total Collected" value="$190.00" />
-        <StatCard title="Total Discount" value="$10.00" />
+        <StatCard title="Total Records" value={data.length} />
+        <StatCard title="Total Amount" value={`PGK ${data.reduce((sum, v) => sum + parseFloat(v.amount || 0), 0).toFixed(2)}`} />
+        <StatCard title="Valid Vouchers" value={data.filter(v => !v.used_at).length} />
+        <StatCard title="Used Vouchers" value={data.filter(v => v.used_at).length} />
       </div>
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
@@ -96,8 +144,16 @@ const IndividualPurchaseReports = () => {
           customStyles={customStyles}
           highlightOnHover
           pointerOnHover
+          progressPending={loading}
         />
       </div>
+
+      <VoucherPrint
+        voucher={selectedVoucher}
+        isOpen={showPrint}
+        onClose={() => setShowPrint(false)}
+        voucherType="Individual"
+      />
     </motion.div>
   );
 };

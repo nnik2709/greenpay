@@ -1,29 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Copy, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import { Copy, FileSpreadsheet, FileText, Printer, QrCode } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-
-const data = [
-  { id: 1, fileNo: 101, totalExitPass: 50, exitPassValues: 100, total: 5000, discount: 500, totalAfterDiscount: 4500, collectedAmount: 4500, returnedAmount: 0, paymentMethod: 'BANK TRANSFER', createdAt: '2025-09-20', validTill: '2026-09-20' },
-  { id: 2, fileNo: 102, totalExitPass: 20, exitPassValues: 100, total: 2000, discount: 0, totalAfterDiscount: 2000, collectedAmount: 2000, returnedAmount: 0, paymentMethod: 'CASH', createdAt: '2025-09-25', validTill: '2026-09-25' },
-];
-
-const columns = [
-  { name: 'File No', selector: row => row.fileNo, sortable: true },
-  { name: 'Total Exit Pass', selector: row => row.totalExitPass, sortable: true, right: true },
-  { name: 'Exit Pass Values', selector: row => row.exitPassValues, sortable: true, right: true },
-  { name: 'Total', selector: row => row.total, sortable: true, right: true },
-  { name: 'Discount', selector: row => row.discount, sortable: true, right: true },
-  { name: 'Total After Discount', selector: row => row.totalAfterDiscount, sortable: true, right: true },
-  { name: 'Collected Amount', selector: row => row.collectedAmount, sortable: true, right: true },
-  { name: 'Returned Amount', selector: row => row.returnedAmount, sortable: true, right: true },
-  { name: 'Payment Method', selector: row => row.paymentMethod, sortable: true },
-  { name: 'Created At', selector: row => row.createdAt, sortable: true },
-  { name: 'Valid Till', selector: row => row.validTill, sortable: true },
-];
+import { supabase } from '@/lib/supabaseClient';
+import VoucherPrint from '@/components/VoucherPrint';
 
 const customStyles = {
   header: { style: { minHeight: '56px' } },
@@ -41,6 +24,71 @@ const StatCard = ({ title, value }) => (
 
 const CorporateVoucherReports = () => {
   const { toast } = useToast();
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedVoucher, setSelectedVoucher] = useState(null);
+  const [showPrint, setShowPrint] = useState(false);
+
+  useEffect(() => {
+    fetchVouchers();
+  }, []);
+
+  const fetchVouchers = async () => {
+    try {
+      const { data: vouchers, error } = await supabase
+        .from('corporate_vouchers')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setData(vouchers || []);
+    } catch (error) {
+      console.error('Error fetching vouchers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load vouchers",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePrintVoucher = (voucher) => {
+    setSelectedVoucher(voucher);
+    setShowPrint(true);
+  };
+
+  const columns = [
+    { name: 'Voucher Code', selector: row => row.voucher_code, sortable: true, width: '150px' },
+    { name: 'Company', selector: row => row.company_name, sortable: true },
+    { name: 'Passport No', selector: row => row.passport_number, sortable: true },
+    { name: 'Quantity', selector: row => row.quantity, sortable: true, right: true },
+    { name: 'Amount', selector: row => `PGK ${row.amount}`, sortable: true, right: true },
+    { name: 'Payment Method', selector: row => row.payment_method, sortable: true },
+    { name: 'Created', selector: row => new Date(row.created_at).toLocaleDateString(), sortable: true },
+    { name: 'Valid Until', selector: row => new Date(row.valid_until).toLocaleDateString(), sortable: true },
+    { name: 'Status', selector: row => row.used_at ? 'Used' : 'Valid', sortable: true, cell: row => (
+      <span className={`px-2 py-1 rounded text-xs font-semibold ${row.used_at ? 'bg-gray-200 text-gray-700' : 'bg-green-100 text-green-700'}`}>
+        {row.used_at ? 'Used' : 'Valid'}
+      </span>
+    )},
+    {
+      name: 'Actions',
+      cell: row => (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handlePrintVoucher(row)}
+          disabled={row.used_at !== null}
+          title={row.used_at ? 'Cannot print used voucher' : 'Print voucher'}
+        >
+          <QrCode className="w-4 h-4" />
+        </Button>
+      ),
+      width: '100px'
+    }
+  ];
 
   const handleAction = (action) => {
     toast({
@@ -77,15 +125,15 @@ const CorporateVoucherReports = () => {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Records" value="2" />
-        <StatCard title="Total Exit Pass" value="70" />
-        <StatCard title="Total Amount" value="$7,000" />
-        <StatCard title="Total Collected" value="$6,500" />
+        <StatCard title="Total Records" value={data.length} />
+        <StatCard title="Total Quantity" value={data.reduce((sum, v) => sum + (v.quantity || 0), 0)} />
+        <StatCard title="Total Amount" value={`PGK ${data.reduce((sum, v) => sum + parseFloat(v.amount || 0), 0).toFixed(2)}`} />
+        <StatCard title="Valid Vouchers" value={data.filter(v => !v.used_at).length} />
       </div>
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          <Input placeholder="Filter by File No..." />
+          <Input placeholder="Filter by Company..." />
           <Input placeholder="Filter by Payment Mode..." />
           <Input type="date" placeholder="Date From" />
         </div>
@@ -96,8 +144,16 @@ const CorporateVoucherReports = () => {
           customStyles={customStyles}
           highlightOnHover
           pointerOnHover
+          progressPending={loading}
         />
       </div>
+
+      <VoucherPrint
+        voucher={selectedVoucher}
+        isOpen={showPrint}
+        onClose={() => setShowPrint(false)}
+        voucherType="Corporate"
+      />
     </motion.div>
   );
 };

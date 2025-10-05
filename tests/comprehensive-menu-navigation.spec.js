@@ -35,7 +35,7 @@ test.describe('Comprehensive Menu Navigation Tests', () => {
       await expect(page).toHaveURL(new RegExp(menuItem.url.replace('/', '\\/')));
 
       // Verify page content
-      await expect(page.locator('h1, h2, h3')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('h1, h2, h3').first()).toBeVisible({ timeout: 10000 });
       
       // Check for expected content
       const contentFound = await page.locator(`text=${menuItem.expectedContent}`).first().isVisible({ timeout: 5000 });
@@ -80,7 +80,7 @@ test.describe('Comprehensive Menu Navigation Tests', () => {
       await page.waitForTimeout(2000);
 
       // Verify page loads
-      await expect(page.locator('h1, h2, h3')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('h1, h2, h3').first()).toBeVisible({ timeout: 10000 });
       
       // Check for expected content
       const contentFound = await page.locator(`text=${submenu.expectedContent}`).first().isVisible({ timeout: 5000 });
@@ -123,7 +123,7 @@ test.describe('Comprehensive Menu Navigation Tests', () => {
       await page.waitForTimeout(2000);
 
       // Verify page loads
-      await expect(page.locator('h1, h2, h3')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('h1, h2, h3').first()).toBeVisible({ timeout: 10000 });
       
       // Check for expected content
       const contentFound = await page.locator(`text=${submenu.expectedContent}`).first().isVisible({ timeout: 5000 });
@@ -161,7 +161,7 @@ test.describe('Comprehensive Menu Navigation Tests', () => {
       await page.waitForTimeout(2000);
 
       // Verify page loads
-      await expect(page.locator('h1, h2, h3')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('h1, h2, h3').first()).toBeVisible({ timeout: 10000 });
 
       // Check for specific element types
       for (const elementType of pageInfo.checkFor) {
