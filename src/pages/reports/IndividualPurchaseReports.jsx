@@ -3,10 +3,11 @@ import { motion } from 'framer-motion';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Copy, FileSpreadsheet, FileText, Printer, QrCode } from 'lucide-react';
+import { QrCode } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
 import VoucherPrint from '@/components/VoucherPrint';
+import ExportButton from '@/components/ExportButton';
 
 
 const customStyles = {
@@ -89,13 +90,6 @@ const IndividualPurchaseReports = () => {
     }
   ];
 
-  const handleAction = (action) => {
-    toast({
-      title: "🚧 Feature In Progress!",
-      description: `${action} isn't implemented yet. You can request it in your next prompt! 🚀`,
-    });
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -107,20 +101,12 @@ const IndividualPurchaseReports = () => {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
           Individual Purchase Reports
         </h1>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => handleAction('Copy')}>
-            <Copy className="w-4 h-4 mr-2" /> Copy
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => handleAction('Excel Export')}>
-            <FileSpreadsheet className="w-4 h-4 mr-2" /> Excel
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => handleAction('CSV Export')}>
-            <FileText className="w-4 h-4 mr-2" /> CSV
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => handleAction('PDF Export')}>
-            <Printer className="w-4 h-4 mr-2" /> PDF
-          </Button>
-        </div>
+        <ExportButton
+          data={data}
+          columns={columns}
+          filename="Individual_Purchase_Report"
+          title="Individual Purchase Report"
+        />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

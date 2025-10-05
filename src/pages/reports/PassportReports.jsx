@@ -2,9 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Copy, FileSpreadsheet, FileText, Printer } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import ExportButton from '@/components/ExportButton';
 
 const data = [
   { id: 1, type: 'P', nationality: 'PNG', passportNo: 'PA123456', surname: 'DOE', givenName: 'JOHN', dob: '1990-01-01', sex: 'M', dateOfExpiry: '2030-01-01' },
@@ -30,15 +28,6 @@ const customStyles = {
 };
 
 const PassportReports = () => {
-  const { toast } = useToast();
-
-  const handleAction = (action) => {
-    toast({
-      title: "🚧 Feature In Progress!",
-      description: `${action} isn't implemented yet. You can request it in your next prompt! 🚀`,
-    });
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -50,20 +39,12 @@ const PassportReports = () => {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
           Passports Report
         </h1>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => handleAction('Copy')}>
-            <Copy className="w-4 h-4 mr-2" /> Copy
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => handleAction('Excel Export')}>
-            <FileSpreadsheet className="w-4 h-4 mr-2" /> Excel
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => handleAction('CSV Export')}>
-            <FileText className="w-4 h-4 mr-2" /> CSV
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => handleAction('PDF Export')}>
-            <Printer className="w-4 h-4 mr-2" /> PDF
-          </Button>
-        </div>
+        <ExportButton
+          data={data}
+          columns={columns}
+          filename="Passports_Report"
+          title="Passports Report"
+        />
       </div>
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
