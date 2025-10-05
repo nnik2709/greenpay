@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,17 +6,34 @@ import { Printer, X } from 'lucide-react';
 
 const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
   const qrCanvasRef = useRef(null);
+  const [qrError, setQrError] = useState(false);
 
   useEffect(() => {
-    if (isOpen && voucher && qrCanvasRef.current) {
-      QRCode.toCanvas(qrCanvasRef.current, voucher.voucher_code, {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#ffffff'
+    if (isOpen && voucher && voucher.voucher_code && qrCanvasRef.current) {
+      console.log('Generating QR code for:', voucher.voucher_code);
+      setQrError(false);
+      QRCode.toCanvas(
+        qrCanvasRef.current,
+        voucher.voucher_code,
+        {
+          width: 200,
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#ffffff'
+          }
+        },
+        (error) => {
+          if (error) {
+            console.error('QR Code generation error:', error);
+            setQrError(true);
+          } else {
+            console.log('QR Code generated successfully');
+          }
         }
-      });
+      );
+    } else {
+      console.log('QR Code generation skipped:', { isOpen, hasVoucher: !!voucher, hasCode: !!voucher?.voucher_code, hasRef: !!qrCanvasRef.current });
     }
   }, [isOpen, voucher]);
 
@@ -97,7 +114,13 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
 
               {/* Right column - QR Code */}
               <div className="flex flex-col items-center justify-center space-y-4">
-                <canvas ref={qrCanvasRef} className="border-2 border-gray-200 rounded"></canvas>
+                {qrError ? (
+                  <div className="w-[200px] h-[200px] border-2 border-red-300 rounded flex items-center justify-center bg-red-50">
+                    <p className="text-red-600 text-sm text-center px-4">QR Code generation failed</p>
+                  </div>
+                ) : (
+                  <canvas ref={qrCanvasRef} className="border-2 border-gray-200 rounded"></canvas>
+                )}
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600 font-mono tracking-wider break-all">
                     {voucher.voucher_code}
