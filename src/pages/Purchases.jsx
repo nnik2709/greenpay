@@ -16,6 +16,7 @@ import { getPaymentModes } from '@/lib/paymentModesStorage';
 import { getSettings, updateSettings } from '@/lib/settingsService';
 import { useAuth } from '@/contexts/AuthContext';
 import VoucherPrint from '@/components/VoucherPrint';
+import * as XLSX from 'xlsx';
 
 const Purchases = () => {
   const { toast } = useToast();
@@ -389,6 +390,66 @@ const Purchases = () => {
     }
   };
 
+  const handleExportToExcel = () => {
+    try {
+      // Prepare data for export
+      const exportData = filteredTransactions.map((transaction) => ({
+        'Payment ID': transaction.id,
+        'Type': getTransactionType(transaction),
+        'Passport Number': transaction.passport_number || 'N/A',
+        'Exit Pass ID': getExitPassId(transaction),
+        'Amount (PGK)': transaction.amount,
+        'Payment Method': transaction.payment_method || 'N/A',
+        'Date': new Date(transaction.created_at).toLocaleDateString(),
+        'Time': new Date(transaction.created_at).toLocaleTimeString(),
+        'Nationality': transaction.nationality || 'N/A',
+        'Valid Until': transaction.voucher?.valid_until
+          ? new Date(transaction.voucher.valid_until).toLocaleDateString()
+          : 'N/A',
+      }));
+
+      // Create worksheet
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+      // Set column widths
+      const columnWidths = [
+        { wch: 40 }, // Payment ID
+        { wch: 12 }, // Type
+        { wch: 15 }, // Passport Number
+        { wch: 25 }, // Exit Pass ID
+        { wch: 12 }, // Amount
+        { wch: 15 }, // Payment Method
+        { wch: 12 }, // Date
+        { wch: 12 }, // Time
+        { wch: 15 }, // Nationality
+        { wch: 15 }, // Valid Until
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Transactions');
+
+      // Generate filename with current date
+      const filename = `Transactions_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Save file
+      XLSX.writeFile(workbook, filename);
+
+      toast({
+        title: "Export Successful",
+        description: `Exported ${exportData.length} transactions to ${filename}`,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: "Failed to export transactions to Excel.",
+      });
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -437,7 +498,7 @@ const Purchases = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleExportToExcel}>
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
