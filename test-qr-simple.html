@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QR Code Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body>
+    <h1>QR Code Generation Test</h1>
+    <div>
+        <h2>Canvas Method:</h2>
+        <canvas id="canvas"></canvas>
+    </div>
+    <div>
+        <h2>Image Method:</h2>
+        <img id="image" />
+    </div>
+
+    <script>
+        // Test 1: Canvas method
+        const canvas = document.getElementById('canvas');
+        QRCode.toCanvas(canvas, 'IND-TEST-001', {
+            width: 200,
+            margin: 2
+        }, function (error) {
+            if (error) {
+                console.error('Canvas QR Error:', error);
+            } else {
+                console.log('Canvas QR Success!');
+            }
+        });
+
+        // Test 2: Image method
+        QRCode.toDataURL('IND-TEST-001', {
+            width: 200,
+            margin: 2
+        }, function (error, url) {
+            if (error) {
+                console.error('Image QR Error:', error);
+            } else {
+                console.log('Image QR Success!');
+                document.getElementById('image').src = url;
+            }
+        });
+    </script>
+</body>
+</html>

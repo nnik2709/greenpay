@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PNG Green Fees - Test Voucher</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .controls h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .voucher-container {
+            background: white;
+            padding: 0;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .voucher {
+            padding: 40px;
+            text-align: center;
+        }
+
+        .voucher-header {
+            border-bottom: 3px solid #10b981;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .voucher-header h1 {
+            color: #10b981;
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .voucher-header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .voucher-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .voucher-info {
+            text-align: left;
+        }
+
+        .info-row {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 5px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 18px;
+            color: #111;
+            font-weight: bold;
+        }
+
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #qrcode {
+            margin-bottom: 15px;
+        }
+
+        .voucher-code {
+            font-size: 24px;
+            font-weight: bold;
+            color: #10b981;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+            word-break: break-all;
+        }
+
+        .voucher-footer {
+            border-top: 2px solid #e5e7eb;
+            padding-top: 20px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #10b981;
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .controls {
+                display: none;
+            }
+
+            .voucher-container {
+                box-shadow: none;
+                max-width: 100%;
+                page-break-inside: avoid;
+            }
+
+            button {
+                display: none;
+            }
+        }
+
+        .no-print {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h2>🎫 Generate Test Voucher</h2>
+        <div class="form-group">
+            <label>Voucher Type:</label>
+            <select id="voucherType">
+                <option value="Individual">Individual</option>
+                <option value="Corporate">Corporate</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Voucher Code:</label>
+            <input type="text" id="voucherCode" placeholder="e.g., CORP-2024-001" value="CORP-2024-001">
+        </div>
+        <div class="form-group">
+            <label>Passport Number:</label>
+            <input type="text" id="passportNumber" placeholder="e.g., N1234567" value="N1234567">
+        </div>
+        <div class="form-group" id="companyGroup">
+            <label>Company Name:</label>
+            <input type="text" id="companyName" placeholder="e.g., ABC Corporation" value="ABC Corporation">
+        </div>
+        <div class="form-group">
+            <label>Valid Until:</label>
+            <input type="date" id="validUntil" value="">
+        </div>
+        <button onclick="generateVoucher()">🔄 Generate Voucher</button>
+        <button onclick="window.print()">🖨️ Print Voucher</button>
+    </div>
+
+    <div class="voucher-container">
+        <div class="voucher">
+            <div class="voucher-header">
+                <h1>🌿 PNG Green Fees</h1>
+                <p>Environmental Exit Voucher</p>
+            </div>
+
+            <div class="voucher-body">
+                <div class="voucher-info">
+                    <div class="info-row">
+                        <div class="info-label">Voucher Type</div>
+                        <div class="info-value" id="displayType">Corporate</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Passport Number</div>
+                        <div class="info-value" id="displayPassport">N1234567</div>
+                    </div>
+                    <div class="info-row" id="displayCompanyRow">
+                        <div class="info-label">Company Name</div>
+                        <div class="info-value" id="displayCompany">ABC Corporation</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Valid Until</div>
+                        <div class="info-value" id="displayValidUntil">2026-10-01</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Amount</div>
+                        <div class="info-value">PGK 50.00</div>
+                    </div>
+                </div>
+
+                <div class="qr-section">
+                    <div id="qrcode"></div>
+                    <div class="voucher-code" id="displayCode">CORP-2024-001</div>
+                    <span class="status-badge">✓ VALID</span>
+                </div>
+            </div>
+
+            <div class="voucher-footer">
+                <p><strong>Instructions:</strong> Present this voucher at the airport exit. Scan the QR code or enter the code manually for validation.</p>
+                <p style="margin-top: 10px;">Issued by Papua New Guinea Department of Environment</p>
+                <p style="margin-top: 5px;">For support, visit: http://eywademo.cloud</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set default date to 1 year from now
+        const tomorrow = new Date();
+        tomorrow.setFullYear(tomorrow.getFullYear() + 1);
+        document.getElementById('validUntil').value = tomorrow.toISOString().split('T')[0];
+
+        // Handle voucher type change
+        document.getElementById('voucherType').addEventListener('change', function() {
+            const companyGroup = document.getElementById('companyGroup');
+            if (this.value === 'Individual') {
+                companyGroup.style.display = 'none';
+            } else {
+                companyGroup.style.display = 'block';
+            }
+        });
+
+        function generateVoucher() {
+            const voucherType = document.getElementById('voucherType').value;
+            const voucherCode = document.getElementById('voucherCode').value;
+            const passportNumber = document.getElementById('passportNumber').value;
+            const companyName = document.getElementById('companyName').value;
+            const validUntil = document.getElementById('validUntil').value;
+
+            // Update display
+            document.getElementById('displayType').textContent = voucherType;
+            document.getElementById('displayPassport').textContent = passportNumber;
+            document.getElementById('displayCompany').textContent = companyName;
+            document.getElementById('displayValidUntil').textContent = validUntil;
+            document.getElementById('displayCode').textContent = voucherCode;
+
+            // Show/hide company row
+            const companyRow = document.getElementById('displayCompanyRow');
+            if (voucherType === 'Individual') {
+                companyRow.style.display = 'none';
+            } else {
+                companyRow.style.display = 'block';
+            }
+
+            // Generate QR code
+            document.getElementById('qrcode').innerHTML = '';
+            QRCode.toCanvas(voucherCode, {
+                width: 200,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                }
+            }, function (error, canvas) {
+                if (error) {
+                    console.error(error);
+                    return;
+                }
+                document.getElementById('qrcode').appendChild(canvas);
+            });
+        }
+
+        // Generate initial voucher on load
+        generateVoucher();
+    </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test QR Code Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body style="font-family: Arial, sans-serif; padding: 20px; text-align: center;">
+    <h1>Test QR Code Generator</h1>
+    <p>Generate test voucher codes for camera scanning</p>
+    
+    <div style="margin: 20px;">
+        <input type="text" id="voucherCode" placeholder="Enter voucher code" 
+               value="TEST-VOUCHER-123" style="padding: 10px; font-size: 16px; width: 300px;">
+        <button onclick="generateQR()" style="padding: 10px 20px; font-size: 16px; margin-left: 10px;">
+            Generate QR Code
+        </button>
+    </div>
+    
+    <div id="qrcode" style="margin: 20px;"></div>
+    
+    <div style="margin: 20px;">
+        <h3>Test Codes:</h3>
+        <button onclick="setCode('TEST-VOUCHER-123')" style="margin: 5px; padding: 5px 10px;">TEST-VOUCHER-123</button>
+        <button onclick="setCode('CORP-VOUCHER-456')" style="margin: 5px; padding: 5px 10px;">CORP-VOUCHER-456</button>
+        <button onclick="setCode('INDIVIDUAL-789')" style="margin: 5px; padding: 5px 10px;">INDIVIDUAL-789</button>
+    </div>
+
+    <script>
+        function generateQR() {
+            const code = document.getElementById('voucherCode').value;
+            if (!code) return;
+            
+            document.getElementById('qrcode').innerHTML = '';
+            
+            QRCode.toCanvas(document.getElementById('qrcode'), code, {
+                width: 256,
+                height: 256,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            }, function (error) {
+                if (error) console.error(error);
+                console.log('QR Code generated for:', code);
+            });
+        }
+        
+        function setCode(code) {
+            document.getElementById('voucherCode').value = code;
+            generateQR();
+        }
+        
+        // Generate initial QR code
+        generateQR();
+    </script>
+</body>
+</html>

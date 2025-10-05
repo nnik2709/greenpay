@@ -542,10 +542,17 @@ const IndividualPurchase = () => {
   const createVoucherAndPassport = async () => {
     setIsCreatingVoucher(true);
     try {
+      console.log('Starting voucher creation...');
+      console.log('Passport info:', passportInfo);
+      console.log('Payment data:', paymentData);
+      console.log('User:', user);
+
       // First, check if passport exists or create it
       let passport = await getPassportByNumber(passportInfo.passportNumber);
+      console.log('Found passport:', passport);
 
       if (!passport) {
+        console.log('Creating new passport...');
         // Create passport if it doesn't exist
         passport = await createPassport({
           passportNumber: passportInfo.passportNumber,
@@ -556,6 +563,7 @@ const IndividualPurchase = () => {
           sex: passportInfo.sex,
           dateOfExpiry: passportInfo.dateOfExpiry,
         }, user?.id);
+        console.log('Created passport:', passport);
       }
 
       // Create individual purchase voucher
@@ -567,8 +575,10 @@ const IndividualPurchase = () => {
         cardLastFour: paymentData.cardLastFour,
         nationality: passport.nationality,
       };
+      console.log('Purchase data:', purchaseData);
 
       const createdVoucher = await createIndividualPurchase(purchaseData, user?.id);
+      console.log('Created voucher:', createdVoucher);
       setVoucher(createdVoucher);
 
       toast({
@@ -577,10 +587,17 @@ const IndividualPurchase = () => {
       });
     } catch (error) {
       console.error('Error creating voucher:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        passportInfo,
+        paymentData,
+        user
+      });
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to generate voucher. Please try again.",
+        description: `Failed to generate voucher: ${error.message || 'Please try again.'}`,
       });
       setStep(1); // Go back to payment step
     } finally {

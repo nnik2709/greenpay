@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agent Flow Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .test-case { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .url { background: #e3f2fd; padding: 5px; border-radius: 3px; font-family: monospace; }
+        .expected { color: #2e7d32; font-weight: bold; }
+        .step { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Agent Flow Test Guide</h1>
+    
+    <div class="test-case">
+        <h2>📱 Test Case 1: Direct Scan Access</h2>
+        <div class="step"><strong>URL:</strong> <span class="url">http://localhost:3002/scan</span></div>
+        <div class="step"><strong>Expected Flow:</strong></div>
+        <ol>
+            <li>Redirects to login page</li>
+            <li>Agent logs in with: <code>agent@example.com</code> / <code>password123</code></li>
+            <li><span class="expected">Goes directly to Scan & Validate page</span></li>
+            <li>Can immediately start scanning/manual entry</li>
+        </ol>
+    </div>
+    
+    <div class="test-case">
+        <h2>🏠 Test Case 2: Base URL Access</h2>
+        <div class="step"><strong>URL:</strong> <span class="url">http://localhost:3002/</span></div>
+        <div class="step"><strong>Expected Flow:</strong></div>
+        <ol>
+            <li>Redirects to login page</li>
+            <li>Agent logs in with: <code>agent@example.com</code> / <code>password123</code></li>
+            <li><span class="expected">Shows Agent Landing Page with all capabilities</span></li>
+            <li>Can access: Passports, Payments, Scan & Validate, etc.</li>
+        </ol>
+    </div>
+    
+    <div class="test-case">
+        <h2>📋 Test Case 3: Navigation from Landing Page</h2>
+        <div class="step"><strong>Flow:</strong></div>
+        <ol>
+            <li>Login via base URL (Test Case 2)</li>
+            <li>Click "Scan & Validate" from Passports menu</li>
+            <li><span class="expected">Goes to Scan & Validate page</span></li>
+        </ol>
+    </div>
+    
+    <h2>🎯 Expected Results</h2>
+    <ul>
+        <li><strong>Direct /scan access:</strong> Agent lands directly on scan page after login</li>
+        <li><strong>Base URL access:</strong> Agent sees full landing page with all options</li>
+        <li><strong>Navigation works:</strong> All menu items work correctly</li>
+        <li><strong>Scan functionality:</strong> Both camera and manual entry work</li>
+    </ul>
+    
+    <h2>📱 Test on iPhone</h2>
+    <p>Use <span class="url">http://192.168.8.125:3002/</span> instead of localhost for iPhone testing.</p>
+    
+    <h2>🔧 Quick Test Commands</h2>
+    <div class="url">
+        # Test direct scan access<br>
+        curl -I http://localhost:3002/scan<br><br>
+        
+        # Test base URL<br>
+        curl -I http://localhost:3002/
+    </div>
+</body>
+</html>
