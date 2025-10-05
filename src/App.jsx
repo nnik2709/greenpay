@@ -121,7 +121,7 @@ const AppRoutes = () => {
             <OfflineUpload />
           </PrivateRoute>
         } />
-        <Route path="payments" element={
+        <Route path="purchases" element={
           <PrivateRoute roles={['Flex_Admin', 'Counter_Agent']}>
             <Purchases />
           </PrivateRoute>

@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockTransactions } from '@/lib/dashboardData';
+import { supabase } from '@/lib/supabaseClient';
 
 const StatCard = ({ title, value, index }) => {
   return (
@@ -64,17 +64,51 @@ const processDataForCharts = (data) => {
 };
 
 const Dashboard = () => {
-  const today = new Date('2025-10-02');
+  const today = new Date();
   const oneMonthAgo = new Date(today);
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
   const [fromDate, setFromDate] = useState(oneMonthAgo.toISOString().split('T')[0]);
   const [toDate, setToDate] = useState(today.toISOString().split('T')[0]);
   const [filteredData, setFilteredData] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadTransactions();
+  }, []);
 
   useEffect(() => {
     handleFilter();
-  }, []);
+  }, [fromDate, toDate, transactions]);
+
+  const loadTransactions = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Transform to match expected format
+      const formattedData = (data || []).map(t => ({
+        date: new Date(t.created_at),
+        amount: parseFloat(t.amount),
+        paymentMethod: t.payment_method || 'Cash',
+        type: (t.transaction_type === 'individual' || t.transaction_type === 'individual_purchase') ? 'Individual' : 'Corporate',
+        nationality: t.nationality || 'Unknown'
+      }));
+
+      setTransactions(formattedData);
+    } catch (error) {
+      console.error('Error loading transactions:', error);
+      setTransactions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleFilter = () => {
     const start = new Date(fromDate);
@@ -82,7 +116,7 @@ const Dashboard = () => {
     const end = new Date(toDate);
     end.setHours(23, 59, 59, 999);
 
-    const data = mockTransactions.filter(t => {
+    const data = transactions.filter(t => {
       const transactionDate = new Date(t.date);
       return transactionDate >= start && transactionDate <= end;
     });
@@ -95,7 +129,7 @@ const Dashboard = () => {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const todaysTransactions = mockTransactions.filter(t => {
+    const todaysTransactions = transactions.filter(t => {
         const transactionDate = new Date(t.date);
         return transactionDate >= todayStart && transactionDate <= todayEnd;
     });

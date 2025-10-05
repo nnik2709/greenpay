@@ -14,7 +14,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { passports as mockPassports } from '@/lib/passportData';
 import { supabase } from '@/lib/supabaseClient';
 import { getPassports, searchPassports } from '@/lib/passportsService';
 

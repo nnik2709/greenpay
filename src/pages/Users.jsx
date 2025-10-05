@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import { users as initialUsers } from '@/lib/authData';
 import { supabase } from '@/lib/supabaseClient';
+import { getUsers } from '@/lib/usersService';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,7 @@ import {
 const Users = () => {
   const { toast } = useToast();
   const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAddUserModalOpen, setAddUserModalOpen] = useState(false);
   const [isEditUserModalOpen, setEditUserModalOpen] = useState(false);
   const [isDeactivateModalOpen, setDeactivateModalOpen] = useState(false);
@@ -41,8 +42,25 @@ const Users = () => {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   useEffect(() => {
-    setUsers(initialUsers.map(u => ({...u, active: true})));
+    loadUsers();
   }, []);
+
+  const loadUsers = async () => {
+    setIsLoading(true);
+    try {
+      const usersData = await getUsers();
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load users"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (selectedUser) {

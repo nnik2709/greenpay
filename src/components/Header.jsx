@@ -62,7 +62,7 @@ const navItemsByRole = {
       label: 'Scan & Validate'
     }]
   }, {
-    to: '/payments',
+    to: '/purchases',
     icon: <CreditCard className="h-4 w-4" />,
     label: 'Purchases'
   }, {

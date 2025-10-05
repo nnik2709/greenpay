@@ -1,10 +1,5 @@
 import { supabase } from './supabaseClient';
-
-const generateVoucherCode = () => {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `CORP-${timestamp}-${random}`;
-};
+import { generateVoucherCode } from './utils';
 
 export const getCorporateVouchers = async () => {
   try {
@@ -26,7 +21,7 @@ export const getCorporateVouchers = async () => {
 
 export const createCorporateVoucher = async (voucherData, userId) => {
   try {
-    const voucherCode = generateVoucherCode();
+    const voucherCode = generateVoucherCode('CORP');
 
     const { data, error } = await supabase
       .from('corporate_vouchers')
@@ -125,7 +120,7 @@ export const createBulkCorporateVouchers = async (bulkData, userId) => {
     // Generate unique voucher codes for each voucher
     const vouchers = [];
     for (let i = 0; i < quantity; i++) {
-      const voucherCode = generateVoucherCode();
+      const voucherCode = generateVoucherCode('CORP');
       vouchers.push({
         voucher_code: voucherCode,
         passport_number: `BULK-${Date.now()}-${i}`, // Placeholder for bulk vouchers

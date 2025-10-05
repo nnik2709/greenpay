@@ -1,10 +1,5 @@
 import { supabase } from './supabaseClient';
-
-const generateVoucherCode = () => {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `IND-${timestamp}-${random}`;
-};
+import { generateVoucherCode } from './utils';
 
 export const getIndividualPurchases = async () => {
   try {
@@ -26,7 +21,7 @@ export const getIndividualPurchases = async () => {
 
 export const createIndividualPurchase = async (purchaseData, userId) => {
   try {
-    const voucherCode = generateVoucherCode();
+    const voucherCode = generateVoucherCode('IND');
 
     // Use custom validity if provided, otherwise default to 30 days
     let validUntil;

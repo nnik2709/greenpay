@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { passports as mockPassports } from '@/lib/passportData';
+// Legacy import removed - using Supabase passportsService instead
 import { getPassportByNumber, createPassport } from '@/lib/passportsService';
 import { createIndividualPurchase } from '@/lib/individualPurchasesService';
 import { getPaymentModes } from '@/lib/paymentModesStorage';
