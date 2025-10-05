@@ -93,26 +93,35 @@ const ScanAndValidate = () => {
 
   const validateVoucher = async (code) => {
     try {
+      console.log('Validating voucher code:', code.trim());
+
       // Try individual purchases first
-      const { data: individualData } = await supabase
+      const { data: individualData, error: individualError } = await supabase
         .from('individual_purchases')
         .select('*')
         .eq('voucher_code', code.trim())
         .maybeSingle();
 
+      console.log('Individual query result:', { individualData, individualError });
+
       // Try corporate vouchers if not found
-      const { data: corporateData } = await supabase
+      const { data: corporateData, error: corporateError } = await supabase
         .from('corporate_vouchers')
         .select('*')
         .eq('voucher_code', code.trim())
         .maybeSingle();
 
+      console.log('Corporate query result:', { corporateData, corporateError });
+
       const data = individualData || corporateData;
       const voucherType = individualData ? 'Individual' : corporateData ? 'Corporate' : null;
 
       if (!data) {
+        console.log('No voucher found for code:', code.trim());
         return { type: 'error', status: 'error', message: 'Voucher code not found.' };
       }
+
+      console.log('Found voucher:', { type: voucherType, data });
 
       const now = new Date();
       const expiryDate = new Date(data.valid_until);
@@ -181,7 +190,16 @@ const ScanAndValidate = () => {
       }
     } catch (error) {
       console.error('Validation error:', error);
-      setValidationResult({ type: 'error', status: 'error', message: 'Validation failed. Please try again.' });
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        code: code
+      });
+      setValidationResult({
+        type: 'error',
+        status: 'error',
+        message: `Validation failed: ${error.message || 'Please try again.'}`
+      });
       setInputValue('');
     } finally {
       setIsProcessing(false);
