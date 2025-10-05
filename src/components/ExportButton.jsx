@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Download, FileSpreadsheet, FileText, FileType } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const ExportButton = ({ data, columns, filename = 'export', title = 'Report' }) => {
   const { toast } = useToast();
@@ -132,8 +132,8 @@ const ExportButton = ({ data, columns, filename = 'export', title = 'Report' }) 
         })
       );
 
-      // Add table
-      doc.autoTable({
+      // Add table using autoTable
+      autoTable(doc, {
         head: [headers],
         body: body,
         startY: 28,
