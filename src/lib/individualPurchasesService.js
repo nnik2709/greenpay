@@ -27,8 +27,15 @@ export const getIndividualPurchases = async () => {
 export const createIndividualPurchase = async (purchaseData, userId) => {
   try {
     const voucherCode = generateVoucherCode();
-    const validUntil = new Date();
-    validUntil.setDate(validUntil.getDate() + 30); // Valid for 30 days
+
+    // Use custom validity if provided, otherwise default to 30 days
+    let validUntil;
+    if (purchaseData.validUntil) {
+      validUntil = new Date(purchaseData.validUntil);
+    } else {
+      validUntil = new Date();
+      validUntil.setDate(validUntil.getDate() + 30);
+    }
 
     const { data, error } = await supabase
       .from('individual_purchases')

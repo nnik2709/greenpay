@@ -6,7 +6,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/MainLayout';
 import Dashboard from '@/pages/Dashboard';
 import Passports from '@/pages/Passports';
-import Payments from '@/pages/Payments';
+import Purchases from '@/pages/Purchases';
 import Reports from '@/pages/Reports';
 import Users from '@/pages/Users';
 import NotFound from '@/pages/NotFound';
@@ -123,7 +123,7 @@ const AppRoutes = () => {
         } />
         <Route path="payments" element={
           <PrivateRoute roles={['Flex_Admin', 'Counter_Agent']}>
-            <Payments />
+            <Purchases />
           </PrivateRoute>
         } />
         <Route path="quotations" element={
