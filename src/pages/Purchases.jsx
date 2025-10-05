@@ -24,6 +24,7 @@ const Purchases = () => {
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all'); // all, individual, corporate
 
   // Add Payment Dialog
   const [showAddPayment, setShowAddPayment] = useState(false);
@@ -75,7 +76,7 @@ const Purchases = () => {
 
   useEffect(() => {
     filterTransactions();
-  }, [searchQuery, transactions]);
+  }, [searchQuery, transactions, typeFilter]);
 
   const loadTransactions = async () => {
     setIsLoading(true);
@@ -133,17 +134,32 @@ const Purchases = () => {
   };
 
   const filterTransactions = () => {
-    if (!searchQuery.trim()) {
-      setFilteredTransactions(transactions);
-      return;
+    let filtered = transactions;
+
+    // Filter by type
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(t => {
+        if (typeFilter === 'individual') {
+          return t.transaction_type === 'individual' || t.transaction_type === 'individual_purchase';
+        }
+        if (typeFilter === 'corporate') {
+          return t.transaction_type === 'corporate' || t.transaction_type === 'corporate_bulk';
+        }
+        return true;
+      });
     }
 
-    const query = searchQuery.toLowerCase();
-    const filtered = transactions.filter(t =>
-      t.passport_number?.toLowerCase().includes(query) ||
-      t.id?.toLowerCase().includes(query) ||
-      t.payment_method?.toLowerCase().includes(query)
-    );
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(t =>
+        t.passport_number?.toLowerCase().includes(query) ||
+        t.id?.toLowerCase().includes(query) ||
+        t.payment_method?.toLowerCase().includes(query) ||
+        t.voucher?.voucher_code?.toLowerCase().includes(query)
+      );
+    }
+
     setFilteredTransactions(filtered);
   };
 
@@ -326,6 +342,53 @@ const Purchases = () => {
     return 'N/A';
   };
 
+  const getTransactionType = (transaction) => {
+    if (transaction.transaction_type === 'individual' || transaction.transaction_type === 'individual_purchase') {
+      return 'Individual';
+    }
+    if (transaction.transaction_type === 'corporate' || transaction.transaction_type === 'corporate_bulk') {
+      return 'Corporate';
+    }
+    return 'Unknown';
+  };
+
+  const handlePrintVoucherFromList = async (transaction) => {
+    if (!transaction.voucher) {
+      toast({ variant: "destructive", title: "No Voucher", description: "No voucher found for this transaction." });
+      return;
+    }
+
+    // Load the full voucher with passport details
+    try {
+      let voucherData = null;
+      const isIndividual = transaction.transaction_type === 'individual' || transaction.transaction_type === 'individual_purchase';
+
+      if (isIndividual) {
+        const { data } = await supabase
+          .from('individual_purchases')
+          .select('*')
+          .eq('id', transaction.reference_id)
+          .single();
+        voucherData = data;
+      } else {
+        const { data } = await supabase
+          .from('corporate_vouchers')
+          .select('*')
+          .eq('id', transaction.reference_id)
+          .single();
+        voucherData = data;
+      }
+
+      if (voucherData) {
+        setGeneratedVoucher(voucherData);
+        setShowPrintDialog(true);
+      }
+    } catch (error) {
+      console.error('Error loading voucher:', error);
+      toast({ variant: "destructive", title: "Error", description: "Failed to load voucher details." });
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -351,20 +414,29 @@ const Purchases = () => {
       {/* Filters and Search */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
               <Input
-                placeholder="Search by passport number, payment ID, or method..."
+                placeholder="Search by passport number, payment ID, voucher code, or method..."
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button variant="outline">
-              <Filter className="w-4 h-4 mr-2" />
-              Filter
-            </Button>
+            <div className="flex gap-2 items-center">
+              <Label className="text-sm text-slate-600">Type:</Label>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="individual">Individual</SelectItem>
+                  <SelectItem value="corporate">Corporate</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button variant="outline">
               <Download className="w-4 h-4 mr-2" />
               Export
@@ -389,6 +461,7 @@ const Purchases = () => {
                 <thead>
                   <tr className="border-b text-left text-sm text-slate-600">
                     <th className="pb-3 font-semibold">Payment ID</th>
+                    <th className="pb-3 font-semibold">Type</th>
                     <th className="pb-3 font-semibold">Passport Number</th>
                     <th className="pb-3 font-semibold">Exit Pass ID</th>
                     <th className="pb-3 font-semibold">Amount</th>
@@ -407,13 +480,31 @@ const Purchases = () => {
                         </div>
                       </td>
                       <td className="py-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          getTransactionType(transaction) === 'Individual'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-purple-100 text-purple-700'
+                        }`}>
+                          {getTransactionType(transaction)}
+                        </span>
+                      </td>
+                      <td className="py-4">
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-slate-400" />
                           <span>{transaction.passport_number}</span>
                         </div>
                       </td>
                       <td className="py-4">
-                        <span className="font-mono text-sm text-emerald-600">{getExitPassId(transaction)}</span>
+                        {getExitPassId(transaction) !== 'N/A' ? (
+                          <button
+                            onClick={() => handlePrintVoucherFromList(transaction)}
+                            className="font-mono text-sm text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer"
+                          >
+                            {getExitPassId(transaction)}
+                          </button>
+                        ) : (
+                          <span className="font-mono text-sm text-slate-400">N/A</span>
+                        )}
                       </td>
                       <td className="py-4">
                         <div className="flex items-center gap-2">
@@ -434,7 +525,12 @@ const Purchases = () => {
                         </div>
                       </td>
                       <td className="py-4">
-                        <Button size="sm" variant="outline">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePrintVoucherFromList(transaction)}
+                          disabled={!transaction.voucher}
+                        >
                           <Printer className="w-4 h-4" />
                         </Button>
                       </td>
