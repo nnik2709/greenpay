@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UploadCloud, FileText, CreditCard, QrCode, Check, Download, ChevronsRight, History, FileSpreadsheet } from 'lucide-react';
+import { UploadCloud, FileText, CreditCard, QrCode, Check, Download, ChevronsRight, History, FileSpreadsheet, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import Payments from '@/pages/Payments';
 
 const steps = [
@@ -17,11 +20,29 @@ const recentUploads = [
     { id: 'UPL-003', date: '2025-09-25', passports: 10, status: 'Failed' },
 ];
 
+const DEFAULT_FIELDS = [
+  { id: 'passportNo', label: 'Passport Number', required: true, enabled: true },
+  { id: 'surname', label: 'Surname', required: true, enabled: true },
+  { id: 'givenName', label: 'Given Name', required: true, enabled: true },
+  { id: 'nationality', label: 'Nationality', required: true, enabled: true },
+  { id: 'dob', label: 'Date of Birth', required: true, enabled: true },
+  { id: 'sex', label: 'Sex', required: true, enabled: true },
+  { id: 'dateOfExpiry', label: 'Passport Expiry Date', required: true, enabled: true },
+  { id: 'placeOfBirth', label: 'Place of Birth', required: false, enabled: false },
+  { id: 'placeOfIssue', label: 'Place of Issue', required: false, enabled: false },
+  { id: 'dateOfIssue', label: 'Date of Issue', required: false, enabled: false },
+  { id: 'fileNumber', label: 'File Number', required: false, enabled: false },
+  { id: 'email', label: 'Email Address', required: false, enabled: false },
+  { id: 'phone', label: 'Phone Number', required: false, enabled: false },
+];
+
 const BulkPassportUpload = () => {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [passportCount, setPassportCount] = useState(0);
+  const [showFieldsConfig, setShowFieldsConfig] = useState(false);
+  const [templateFields, setTemplateFields] = useState(DEFAULT_FIELDS);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -58,15 +79,39 @@ const BulkPassportUpload = () => {
     setPassportCount(0);
   };
 
+  const toggleField = (fieldId) => {
+    setTemplateFields(fields =>
+      fields.map(f =>
+        f.id === fieldId && !f.required
+          ? { ...f, enabled: !f.enabled }
+          : f
+      )
+    );
+  };
+
   const handleDownloadTemplate = () => {
-    const headers = [
-      "passportNo", "surname", "givenName", "nationality", "dob", "sex", 
-      "placeOfBirth", "placeOfIssue", "dateOfIssue", "dateOfExpiry", "fileNumber"
-    ];
-    const exampleRow = [
-      "P123456789", "Doe", "John", "Papua New Guinea", "1990-01-01", "Male",
-      "Port Moresby", "Port Moresby", "2020-01-01", "2030-01-01", "FILE001"
-    ];
+    // Get enabled fields only
+    const enabledFields = templateFields.filter(f => f.enabled);
+    const headers = enabledFields.map(f => f.id);
+
+    // Generate example row with sample data
+    const exampleData = {
+      passportNo: "P123456789",
+      surname: "Doe",
+      givenName: "John",
+      nationality: "Papua New Guinea",
+      dob: "1990-01-01",
+      sex: "Male",
+      dateOfExpiry: "2030-01-01",
+      placeOfBirth: "Port Moresby",
+      placeOfIssue: "Port Moresby",
+      dateOfIssue: "2020-01-01",
+      fileNumber: "FILE001",
+      email: "john.doe@example.com",
+      phone: "+675 1234 5678"
+    };
+
+    const exampleRow = enabledFields.map(f => exampleData[f.id] || '');
 
     const csvContent = [
       headers.join(','),
@@ -84,10 +129,10 @@ const BulkPassportUpload = () => {
       link.click();
       document.body.removeChild(link);
     }
-    
+
     toast({
-      title: "Template Downloading",
-      description: "Your passport_template.csv file has started downloading.",
+      title: "Template Downloaded",
+      description: `CSV template with ${enabledFields.length} fields has been downloaded.`,
     });
   };
 
@@ -112,10 +157,16 @@ const BulkPassportUpload = () => {
               )}
             </div>
             <div className="flex justify-between items-center">
-              <Button variant="outline" onClick={handleDownloadTemplate}>
-                <Download className="w-4 h-4 mr-2" />
-                Download Template
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowFieldsConfig(true)}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Configure Template
+                </Button>
+                <Button variant="outline" onClick={handleDownloadTemplate}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Template ({templateFields.filter(f => f.enabled).length} fields)
+                </Button>
+              </div>
               <Button onClick={handleProceedToPayment} size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
                 Proceed to Payment <ChevronsRight className="w-5 h-5 ml-2" />
               </Button>
@@ -212,6 +263,98 @@ const BulkPassportUpload = () => {
             </div>
         </div>
       </div>
+
+      {/* Template Configuration Dialog */}
+      <Dialog open={showFieldsConfig} onOpenChange={setShowFieldsConfig}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Configure CSV Template Fields</DialogTitle>
+            <DialogDescription>
+              Enable or disable fields to include in your CSV template. Required fields cannot be disabled.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Required Fields Section */}
+            <div>
+              <h3 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded">Required</span>
+                Essential Fields
+              </h3>
+              <div className="space-y-3 pl-4 border-l-2 border-red-200">
+                {templateFields.filter(f => f.required).map(field => (
+                  <div key={field.id} className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg">
+                    <div>
+                      <Label htmlFor={field.id} className="font-medium text-slate-700">
+                        {field.label}
+                      </Label>
+                      <p className="text-xs text-slate-500 mt-0.5">Field ID: {field.id}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">Always included</span>
+                      <Switch
+                        id={field.id}
+                        checked={true}
+                        disabled={true}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Optional Fields Section */}
+            <div>
+              <h3 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded">Optional</span>
+                Additional Fields
+              </h3>
+              <div className="space-y-3 pl-4 border-l-2 border-emerald-200">
+                {templateFields.filter(f => !f.required).map(field => (
+                  <div key={field.id} className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                    <div>
+                      <Label htmlFor={field.id} className="font-medium text-slate-700 cursor-pointer">
+                        {field.label}
+                      </Label>
+                      <p className="text-xs text-slate-500 mt-0.5">Field ID: {field.id}</p>
+                    </div>
+                    <Switch
+                      id={field.id}
+                      checked={field.enabled}
+                      onCheckedChange={() => toggleField(field.id)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+              <p className="text-sm text-blue-800">
+                <strong>Total fields enabled:</strong> {templateFields.filter(f => f.enabled).length} out of {templateFields.length}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                Your CSV template will include these {templateFields.filter(f => f.enabled).length} fields when downloaded.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFieldsConfig(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              setShowFieldsConfig(false);
+              toast({
+                title: "Configuration Saved",
+                description: `Template configured with ${templateFields.filter(f => f.enabled).length} fields.`,
+              });
+            }}>
+              Save Configuration
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };
