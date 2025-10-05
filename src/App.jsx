@@ -1,36 +1,47 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/MainLayout';
-import Dashboard from '@/pages/Dashboard';
-import Passports from '@/pages/Passports';
-import Purchases from '@/pages/Purchases';
-import Reports from '@/pages/Reports';
-import Users from '@/pages/Users';
-import NotFound from '@/pages/NotFound';
-import Login from '@/pages/Login';
-import Tickets from '@/pages/Tickets';
-import Quotations from '@/pages/Quotations';
-import IndividualPurchase from '@/pages/IndividualPurchase';
-import BulkPassportUpload from '@/pages/BulkPassportUpload';
-import CorporateExitPass from '@/pages/CorporateExitPass';
-import CreateQuotation from '@/pages/CreateQuotation';
-import OfflineTemplate from '@/pages/OfflineTemplate';
-import OfflineUpload from '@/pages/OfflineUpload';
-import PassportReports from '@/pages/reports/PassportReports';
-import PaymentModes from '@/pages/admin/PaymentModes';
-import EmailTemplates from '@/pages/admin/EmailTemplates';
-import IndividualPurchaseReports from '@/pages/reports/IndividualPurchaseReports';
-import CorporateVoucherReports from '@/pages/reports/CorporateVoucherReports';
-import RevenueGeneratedReports from '@/pages/reports/RevenueGeneratedReports';
-import BulkPassportUploadReports from '@/pages/reports/BulkPassportUploadReports';
-import QuotationsReports from '@/pages/reports/QuotationsReports';
-import ScanAndValidate from '@/pages/ScanAndValidate';
-import AgentLanding from '@/pages/AgentLanding';
-import ResetPassword from '@/pages/ResetPassword';
 import RoleBasedRedirect from '@/components/RoleBasedRedirect';
+
+// Eager load critical pages
+import Login from '@/pages/Login';
+import NotFound from '@/pages/NotFound';
+import ResetPassword from '@/pages/ResetPassword';
+
+// Lazy load pages for code splitting and better performance
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Passports = lazy(() => import('@/pages/Passports'));
+const Purchases = lazy(() => import('@/pages/Purchases'));
+const Reports = lazy(() => import('@/pages/Reports'));
+const Users = lazy(() => import('@/pages/Users'));
+const Tickets = lazy(() => import('@/pages/Tickets'));
+const Quotations = lazy(() => import('@/pages/Quotations'));
+const IndividualPurchase = lazy(() => import('@/pages/IndividualPurchase'));
+const BulkPassportUpload = lazy(() => import('@/pages/BulkPassportUpload'));
+const CorporateExitPass = lazy(() => import('@/pages/CorporateExitPass'));
+const CreateQuotation = lazy(() => import('@/pages/CreateQuotation'));
+const OfflineTemplate = lazy(() => import('@/pages/OfflineTemplate'));
+const OfflineUpload = lazy(() => import('@/pages/OfflineUpload'));
+const PassportReports = lazy(() => import('@/pages/reports/PassportReports'));
+const PaymentModes = lazy(() => import('@/pages/admin/PaymentModes'));
+const EmailTemplates = lazy(() => import('@/pages/admin/EmailTemplates'));
+const IndividualPurchaseReports = lazy(() => import('@/pages/reports/IndividualPurchaseReports'));
+const CorporateVoucherReports = lazy(() => import('@/pages/reports/CorporateVoucherReports'));
+const RevenueGeneratedReports = lazy(() => import('@/pages/reports/RevenueGeneratedReports'));
+const BulkPassportUploadReports = lazy(() => import('@/pages/reports/BulkPassportUploadReports'));
+const QuotationsReports = lazy(() => import('@/pages/reports/QuotationsReports'));
+const ScanAndValidate = lazy(() => import('@/pages/ScanAndValidate'));
+const AgentLanding = lazy(() => import('@/pages/AgentLanding'));
+
+// Loading component for suspense fallback
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+  </div>
+);
 
 // Special route for /scan that redirects agents directly to scan page
 const ScanRoute = () => {
@@ -67,19 +78,20 @@ const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <Routes>
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route 
-        path="/" 
-        element={
-          <PrivateRoute>
-            <MainLayout />
-          </PrivateRoute>
-        }
-      >
-        <Route index element={<RoleBasedRedirect />} />
-        <Route path="dashboard" element={<Dashboard />} />
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <MainLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<RoleBasedRedirect />} />
+          <Route path="dashboard" element={<Dashboard />} />
         <Route path="agent" element={
           <PrivateRoute roles={['Counter_Agent']}>
             <AgentLanding />
@@ -185,6 +197,7 @@ const AppRoutes = () => {
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </Suspense>
   );
 };
 
