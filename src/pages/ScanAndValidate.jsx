@@ -26,23 +26,32 @@ const ScanAndValidate = () => {
   }, []);
 
   // Success beep function
-  const playSuccessBeep = () => {
+  const playSuccessBeep = async () => {
     if (!audioContext.current) return;
 
-    const oscillator = audioContext.current.createOscillator();
-    const gainNode = audioContext.current.createGain();
+    try {
+      // Resume audio context if suspended (mobile browsers)
+      if (audioContext.current.state === 'suspended') {
+        await audioContext.current.resume();
+      }
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.current.destination);
+      const oscillator = audioContext.current.createOscillator();
+      const gainNode = audioContext.current.createGain();
 
-    oscillator.frequency.value = 800; // Hz
-    oscillator.type = 'sine';
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.current.destination);
 
-    gainNode.gain.setValueAtTime(0.3, audioContext.current.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.current.currentTime + 0.2);
+      oscillator.frequency.value = 800; // Hz
+      oscillator.type = 'sine';
 
-    oscillator.start(audioContext.current.currentTime);
-    oscillator.stop(audioContext.current.currentTime + 0.2);
+      gainNode.gain.setValueAtTime(0.3, audioContext.current.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.current.currentTime + 0.2);
+
+      oscillator.start(audioContext.current.currentTime);
+      oscillator.stop(audioContext.current.currentTime + 0.2);
+    } catch (error) {
+      console.error('Beep sound error:', error);
+    }
   };
 
   const parseMrz = (mrzString) => {
@@ -200,6 +209,11 @@ const ScanAndValidate = () => {
         playSuccessBeep();
         setShowSuccessFlash(true);
         setTimeout(() => setShowSuccessFlash(false), 1000);
+
+        // Add vibration for mobile devices
+        if (navigator.vibrate) {
+          navigator.vibrate(200); // Vibrate for 200ms
+        }
       }
     } catch (error) {
       console.error('Validation error:', error);
