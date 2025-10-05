@@ -117,3 +117,48 @@ export const markCorporateVoucherAsUsed = async (voucherCode) => {
     throw error;
   }
 };
+
+export const createBulkCorporateVouchers = async (bulkData, userId) => {
+  try {
+    const { quantity, companyName, amount, paymentMethod, validUntil } = bulkData;
+
+    // Generate unique voucher codes for each voucher
+    const vouchers = [];
+    for (let i = 0; i < quantity; i++) {
+      const voucherCode = generateVoucherCode();
+      vouchers.push({
+        voucher_code: voucherCode,
+        passport_number: `BULK-${Date.now()}-${i}`, // Placeholder for bulk vouchers
+        company_name: companyName,
+        quantity: 1,
+        amount: amount / quantity, // Split total amount across vouchers
+        payment_method: paymentMethod,
+        valid_from: new Date().toISOString(),
+        valid_until: validUntil,
+        created_by: userId,
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('corporate_vouchers')
+      .insert(vouchers)
+      .select();
+
+    if (error) throw error;
+
+    // Create single transaction record for the batch
+    await supabase.from('transactions').insert([{
+      transaction_type: 'corporate_bulk',
+      reference_id: data[0].id,
+      amount: amount,
+      payment_method: paymentMethod,
+      passport_number: `BULK-${quantity}`,
+      created_by: userId,
+    }]);
+
+    return data;
+  } catch (error) {
+    console.error('Error creating bulk corporate vouchers:', error);
+    throw error;
+  }
+};
