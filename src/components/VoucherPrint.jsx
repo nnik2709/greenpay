@@ -52,26 +52,28 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
           <DialogTitle>Print Voucher</DialogTitle>
         </DialogHeader>
 
-        <div className="print-area">
-          <style>{`
-            @media print {
-              body * {
-                visibility: hidden;
-              }
-              .print-area, .print-area * {
-                visibility: visible;
-              }
-              .print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-              }
-              .no-print {
-                display: none !important;
-              }
+        <style>{`
+          @media print {
+            body * {
+              visibility: hidden;
             }
-          `}</style>
+            .voucher-printable,
+            .voucher-printable * {
+              visibility: visible;
+            }
+            .voucher-printable {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+            }
+            .no-print {
+              display: none !important;
+            }
+          }
+        `}</style>
+
+        <div className="print-area">
 
           <div className="voucher-printable bg-white p-8 rounded-lg border-2 border-gray-200">
             {/* Header */}
