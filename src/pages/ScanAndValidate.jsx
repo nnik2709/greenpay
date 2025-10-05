@@ -254,8 +254,19 @@ const ScanAndValidate = () => {
 
     const scanner = new Html5QrcodeScanner(
       'qr-reader',
-      { fps: 10, qrbox: 250 },
-      false
+      {
+        fps: 10,
+        qrbox: 250,
+        rememberLastUsedCamera: true,
+        showTorchButtonIfSupported: true
+      },
+      {
+        verbose: false,
+        formatsToSupport: undefined,
+        useBarCodeDetectorIfSupported: true,
+        showZoomSliderIfSupported: true,
+        defaultZoomValueIfSupported: 2
+      }
     );
 
     const onScanSuccess = (decodedText) => {
@@ -377,6 +388,25 @@ const ScanAndValidate = () => {
           <AnimatePresence>
             {showCameraScanner && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                {/* Camera Permission Instructions */}
+                <Card className="mb-4 bg-emerald-50 border-emerald-300">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Camera className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-1" />
+                      <div>
+                        <h3 className="font-bold text-emerald-900 mb-1 text-lg">Allow Camera Access</h3>
+                        <p className="text-emerald-800 text-sm mb-2">
+                          Your browser will ask for camera permission. Please tap <strong>"Allow"</strong> to scan QR codes.
+                        </p>
+                        <ul className="text-emerald-700 text-xs space-y-1 list-disc list-inside">
+                          <li>Position the QR code within the scanning frame</li>
+                          <li>Hold steady until it scans automatically</li>
+                          <li>You'll hear a beep when successful</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
                 <div id="qr-reader" className="w-full"></div>
               </motion.div>
             )}
