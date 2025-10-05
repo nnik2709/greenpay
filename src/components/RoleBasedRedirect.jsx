@@ -1,12 +1,10 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import Dashboard from '@/pages/Dashboard';
-import AgentLanding from '@/pages/AgentLanding';
 
 const RoleBasedRedirect = () => {
   const { user, loading } = useAuth();
-  
+
   // Show loading while user data is being fetched
   if (loading || !user) {
     return (
@@ -18,18 +16,19 @@ const RoleBasedRedirect = () => {
       </div>
     );
   }
-  
-  // Render the appropriate component based on user role
-        switch (user?.role) {
-          case 'Counter_Agent':
-            // Show agent landing page with all capabilities
-            return <AgentLanding />;
-          case 'Flex_Admin':
-          case 'Finance_Manager':
-          case 'IT_Support':
-          default:
-            return <Dashboard />;
-        }
+
+  // Redirect to appropriate route based on user role
+  switch (user?.role) {
+    case 'Counter_Agent':
+      // Redirect to agent landing page
+      return <Navigate to="/agent" replace />;
+    case 'Flex_Admin':
+    case 'Finance_Manager':
+    case 'IT_Support':
+    default:
+      // Redirect to dashboard
+      return <Navigate to="/dashboard" replace />;
+  }
 };
 
 export default RoleBasedRedirect;
