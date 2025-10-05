@@ -165,7 +165,7 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
           <CardTitle>Passport Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="passportNumber">Passport Number</label>
               <div className="relative mt-1">
