@@ -42,7 +42,95 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
   if (!voucher) return null;
 
   const handlePrint = () => {
-    window.print();
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    const voucherHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Voucher - ${voucher.voucher_code}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          .voucher { max-width: 800px; margin: 0 auto; border: 2px solid #ccc; padding: 40px; }
+          .header { text-align: center; border-bottom: 4px solid #10b981; padding-bottom: 20px; margin-bottom: 30px; }
+          .header h1 { font-size: 32px; color: #10b981; margin-bottom: 5px; }
+          .header p { font-size: 16px; color: #666; }
+          .content { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+          .info-section { display: flex; flex-direction: column; gap: 15px; }
+          .info-box { background: #f9fafb; padding: 12px; border-radius: 5px; }
+          .info-label { font-size: 11px; color: #666; text-transform: uppercase; margin-bottom: 5px; }
+          .info-value { font-size: 18px; font-weight: bold; color: #111; }
+          .qr-section { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; }
+          .qr-section img { border: 2px solid #ddd; border-radius: 5px; }
+          .voucher-code { font-size: 24px; font-weight: bold; color: #10b981; font-family: 'Courier New', monospace; letter-spacing: 2px; word-break: break-all; text-align: center; }
+          .status-badge { display: inline-block; padding: 8px 16px; background: #10b981; color: white; border-radius: 20px; font-size: 14px; font-weight: bold; margin-top: 10px; }
+          .footer { border-top: 2px solid #e5e7eb; padding-top: 20px; text-align: center; font-size: 12px; color: #666; }
+          .footer p { margin-bottom: 8px; }
+          @media print {
+            body { padding: 0; }
+            .voucher { border: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="voucher">
+          <div class="header">
+            <h1>🌿 PNG Green Fees</h1>
+            <p>Environmental Exit Voucher</p>
+          </div>
+
+          <div class="content">
+            <div class="info-section">
+              <div class="info-box">
+                <div class="info-label">Voucher Type</div>
+                <div class="info-value">${voucherType}</div>
+              </div>
+              <div class="info-box">
+                <div class="info-label">Passport Number</div>
+                <div class="info-value">${voucher.passport_number}</div>
+              </div>
+              ${voucher.company_name ? `
+              <div class="info-box">
+                <div class="info-label">Company Name</div>
+                <div class="info-value">${voucher.company_name}</div>
+              </div>
+              ` : ''}
+              <div class="info-box">
+                <div class="info-label">Valid Until</div>
+                <div class="info-value">${new Date(voucher.valid_until).toLocaleDateString()}</div>
+              </div>
+              <div class="info-box">
+                <div class="info-label">Amount</div>
+                <div class="info-value">PGK ${voucher.amount}</div>
+              </div>
+            </div>
+
+            <div class="qr-section">
+              <img src="${qrDataUrl}" alt="QR Code" width="200" height="200" />
+              <div class="voucher-code">${voucher.voucher_code}</div>
+              <span class="status-badge">✓ VALID</span>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p><strong>Instructions:</strong> Present this voucher at the airport exit. Scan the QR code or enter the code manually for validation.</p>
+            <p>Issued by Papua New Guinea Department of Environment</p>
+            <p>Payment Method: ${voucher.payment_method} | Issued: ${new Date(voucher.created_at).toLocaleDateString()}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(voucherHTML);
+    printWindow.document.close();
+    printWindow.onload = function() {
+      printWindow.print();
+      printWindow.onafterprint = function() {
+        printWindow.close();
+      };
+    };
   };
 
   return (
