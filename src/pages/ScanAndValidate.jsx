@@ -161,6 +161,19 @@ const ScanAndValidate = () => {
   const handleValidation = useCallback(async (code) => {
     if (!code) return;
 
+    console.log('=== VALIDATION STARTED ===');
+    console.log('Raw code received:', code);
+    console.log('Code length:', code.length);
+    console.log('Code type:', typeof code);
+    console.log('Code chars:', Array.from(code).map((c, i) => `[${i}]='${c}' (${c.charCodeAt(0)})`));
+
+    // Show scanned code in toast for debugging
+    toast({
+      title: "Scanned Code",
+      description: `Code: "${code}" (length: ${code.length})`,
+      duration: 5000
+    });
+
     const now = Date.now();
     if (code === lastScannedCode.current && (now - lastScanTime.current) < 2000) {
       toast({ title: "Duplicate Scan", description: "This code was just processed.", variant: "destructive" });
