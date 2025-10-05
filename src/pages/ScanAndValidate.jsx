@@ -351,28 +351,29 @@ const ScanAndValidate = () => {
 
       <Card className="mb-8">
         <CardContent className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button 
-              variant="outline" 
-              className="h-16 text-lg" 
-              onClick={() => setShowCameraScanner(s => !s)}
-              disabled={!window.isSecureContext && 
-                       window.location.hostname !== 'localhost' && 
-                       window.location.hostname !== '127.0.0.1' &&
-                       window.location.protocol !== 'https:'}
-            >
-              <Camera className="mr-2" /> 
-              {showCameraScanner ? 'Close Camera' : 'Use Camera'}
-              {!window.isSecureContext && 
-               window.location.hostname !== 'localhost' && 
-               window.location.hostname !== '127.0.0.1' &&
-               window.location.protocol !== 'https:' && 
-               <span className="text-xs text-orange-600 ml-2">(HTTPS required)</span>}
-            </Button>
-            <Button variant="outline" className="h-16 text-lg" onClick={() => document.getElementById('manual-input').focus()}>
-              <Keyboard className="mr-2" /> Manual Input
-            </Button>
-          </div>
+          {/* Primary Camera Button - Full width on mobile */}
+          <Button
+            variant={showCameraScanner ? "destructive" : "default"}
+            className="w-full h-20 text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
+            onClick={() => setShowCameraScanner(s => !s)}
+            disabled={!window.isSecureContext &&
+                     window.location.hostname !== 'localhost' &&
+                     window.location.hostname !== '127.0.0.1' &&
+                     window.location.protocol !== 'https:'}
+          >
+            <Camera className="mr-3 w-8 h-8" />
+            {showCameraScanner ? 'Close Camera' : 'Scan with Camera'}
+            {!window.isSecureContext &&
+             window.location.hostname !== 'localhost' &&
+             window.location.hostname !== '127.0.0.1' &&
+             window.location.protocol !== 'https:' &&
+             <span className="text-xs text-orange-200 ml-2">(HTTPS required)</span>}
+          </Button>
+
+          {/* Secondary Manual Input Button */}
+          <Button variant="outline" className="w-full h-14 text-base" onClick={() => document.getElementById('manual-input').focus()}>
+            <Keyboard className="mr-2" /> Manual Input (Optional)
+          </Button>
           <AnimatePresence>
             {showCameraScanner && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
