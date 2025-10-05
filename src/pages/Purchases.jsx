@@ -82,22 +82,50 @@ const Purchases = () => {
     try {
       const { data, error } = await supabase
         .from('transactions')
-        .select(`
-          *,
-          individual_purchase:individual_purchases(id, voucher_code, valid_until),
-          corporate_voucher:corporate_vouchers(id, voucher_code, valid_until)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setTransactions(data || []);
-      setFilteredTransactions(data || []);
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      // Load related vouchers separately
+      const transactionsWithVouchers = await Promise.all(
+        (data || []).map(async (transaction) => {
+          let voucher = null;
+
+          if (transaction.transaction_type === 'individual' || transaction.transaction_type === 'individual_purchase') {
+            const { data: voucherData } = await supabase
+              .from('individual_purchases')
+              .select('id, voucher_code, valid_until')
+              .eq('id', transaction.reference_id)
+              .maybeSingle();
+            voucher = voucherData;
+          } else if (transaction.transaction_type === 'corporate' || transaction.transaction_type === 'corporate_bulk') {
+            const { data: voucherData } = await supabase
+              .from('corporate_vouchers')
+              .select('id, voucher_code, valid_until')
+              .eq('id', transaction.reference_id)
+              .maybeSingle();
+            voucher = voucherData;
+          }
+
+          return {
+            ...transaction,
+            voucher
+          };
+        })
+      );
+
+      setTransactions(transactionsWithVouchers || []);
+      setFilteredTransactions(transactionsWithVouchers || []);
     } catch (error) {
       console.error('Error loading transactions:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load transactions.",
+        description: `Failed to load transactions: ${error.message}`,
       });
     } finally {
       setIsLoading(false);
@@ -292,11 +320,8 @@ const Purchases = () => {
   };
 
   const getExitPassId = (transaction) => {
-    if (transaction.transaction_type === 'individual' && transaction.individual_purchase) {
-      return transaction.individual_purchase[0]?.voucher_code || 'N/A';
-    }
-    if (transaction.transaction_type === 'corporate' && transaction.corporate_voucher) {
-      return transaction.corporate_voucher[0]?.voucher_code || 'N/A';
+    if (transaction.voucher && transaction.voucher.voucher_code) {
+      return transaction.voucher.voucher_code;
     }
     return 'N/A';
   };
