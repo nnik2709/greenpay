@@ -1,0 +1,54 @@
+{
+  "name": "png-green-fees-uat-tests",
+  "version": "1.0.0",
+  "description": "Automated UAT tests for PNG Green Fees System",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "test:mobile": "playwright test --project='Mobile Chrome'",
+    "test:report": "playwright show-report",
+    "test:install": "playwright install",
+    "test:install-deps": "playwright install-deps",
+    "test:codegen": "playwright codegen https://eywademo.cloud",
+    "test:trace": "playwright show-trace",
+    "test:all-browsers": "playwright test --project=chromium --project=firefox --project=webkit",
+    "test:smoke": "playwright test --grep='smoke'",
+    "test:regression": "playwright test --grep='regression'",
+    "test:critical": "playwright test --grep='critical'",
+    "test:performance": "playwright test --grep='performance'",
+    "test:uat": "playwright test uat-automated-tests.spec.js",
+    "test:uat-headed": "playwright test uat-automated-tests.spec.js --headed",
+    "test:uat-debug": "playwright test uat-automated-tests.spec.js --debug"
+  },
+  "keywords": [
+    "playwright",
+    "testing",
+    "automation",
+    "uat",
+    "png-green-fees",
+    "e2e"
+  ],
+  "author": "PNG Green Fees Development Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/png-green-fees.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/png-green-fees/issues"
+  },
+  "homepage": "https://github.com/your-org/png-green-fees#readme"
+}

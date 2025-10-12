@@ -1,14 +1,8 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
 import ExportButton from '@/components/ExportButton';
-
-const data = [
-  { id: 1, type: 'Individual', totalExitPass: 1, exitPassValue: 100, totalAmount: 100, discount: 10, amountAfterDiscount: 90, collectedAmount: 90, returnedAmount: 0, paymentMode: 'CASH', paymentDate: '2025-10-01' },
-  { id: 2, type: 'Corporate', totalExitPass: 50, exitPassValue: 100, totalAmount: 5000, discount: 500, amountAfterDiscount: 4500, collectedAmount: 4500, returnedAmount: 0, paymentMode: 'BANK TRANSFER', paymentDate: '2025-09-20' },
-  { id: 3, type: 'Bulk Upload', totalExitPass: 100, exitPassValue: 100, totalAmount: 10000, discount: 0, amountAfterDiscount: 10000, collectedAmount: 10000, returnedAmount: 0, paymentMode: 'CREDIT CARD', paymentDate: '2025-09-15' },
-];
+import { supabase } from '@/lib/supabaseClient';
 
 const columns = [
   { name: 'Type', selector: row => row.type, sortable: true },
@@ -38,50 +32,211 @@ const StatCard = ({ title, value }) => (
 );
 
 const RevenueGeneratedReports = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [typeFilter, setTypeFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [stats, setStats] = useState({
+    totalRecords: 0,
+    totalExitPass: 0,
+    totalAmount: 0,
+    totalCollected: 0,
+    totalDiscount: 0,
+    totalReturned: 0
+  });
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchRevenueData();
+  }, [dateFrom, dateTo]);
+
+  const fetchRevenueData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch individual purchases
+      let individualQuery = supabase
+        .from('individual_purchases')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (dateFrom) individualQuery = individualQuery.gte('created_at', dateFrom);
+      if (dateTo) individualQuery = individualQuery.lte('created_at', dateTo);
+
+      const { data: individualData, error: individualError } = await individualQuery;
+      if (individualError) throw individualError;
+
+      // Fetch corporate vouchers
+      let corporateQuery = supabase
+        .from('corporate_vouchers')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (dateFrom) corporateQuery = corporateQuery.gte('created_at', dateFrom);
+      if (dateTo) corporateQuery = corporateQuery.lte('created_at', dateTo);
+
+      const { data: corporateData, error: corporateError } = await corporateQuery;
+      if (corporateError) throw corporateError;
+
+      // Transform individual purchases
+      const individualRows = (individualData || []).map(item => ({
+        id: `ind-${item.id}`,
+        type: 'Individual',
+        totalExitPass: 1,
+        exitPassValue: item.amount || 0,
+        totalAmount: item.amount || 0,
+        discount: 0, // TODO: Add discount field to schema
+        amountAfterDiscount: item.amount || 0,
+        collectedAmount: item.amount || 0,
+        returnedAmount: 0, // TODO: Add returned_amount field to schema
+        paymentMode: item.payment_method || 'N/A',
+        paymentDate: item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : 'N/A'
+      }));
+
+      // Transform corporate vouchers (group by company/batch)
+      const corporateGroups = {};
+      (corporateData || []).forEach(voucher => {
+        const key = `${voucher.company_name}-${voucher.created_at.split('T')[0]}`;
+        if (!corporateGroups[key]) {
+          corporateGroups[key] = {
+            id: `corp-${key}`,
+            type: 'Corporate',
+            totalExitPass: 0,
+            exitPassValue: voucher.amount || 0,
+            totalAmount: 0,
+            discount: 0,
+            amountAfterDiscount: 0,
+            collectedAmount: 0,
+            returnedAmount: 0,
+            paymentMode: voucher.payment_method || 'N/A',
+            paymentDate: voucher.created_at ? new Date(voucher.created_at).toISOString().split('T')[0] : 'N/A',
+            companyName: voucher.company_name
+          };
+        }
+        corporateGroups[key].totalExitPass += voucher.quantity || 1;
+        corporateGroups[key].totalAmount += voucher.amount || 0;
+        corporateGroups[key].amountAfterDiscount += voucher.amount || 0;
+        corporateGroups[key].collectedAmount += voucher.amount || 0;
+      });
+
+      const corporateRows = Object.values(corporateGroups);
+      const allData = [...individualRows, ...corporateRows];
+      setData(allData);
+
+      // Calculate statistics
+      const totalRecords = allData.length;
+      const totalExitPass = allData.reduce((sum, row) => sum + row.totalExitPass, 0);
+      const totalAmount = allData.reduce((sum, row) => sum + row.totalAmount, 0);
+      const totalCollected = allData.reduce((sum, row) => sum + row.collectedAmount, 0);
+      const totalDiscount = allData.reduce((sum, row) => sum + row.discount, 0);
+      const totalReturned = allData.reduce((sum, row) => sum + row.returnedAmount, 0);
+
+      setStats({
+        totalRecords,
+        totalExitPass,
+        totalAmount,
+        totalCollected,
+        totalDiscount,
+        totalReturned
+      });
+
+    } catch (error) {
+      console.error('Error fetching revenue data:', error);
+      setError(error.message || 'Failed to load revenue data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter data
+  const filteredData = data.filter(row => {
+    return !typeFilter || row.type.toLowerCase().includes(typeFilter.toLowerCase());
+  });
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
           Revenue Generated Reports
         </h1>
         <ExportButton
-          data={data}
+          data={filteredData}
           columns={columns}
           filename="Revenue_Report"
           title="Revenue Generated Report"
         />
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error loading revenue data</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={fetchRevenueData}
+                  className="bg-red-100 px-3 py-2 rounded-md text-sm font-medium text-red-800 hover:bg-red-200"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard title="Total Records" value="3" />
-        <StatCard title="Total Exit Pass" value="151" />
-        <StatCard title="Total Amount" value="$15,100" />
-        <StatCard title="Total Collected" value="$14,590" />
-        <StatCard title="Total Discount" value="$510" />
-        <StatCard title="Total Returned" value="$0" />
+        <StatCard title="Total Records" value={stats.totalRecords} />
+        <StatCard title="Total Exit Pass" value={stats.totalExitPass} />
+        <StatCard title="Total Amount" value={`PGK ${stats.totalAmount.toFixed(2)}`} />
+        <StatCard title="Total Collected" value={`PGK ${stats.totalCollected.toFixed(2)}`} />
+        <StatCard title="Total Discount" value={`PGK ${stats.totalDiscount.toFixed(2)}`} />
+        <StatCard title="Total Returned" value={`PGK ${stats.totalReturned.toFixed(2)}`} />
       </div>
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          <Input placeholder="Filter by Type..." />
-          <Input type="date" placeholder="Date From" />
-          <Input type="date" placeholder="Date To" />
+          <Input 
+            placeholder="Filter by Type..." 
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+          />
+          <Input 
+            type="date" 
+            placeholder="Date From"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+          <Input 
+            type="date" 
+            placeholder="Date To"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
         </div>
         <DataTable
           columns={columns}
-          data={data}
+          data={filteredData}
           pagination
           customStyles={customStyles}
           highlightOnHover
           pointerOnHover
+          progressPending={loading}
+          progressComponent={<div className="py-8">Loading revenue data...</div>}
+          noDataComponent={<div className="py-8 text-slate-500">No revenue data found</div>}
         />
       </div>
-    </motion.div>
+    </div>
   );
 };
 

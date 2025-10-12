@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PNG Green Fees System - UAT User Guide</title>
+    <style>
+        @media print {
+            body { margin: 0; }
+            .page-break { page-break-after: always; }
+            a { color: #1f497d; text-decoration: none; }
+            @page { 
+                size: A4;
+                margin: 2.5cm;
+            }
+        }
+        
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            font-size: 11pt;
+        }
+        
+        h1 {
+            color: #1f497d;
+            border-bottom: 4px solid #1f497d;
+            padding-bottom: 15px;
+            margin-top: 30px;
+            font-size: 24pt;
+            font-weight: bold;
+        }
+        
+        h2 {
+            color: #1f497d;
+            border-bottom: 3px solid #4472c4;
+            padding-bottom: 12px;
+            margin-top: 25px;
+            font-size: 18pt;
+            font-weight: bold;
+        }
+        
+        h3 {
+            color: #4472c4;
+            margin-top: 20px;
+            font-size: 14pt;
+            font-weight: bold;
+        }
+        
+        h4 {
+            color: #5b9bd5;
+            margin-top: 15px;
+            font-size: 12pt;
+            font-weight: bold;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #1f497d;
+            padding-bottom: 20px;
+        }
+        
+        .header h1 {
+            margin: 10px 0;
+            border: none;
+            font-size: 28pt;
+        }
+        
+        .header .subtitle {
+            font-size: 18pt;
+            color: #4472c4;
+            margin: 5px 0;
+        }
+        
+        .header .meta {
+            color: #666;
+            font-size: 10pt;
+            margin-top: 15px;
+        }
+        
+        .toc {
+            background: #f5f8fc;
+            border: 2px solid #4472c4;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 5px;
+        }
+        
+        .toc h2 {
+            margin-top: 0;
+            border: none;
+            color: #1f497d;
+        }
+        
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .toc li {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+        
+        .toc a {
+            color: #1f497d;
+            text-decoration: none;
+        }
+        
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        
+        pre {
+            background: #f5f5f5;
+            border-left: 4px solid #4472c4;
+            padding: 15px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 9pt;
+            line-height: 1.4;
+        }
+        
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 10pt;
+        }
+        
+        pre code {
+            background: transparent;
+            padding: 0;
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+            font-size: 10pt;
+        }
+        
+        th, td {
+            border: 1px solid #4472c4;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background: #1f497d;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        
+        li {
+            margin: 8px 0;
+        }
+        
+        strong {
+            color: #1f497d;
+            font-weight: bold;
+        }
+        
+        .step-box {
+            background: #e8f4f8;
+            border-left: 4px solid #4472c4;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #4472c4;
+            text-align: center;
+            color: #666;
+            font-size: 9pt;
+        }
+        
+        @media screen {
+            .print-button {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #1f497d;
+                color: white;
+                padding: 15px 30px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14pt;
+                font-weight: bold;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                z-index: 1000;
+            }
+            
+            .print-button:hover {
+                background: #4472c4;
+            }
+        }
+        
+        @media print {
+            .print-button {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button" onclick="window.print()">🖨️ Print to PDF</button>
+    
+    <div class="header">
+        <h1>PNG GREEN FEES SYSTEM</h1>
+        <div class="subtitle">User Acceptance Testing (UAT) Guide</div>
+        <div class="meta">
+            <strong>Version:</strong> 1.0 | 
+            <strong>Date:</strong> October 2025 | 
+            <strong>Status:</strong> Ready for Testing
+        </div>
+    </div>
+
+    <div class="toc">
+        <h2>📋 TABLE OF CONTENTS</h2>
+        <ul>
+            <li><a href="#overview">1. UAT Overview</a></li>
+            <li><a href="#preparation">2. Test Preparation</a></li>
+            <li><a href="#scenario1">3. Authentication & Login</a></li>
+            <li><a href="#scenario2">4. Dashboard Navigation</a></li>
+            <li><a href="#scenario3">5. Passport Management</a></li>
+            <li><a href="#scenario4">6. Purchase Processing</a></li>
+            <li><a href="#scenario5">7. Quotation System</a></li>
+            <li><a href="#scenario6">8. Cash Reconciliation</a></li>
+            <li><a href="#scenario7">9. Reports & Analytics</a></li>
+            <li><a href="#scenario8">10. Corporate Batch Management</a></li>
+            <li><a href="#scenario9">11. User Management</a></li>
+            <li><a href="#scenario10">12. Settings & Configuration</a></li>
+            <li><a href="#issues">13. Issue Reporting</a></li>
+            <li><a href="#signoff">14. UAT Sign-Off</a></li>
+        </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2 id="overview">1. UAT OVERVIEW</h2>
+    
+    <h3>Purpose of UAT</h3>
+    <p>User Acceptance Testing validates that the PNG Green Fees System meets business requirements and is ready for production deployment.</p>
+    
+    <div class="info-box">
+        <strong>🎯 UAT Goals:</strong>
+        <ul>
+            <li>Verify all features work as expected</li>
+            <li>Ensure system meets user requirements</li>
+            <li>Identify any usability issues</li>
+            <li>Validate data accuracy and integrity</li>
+            <li>Confirm system performance</li>
+        </ul>
+    </div>
+
+    <h3>Test Environment</h3>
+    <table>
+        <tr>
+            <th>Component</th>
+            <th>Details</th>
+        </tr>
+        <tr>
+            <td><strong>System URL</strong></td>
+            <td>https://eywademo.cloud</td>
+        </tr>
+        <tr>
+            <td><strong>Test Account</strong></td>
+            <td>admin@example.com / password123</td>
+        </tr>
+        <tr>
+            <td><strong>Database</strong></td>
+            <td>Supabase (Production-ready)</td>
+        </tr>
+        <tr>
+            <td><strong>Browser</strong></td>
+            <td>Chrome, Firefox, Safari, Edge</td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2 id="preparation">2. TEST PREPARATION</h2>
+    
+    <h3>Prerequisites</h3>
+    <div class="step-box">
+        <strong>Before Starting UAT:</strong>
+        <ol>
+            <li>Access to test environment (https://eywademo.cloud)</li>
+            <li>Test credentials provided</li>
+            <li>Sample data files ready (CSV for bulk upload)</li>
+            <li>Browser updated to latest version</li>
+            <li>Stable internet connection</li>
+            <li>Notepad for recording issues</li>
+        </ol>
+    </div>
+
+    <h3>Sample Test Data</h3>
+    <p>The system includes pre-loaded sample data for testing:</p>
+    <ul>
+        <li><strong>Test Passports:</strong> 5 sample passport records</li>
+        <li><strong>Test Purchases:</strong> Various payment scenarios</li>
+        <li><strong>Test Users:</strong> Admin, Finance Manager, Counter Agent</li>
+        <li><strong>CSV File:</strong> UAT_SAMPLE_DATA.csv (10 records)</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2 id="scenario1">3. TEST SCENARIO 1: AUTHENTICATION & LOGIN</h2>
+    
+    <h3>Objective</h3>
+    <p>Verify user authentication, password security, and session management work correctly.</p>
+    
+    <h3>Test Steps</h3>
+    <div class="step-box">
+        <strong>Step 1: Login Test</strong>
+        <ol>
+            <li>Navigate to https://eywademo.cloud</li>
+            <li>Enter email: <code>admin@example.com</code></li>
+            <li>Enter password: <code>password123</code></li>
+            <li>Click "Sign In"</li>
+        </ol>
+    </div>
+
+    <h3>Expected Results</h3>
+    <div class="success-box">
+        <strong>✅ Success Criteria:</strong>
+        <ul>
+            <li>Login successful within 2 seconds</li>
+            <li>Redirected to Dashboard</li>
+            <li>User name displayed in header</li>
+            <li>Navigation menu visible</li>
+        </ul>
+    </div>
+
+    <div class="warning-box">
+        <strong>⚠️ Common Issues to Check:</strong>
+        <ul>
+            <li>Incorrect credentials show error message</li>
+            <li>Password field is masked</li>
+            <li>"Forgot Password" link works</li>
+            <li>Session persists after page refresh</li>
+        </ul>
+    </div>
+
+    <h3>Test Cases</h3>
+    <table>
+        <tr>
+            <th>Test Case</th>
+            <th>Expected Result</th>
+            <th>Pass/Fail</th>
+        </tr>
+        <tr>
+            <td>Valid login</td>
+            <td>Access granted, redirect to dashboard</td>
+            <td>☐</td>
+        </tr>
+        <tr>
+            <td>Invalid password</td>
+            <td>Error message displayed</td>
+            <td>☐</td>
+        </tr>
+        <tr>
+            <td>Session timeout</td>
+            <td>Auto logout after 30 min inactivity</td>
+            <td>☐</td>
+        </tr>
+        <tr>
+            <td>Logout</td>
+            <td>Session cleared, redirect to login</td>
+            <td>☐</td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2 id="scenario2">4. TEST SCENARIO 2: DASHBOARD NAVIGATION</h2>
+    
+    <h3>Objective</h3>
+    <p>Verify dashboard displays correct information and navigation works properly.</p>
+    
+    <h3>Test Steps</h3>
+    <div class="step-box">
+        <strong>Step 1: Dashboard Review</strong>
+        <ol>
+            <li>Log in to system</li>
+            <li>Observe dashboard layout</li>
+            <li>Check revenue summary cards</li>
+            <li>Review recent activity</li>
+            <li>Test navigation menu items</li>
+        </ol>
+    </div>
+
+    <h3>Expected Results</h3>
+    <div class="success-box">
+        <strong>✅ Dashboard Should Display:</strong>
+        <ul>
+            <li>Total revenue statistics</li>
+            <li>Recent transactions list</li>
+            <li>Quick action buttons</li>
+            <li>User role-appropriate menu items</li>
+            <li>System status indicators</li>
+        </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2 id="scenario3">5. TEST SCENARIO 3: PASSPORT MANAGEMENT</h2>
+    
+    <h3>A. Individual Passport Registration</h3>
+    
+    <h4>Test Steps</h4>
+    <div class="step-box">
+        <strong>Register Single Passport:</strong>
+        <ol>
+            <li>Navigate to <strong>Passports → Add New Passport</strong></li>
+            <li>Fill in required fields:
+                <ul>
+                    <li>Passport Number: <code>P999888</code></li>
+                    <li>Surname: <code>TestUser</code></li>
+                    <li>Given Name: <code>John</code></li>
+                    <li>Nationality: <code>Papua New Guinea</code></li>
+                    <li>Date of Birth: <code>1990-05-15</code></li>
+                    <li>Gender: <code>Male</code></li>
+                </ul>
+            </li>
+            <li>Click <strong>Save</strong></li>
+            <li>Verify success message</li>
+            <li>Search for passport in passport list</li>
+        </ol>
+    </div>
+
+    <h3>B. Bulk Passport Upload</h3>
+    
+    <h4>Test Steps</h4>
+    <div class="step-box">
+        <strong>Upload CSV File:</strong>
+        <ol>
+            <li>Navigate to <strong>Passports → Bulk Upload</strong></li>
+            <li>Select CSV file: <code>UAT_SAMPLE_DATA.csv</code></li>
+            <li>Click <strong>Upload and Process</strong></li>
+            <li>Review processing results</li>
+            <li>Check success/error counts</li>
+            <li>Verify uploaded passports appear in list</li>
+        </ol>
+    </div>
+
+    <h3>Expected Results</h3>
+    <div class="success-box">
+        <strong>✅ Success Criteria:</strong>
+        <ul>
+            <li>Individual passport saved successfully</li>
+            <li>Bulk upload processes all valid records</li>
+            <li>Error report generated for invalid data</li>
+            <li>All passports searchable in system</li>
+            <li>Duplicate passport numbers rejected</li>
+        </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2 id="scenario4">6. TEST SCENARIO 4: PURCHASE PROCESSING</h2>
+    
+    <h3>A. Individual Cash Payment</h3>
+    
+    <h4>Test Steps</h4>
+    <div class="step-box">
+        <strong>Process Cash Payment:</strong>
+        <ol>
+            <li>Navigate to <strong>Purchases → New Purchase</strong></li>
+            <li>Enter customer name: <code>John TestUser</code></li>
+            <li>Select passport: <code>P999888</code></li>
+            <li>Select service: <code>Green Fee</code></li>
+            <li>Verify amount: <code>PGK 50</code></li>
+            <li>Select payment method: <code>Cash</code></li>
+            <li>Enter amount paid: <code>PGK 100</code></li>
+            <li>Verify change: <code>PGK 50</code></li>
+            <li>Click <strong>Process Payment</strong></li>
+            <li>Print or save receipt</li>
+        </ol>
+    </div>
+
+    <h3>B. Corporate Purchase</h3>
+    
+    <h4>Test Steps</h4>
+    <div class="step-box">
+        <strong>Create Corporate Vouchers:</strong>
+        <ol>
+            <li>Navigate to <strong>Purchases → Corporate Purchase</strong></li>
+            <li>Enter company: <code>Test Corporation Ltd</code></li>
+            <li>Enter contact email: <code>test@testcorp.com</code></li>
+            <li>Enter number of vouchers: <code>5</code></li>
+            <li>Review total amount</li>
+            <li>Select payment method: <code>Bank Transfer</code></li>
+            <li>Click <strong>Generate Corporate Vouchers</strong></li>
+            <li>Download ZIP file</li>
+            <li>Verify 5 voucher PDFs in ZIP</li>
+        </ol>
+    </div>
+
+    <h3>Expected Results</h3>
+    <div class="success-box">
+        <strong>✅ Success Criteria:</strong>
+        <ul>
+            <li>Payment processed successfully</li>
+            <li>Receipt generated with correct details</li>
+            <li>Change calculated accurately</li>
+            <li>Corporate vouchers created</li>
+            <li>Batch recorded in system</li>
+            <li>ZIP file downloads correctly</li>
+        </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2 id="scenario5">7. TEST SCENARIO 5: QUOTATION SYSTEM</h2>
+    
+    <h3>Test Steps</h3>
+    <div class="step-box">
+        <strong>Create and Send Quotation:</strong>
+        <ol>
+            <li>Navigate to <strong>Quotations → New Quotation</strong></li>
+            <li>Enter company: <code>ABC Testing Company</code></li>
+            <li>Enter contact: <code>Manager</code></li>
+            <li>Enter email: <code>manager@abctest.com</code></li>
+            <li>Add service: <code>Green Fee</code></li>
+            <li>Enter quantity: <code>10</code></li>
+            <li>Review total amount</li>
+            <li>Click <strong>Generate Quotation</strong></li>
+            <li>Note quotation number</li>
+            <li>Click <strong>Send</strong></li>
+            <li>Enter recipient email</li>
+            <li>Confirm send</li>
+            <li>Verify status updated to "Sent"</li>
+        </ol>
+    </div>
+
+    <h3>Expected Results</h3>
+    <div class="success-box">
+        <strong>✅ Success Criteria:</strong>
+        <ul>
+            <li>Quotation generated with unique number</li>
+            <li>Professional PDF created</li>
+            <li>Email sent successfully</li>
+            <li>Status updated correctly</li>
+            <li>Quotation appears in list</li>
+        </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2 id="scenario6">8. TEST SCENARIO 6: CASH RECONCILIATION</h2>
+    
+    <h3>Test Steps</h3>
+    <div class="step-box">
+        <strong>Perform End-of-Day Reconciliation:</strong>
+        <ol>
+            <li>Navigate to <strong>Cash Reconciliation → Start New</strong></li>
+            <li>Enter opening float: <code>PGK 100</code></li>
+            <li>System shows expected cash (based on transactions)</li>
+            <li>Count cash denominations:
+                <ul>
+                    <li>100 Kina: 2 notes</li>
+                    <li>50 Kina: 4 notes</li>
+                    <li>20 Kina: 5 notes</li>
+                    <li>10 Kina: 2 notes</li>
+                </ul>
+            </li>
+            <li>System calculates total actual cash</li>
+            <li>Review variance (if any)</li>
+            <li>Add notes explaining variance</li>
+            <li>Click <strong>Complete Reconciliation</strong></li>
+            <li>Submit for approval</li>
+        </ol>
+    </div>
+
+    <h3>Expected Results</h3>
+    <div class="success-box">
+        <strong>✅ Success Criteria:</strong>
+        <ul>
+            <li>Opening float recorded</li>
+            <li>Expected cash calculated from transactions</li>
+            <li>Actual cash totaled correctly</li>
+            <li>Variance calculated (expected - actual)</li>
+            <li>Reconciliation submitted for approval</li>
+            <li>Status shown as "Pending Approval"</li>
+        </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2 id="scenario7">9. TEST SCENARIO 7: REPORTS & ANALYTICS</h2>
+    
+    <h3>Test Steps</h3>
+    <div class="step-box">
+        <strong>Generate Revenue Report:</strong>
+        <ol>
+            <li>Navigate to <strong>Reports → Revenue Generated</strong></li>
+            <li>Select date range: Last 7 days</li>
+            <li>Apply filters (optional)</li>
+            <li>Click <strong>Generate Report</strong></li>
+            <li>Review statistics and charts</li>
+            <li>Click <strong>Export</strong></li>
+            <li>Select format: <code>Excel</code></li>
+            <li>Download and open file</li>
+            <li>Verify data accuracy</li>
+        </ol>
+    </div>
+
+    <h3>Reports to Test</h3>
+    <table>
+        <tr>
+            <th>Report Type</th>
+            <th>Key Metrics</th>
+            <th>Pass/Fail</th>
+        </tr>
+        <tr>
+            <td>Revenue Report</td>
+            <td>Total revenue, payment methods, trends</td>
+            <td>☐</td>
+        </tr>
+        <tr>
+            <td>Passport Report</td>
+            <td>Total registrations, by nationality</td>
+            <td>☐</td>
+        </tr>
+        <tr>
+            <td>Quotation Report</td>
+            <td>Total quotations, conversion rate</td>
+            <td>☐</td>
+        </tr>
+        <tr>
+            <td>Bulk Upload Report</td>
+            <td>Upload statistics, success rate</td>
+            <td>☐</td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2 id="scenario8">10. TEST SCENARIO 8: CORPORATE BATCH MANAGEMENT</h2>
+    
+    <h3>Test Steps</h3>
+    <div class="step-box">
+        <strong>View and Email Batch:</strong>
+        <ol>
+            <li>Navigate to <strong>Passports → Batch History</strong></li>
+            <li>Review list of corporate batches</li>
+            <li>Click <strong>View Details</strong> on a batch</li>
+            <li>Review batch information:
+                <ul>
+                    <li>Company name</li>
+                    <li>Number of vouchers</li>
+                    <li>Total amount</li>
+                    <li>Individual voucher list</li>
+                </ul>
+            </li>
+            <li>Click <strong>Email Batch</strong></li>
+            <li>Enter recipient email: <code>test@company.com</code></li>
+            <li>Click <strong>Send Email</strong></li>
+            <li>Verify confirmation message</li>
+            <li>Click <strong>Download ZIP</strong></li>
+            <li>Verify ZIP file downloads</li>
+        </ol>
+    </div>
+
+    <h3>Expected Results</h3>
+    <div class="success-box">
+        <strong>✅ Success Criteria:</strong>
+        <ul>
+            <li>All batches listed correctly</li>
+            <li>Batch details accurate</li>
+            <li>Email sent successfully</li>
+            <li>ZIP file contains all vouchers</li>
+            <li>Vouchers are properly formatted PDFs</li>
+        </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2 id="scenario9">11. TEST SCENARIO 9: USER MANAGEMENT</h2>
+    
+    <h3>Test Steps</h3>
+    <div class="step-box">
+        <strong>Create New User:</strong>
+        <ol>
+            <li>Navigate to <strong>Users → Add User</strong></li>
+            <li>Enter email: <code>testuser@example.com</code></li>
+            <li>Enter full name: <code>Test Counter Agent</code></li>
+            <li>Select role: <code>Counter_Agent</code></li>
+            <li>Enter phone: <code>+675 1234 5678</code></li>
+            <li>Click <strong>Create User</strong></li>
+            <li>Verify success message</li>
+            <li>Find user in user list</li>
+            <li>Test edit user information</li>
+            <li>Test deactivate user</li>
+        </ol>
+    </div>
+
+    <h3>Expected Results</h3>
+    <div class="success-box">
+        <strong>✅ Success Criteria:</strong>
+        <ul>
+            <li>User created successfully</li>
+            <li>Welcome email sent (if configured)</li>
+            <li>User appears in list with correct role</li>
+            <li>Edit functionality works</li>
+            <li>Deactivate removes access</li>
+        </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2 id="scenario10">12. TEST SCENARIO 10: SETTINGS & CONFIGURATION</h2>
+    
+    <h3>Test Steps</h3>
+    <div class="step-box">
+        <strong>Review System Settings:</strong>
+        <ol>
+            <li>Navigate to <strong>Settings → Email Templates</strong></li>
+            <li>Review available templates</li>
+            <li>Test preview functionality</li>
+            <li>Navigate to <strong>Settings → Payment Modes</strong></li>
+            <li>Review enabled payment methods</li>
+            <li>Navigate to <strong>Settings → System Settings</strong></li>
+            <li>Review company information</li>
+            <li>Check currency settings</li>
+        </ol>
+    </div>
+
+    <h3>Expected Results</h3>
+    <div class="success-box">
+        <strong>✅ Success Criteria:</strong>
+        <ul>
+            <li>All email templates accessible</li>
+            <li>Preview shows template correctly</li>
+            <li>Payment modes configured properly</li>
+            <li>System settings accurate</li>
+            <li>Changes save successfully</li>
+        </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2 id="issues">13. ISSUE REPORTING</h2>
+    
+    <h3>How to Report Issues</h3>
+    <p>If you encounter any problems during UAT, please document them using this template:</p>
+    
+    <div class="warning-box">
+        <strong>⚠️ Issue Report Template:</strong>
+        <table>
+            <tr>
+                <th>Field</th>
+                <th>Details</th>
+            </tr>
+            <tr>
+                <td><strong>Issue ID</strong></td>
+                <td>Sequential number (e.g., UAT-001)</td>
+            </tr>
+            <tr>
+                <td><strong>Date/Time</strong></td>
+                <td>When issue occurred</td>
+            </tr>
+            <tr>
+                <td><strong>Test Scenario</strong></td>
+                <td>Which scenario you were testing</td>
+            </tr>
+            <tr>
+                <td><strong>Description</strong></td>
+                <td>What went wrong (be specific)</td>
+            </tr>
+            <tr>
+                <td><strong>Steps to Reproduce</strong></td>
+                <td>How to replicate the issue</td>
+            </tr>
+            <tr>
+                <td><strong>Expected Result</strong></td>
+                <td>What should have happened</td>
+            </tr>
+            <tr>
+                <td><strong>Actual Result</strong></td>
+                <td>What actually happened</td>
+            </tr>
+            <tr>
+                <td><strong>Severity</strong></td>
+                <td>Critical / High / Medium / Low</td>
+            </tr>
+            <tr>
+                <td><strong>Screenshot</strong></td>
+                <td>Attach if applicable</td>
+            </tr>
+        </table>
+    </div>
+
+    <h3>Severity Levels</h3>
+    <table>
+        <tr>
+            <th>Level</th>
+            <th>Description</th>
+            <th>Example</th>
+        </tr>
+        <tr>
+            <td><strong>Critical</strong></td>
+            <td>System unusable, data loss</td>
+            <td>Cannot login, payments fail</td>
+        </tr>
+        <tr>
+            <td><strong>High</strong></td>
+            <td>Major feature broken</td>
+            <td>Reports don't generate</td>
+        </tr>
+        <tr>
+            <td><strong>Medium</strong></td>
+            <td>Feature partially works</td>
+            <td>Search is slow</td>
+        </tr>
+        <tr>
+            <td><strong>Low</strong></td>
+            <td>Minor issue, cosmetic</td>
+            <td>Typo in label</td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2 id="signoff">14. UAT SIGN-OFF</h2>
+    
+    <h3>Sign-Off Criteria</h3>
+    <p>The system is considered ready for production when:</p>
+    
+    <div class="success-box">
+        <strong>✅ Acceptance Criteria:</strong>
+        <ul>
+            <li>All test scenarios completed successfully</li>
+            <li>No critical or high severity issues remaining</li>
+            <li>Medium/low issues documented and accepted</li>
+            <li>Performance meets requirements</li>
+            <li>Data accuracy verified</li>
+            <li>User training completed</li>
+            <li>Documentation reviewed and approved</li>
+        </ul>
+    </div>
+
+    <h3>Sign-Off Form</h3>
+    <table>
+        <tr>
+            <th colspan="2">UAT APPROVAL</th>
+        </tr>
+        <tr>
+            <td><strong>Project Name</strong></td>
+            <td>PNG Green Fees System</td>
+        </tr>
+        <tr>
+            <td><strong>UAT Period</strong></td>
+            <td>____________________</td>
+        </tr>
+        <tr>
+            <td><strong>Test Scenarios Completed</strong></td>
+            <td>_____ / 10</td>
+        </tr>
+        <tr>
+            <td><strong>Critical Issues</strong></td>
+            <td>_____</td>
+        </tr>
+        <tr>
+            <td><strong>High Issues</strong></td>
+            <td>_____</td>
+        </tr>
+        <tr>
+            <td><strong>Medium Issues</strong></td>
+            <td>_____</td>
+        </tr>
+        <tr>
+            <td><strong>Low Issues</strong></td>
+            <td>_____</td>
+        </tr>
+    </table>
+
+    <div style="margin-top: 40px;">
+        <table>
+            <tr>
+                <th>Approver</th>
+                <th>Signature</th>
+                <th>Date</th>
+            </tr>
+            <tr>
+                <td>Business Owner</td>
+                <td>____________________</td>
+                <td>____________________</td>
+            </tr>
+            <tr>
+                <td>Finance Manager</td>
+                <td>____________________</td>
+                <td>____________________</td>
+            </tr>
+            <tr>
+                <td>System Administrator</td>
+                <td>____________________</td>
+                <td>____________________</td>
+            </tr>
+            <tr>
+                <td>UAT Coordinator</td>
+                <td>____________________</td>
+                <td>____________________</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <p><strong>PNG Green Fees System - UAT User Guide v1.0</strong></p>
+        <p>© 2025 PNG Green Fees Development Team | Prepared: October 2025</p>
+        <p><em>This document is confidential and for internal use only</em></p>
+    </div>
+
+    <script>
+        // Auto-print instruction
+        console.log('%c🖨️ To save as PDF: Click the Print button or press Ctrl+P (Cmd+P on Mac) and select "Save as PDF"', 'font-size: 16px; color: #1f497d; font-weight: bold;');
+    </script>
+</body>
+</html>

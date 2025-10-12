@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Users, CreditCard, FileText, BarChart2, Settings, LogOut, ChevronDown, Ticket, FilePlus, UploadCloud, Building, FileSignature, Mail, ScanSearch, Menu, Lock, Key } from 'lucide-react';
+import { LayoutDashboard, Users, CreditCard, FileText, BarChart2, Settings, LogOut, ChevronDown, Ticket, FilePlus, UploadCloud, Building, FileSignature, Mail, ScanSearch, Menu, Lock, Key, Package } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuGroup, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -49,13 +49,9 @@ const navItemsByRole = {
       icon: <Building className="h-4 w-4" />,
       label: 'Corporate Exit Pass'
     }, {
-      to: '/purchases/offline-template',
-      icon: <FileSignature className="h-4 w-4" />,
-      label: 'Offline Template'
-    }, {
-      to: '/purchases/offline-upload',
-      icon: <UploadCloud className="h-4 w-4" />,
-      label: 'Offline Upload'
+      to: '/purchases/corporate-batch-history',
+      icon: <Package className="h-4 w-4" />,
+      label: 'Batch History'
     }, {
       to: '/scan',
       icon: <ScanSearch className="h-4 w-4" />,
@@ -79,6 +75,10 @@ const navItemsByRole = {
     icon: <Settings className="h-4 w-4" />,
     base_path: '/admin',
     subItems: [{
+      to: '/admin/settings',
+      icon: <Settings className="h-4 w-4" />,
+      label: 'System Settings'
+    }, {
       to: '/admin/payment-modes',
       icon: <CreditCard className="h-4 w-4" />,
       label: 'Payment Modes'
@@ -144,13 +144,9 @@ const navItemsByRole = {
       icon: <Building className="h-4 w-4" />,
       label: 'Corporate Exit Pass'
     }, {
-      to: '/purchases/offline-template',
-      icon: <FileSignature className="h-4 w-4" />,
-      label: 'Offline Template'
-    }, {
-      to: '/purchases/offline-upload',
-      icon: <UploadCloud className="h-4 w-4" />,
-      label: 'Offline Upload'
+      to: '/purchases/corporate-batch-history',
+      icon: <Package className="h-4 w-4" />,
+      label: 'Batch History'
     }, {
       to: '/scan',
       icon: <ScanSearch className="h-4 w-4" />,
@@ -200,31 +196,36 @@ const navItemsByRole = {
 const NavItem = ({
   to,
   children,
-  className
+  className,
+  testId
 }) => {
   const location = useLocation();
   const isActive = location.pathname === to;
-  return <NavLink to={to} className={cn('transition-colors hover:text-white/90 text-white/70', isActive && 'text-white font-semibold', className)}>
+  return <NavLink to={to} data-testid={testId} className={cn('transition-colors hover:text-white/90 text-white/70', isActive && 'text-white font-semibold', className)}>
       {children}
     </NavLink>;
 };
 const NavMenu = ({
   items
 }) => {
-  return <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+  return <nav className="hidden md:flex items-center gap-6 text-sm font-medium" data-testid="main-navigation">
       {items.map((item, index) => item.subItems ? <DropdownMenu key={index}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="text-white/70 hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white p-0 h-auto flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                className="text-white/70 hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white p-0 h-auto flex items-center gap-1"
+                data-testid={`nav-menu-${item.title?.toLowerCase().replace(/\s+/g, '-')}`}
+              >
                 {item.title}
                 <ChevronDown className="relative top-[1px] ml-1 h-3 w-3 transition duration-200" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
+            <DropdownMenuContent data-testid={`nav-submenu-${item.title?.toLowerCase().replace(/\s+/g, '-')}`}>
               {item.subItems.map((subItem, subIndex) => <DropdownMenuItem key={subIndex} asChild>
-                  <Link to={subItem.to}>{subItem.label}</Link>
+                  <Link to={subItem.to} data-testid={`nav-link-${subItem.label.toLowerCase().replace(/\s+/g, '-')}`}>{subItem.label}</Link>
                 </DropdownMenuItem>)}
             </DropdownMenuContent>
-          </DropdownMenu> : <NavItem key={index} to={item.to}>
+          </DropdownMenu> : <NavItem key={index} to={item.to} testId={`nav-link-${item.label?.toLowerCase().replace(/\s+/g, '-')}`}>
             {item.label}
           </NavItem>)}
     </nav>;
@@ -292,12 +293,6 @@ const Header = () => {
               <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem asChild>
-                  <Link to="/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </Link>
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsPasswordChangeOpen(true)}>
                   <Lock className="mr-2 h-4 w-4" />
                   <span>Change Password</span>

@@ -1,0 +1,14 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "sb-gzaezpexrtwwpntclonu-auth-token",
+          "value": "{\"access_token\":\"eyJhbGciOiJIUzI1NiIsImtpZCI6IjV5OUczaW8wOUttNEk0UnoiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2d6YWV6cGV4cnR3d3BudGNsb251LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJlZjhlNDNkNy03NTlkLTQwY2QtYjQwNC01NTE1NDY0NGZhYTIiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzYwMjA1MzcwLCJpYXQiOjE3NjAyMDE3NzAsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJwaG9uZSI6IiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImVtYWlsIl19LCJ1c2VyX21ldGFkYXRhIjp7fSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6MTc2MDIwMTc3MH1dLCJzZXNzaW9uX2lkIjoiNWE5MWQ2NTUtYWFiOS00Y2NhLThlNTQtODY4M2IxMjgxMTdiIiwiaXNfYW5vbnltb3VzIjpmYWxzZX0.IDuQ6HnAFnUAXrautbXpNDKqJ6HkVHPSn2fztQQstug\",\"token_type\":\"bearer\",\"expires_in\":3600,\"expires_at\":1760205370,\"refresh_token\":\"va2fojuu2jpm\",\"user\":{\"id\":\"ef8e43d7-759d-40cd-b404-55154644faa2\",\"aud\":\"authenticated\",\"role\":\"authenticated\",\"email\":\"admin@example.com\",\"email_confirmed_at\":\"2025-10-04T09:29:15.036523Z\",\"phone\":\"\",\"confirmed_at\":\"2025-10-04T09:29:15.036523Z\",\"last_sign_in_at\":\"2025-10-11T16:56:10.297986623Z\",\"app_metadata\":{\"provider\":\"email\",\"providers\":[\"email\"]},\"user_metadata\":{},\"identities\":[{\"identity_id\":\"5f3b9925-bd79-4d91-bee8-b580cfad8d4c\",\"id\":\"ef8e43d7-759d-40cd-b404-55154644faa2\",\"user_id\":\"ef8e43d7-759d-40cd-b404-55154644faa2\",\"identity_data\":{\"email\":\"admin@example.com\",\"email_verified\":false,\"phone_verified\":false,\"sub\":\"ef8e43d7-759d-40cd-b404-55154644faa2\"},\"provider\":\"email\",\"last_sign_in_at\":\"2025-10-04T09:00:25.150421Z\",\"created_at\":\"2025-10-04T09:00:25.150489Z\",\"updated_at\":\"2025-10-04T09:00:25.150489Z\",\"email\":\"admin@example.com\"}],\"created_at\":\"2025-10-04T09:00:25.116778Z\",\"updated_at\":\"2025-10-11T16:56:10.304574Z\",\"is_anonymous\":false},\"weak_password\":null}"
+        }
+      ]
+    }
+  ]
+}

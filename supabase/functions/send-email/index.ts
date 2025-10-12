@@ -31,7 +31,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    const DEFAULT_FROM = Deno.env.get("FROM_EMAIL") || "PNG Green Fees <no-reply@pnggreenfees.gov.pg>";
+    const DEFAULT_FROM = Deno.env.get("FROM_EMAIL") || "PNG Green Fees <no-reply@example.com>";
     const fromAddress = from || DEFAULT_FROM;
 
     if (!RESEND_API_KEY) {

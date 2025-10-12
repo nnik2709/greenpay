@@ -1,14 +1,9 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
 import ExportButton from '@/components/ExportButton';
-
-const data = [
-  { id: 1, quotation: 'QUO-001', sentAt: '2025-09-01', customer: 'Corporate Inc.', expiryDate: '2025-10-01', notes: 'Bulk discount applied', price: 10000, status: 'Sent' },
-  { id: 2, quotation: 'QUO-002', sentAt: '2025-09-05', customer: 'Travel Agency LLC', expiryDate: '2025-10-05', notes: 'Standard pricing', price: 5000, status: 'Approved' },
-  { id: 3, quotation: 'QUO-003', sentAt: '2025-09-10', customer: 'Global Tours', expiryDate: '2025-10-10', notes: '', price: 20000, status: 'Converted' },
-];
+import { supabase } from '@/lib/supabaseClient';
+import { useToast } from '@/components/ui/use-toast';
 
 const columns = [
   { name: 'Quotation', selector: row => row.quotation, sortable: true },
@@ -35,19 +30,65 @@ const StatCard = ({ title, value }) => (
 );
 
 const QuotationsReports = () => {
+  const { toast } = useToast();
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filteredData, setFilteredData] = useState([]);
+
+  useEffect(() => {
+    fetchQuotations();
+  }, []);
+
+  useEffect(() => {
+    setFilteredData(data);
+  }, [data]);
+
+  const fetchQuotations = async () => {
+    try {
+      setLoading(true);
+      const { data: quotations, error } = await supabase
+        .from('quotations')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Transform the data to match the columns
+      const transformedData = (quotations || []).map(q => ({
+        id: q.id,
+        quotation: q.quotation_number || `QUO-${q.id}`,
+        sentAt: q.sent_at ? new Date(q.sent_at).toLocaleDateString() : 'Not sent',
+        customer: q.customer_name || q.company_name || 'N/A',
+        expiryDate: q.expiry_date ? new Date(q.expiry_date).toLocaleDateString() : 'N/A',
+        notes: q.notes || '',
+        price: q.total_amount || q.price || 0,
+        status: q.status || 'Draft'
+      }));
+      
+      setData(transformedData);
+    } catch (error) {
+      console.error('Error fetching quotations:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load quotations",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const countByStatus = (status) => data.filter(q => q.status.toLowerCase() === status.toLowerCase()).length;
+  const totalAmount = data.reduce((sum, q) => sum + (parseFloat(q.price) || 0), 0);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
           Quotations Reports
         </h1>
         <ExportButton
-          data={data}
+          data={filteredData}
           columns={columns}
           filename="Quotations_Report"
           title="Quotations Report"
@@ -55,12 +96,12 @@ const QuotationsReports = () => {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard title="Total" value="3" />
-        <StatCard title="Draft" value="0" />
-        <StatCard title="Sent" value="1" />
-        <StatCard title="Approved" value="1" />
-        <StatCard title="Converted" value="1" />
-        <StatCard title="Amount Sum" value="$35,000" />
+        <StatCard title="Total" value={data.length} />
+        <StatCard title="Draft" value={countByStatus('Draft')} />
+        <StatCard title="Sent" value={countByStatus('Sent')} />
+        <StatCard title="Approved" value={countByStatus('Approved')} />
+        <StatCard title="Converted" value={countByStatus('Converted')} />
+        <StatCard title="Amount Sum" value={`PGK ${totalAmount.toFixed(2)}`} />
       </div>
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
@@ -72,14 +113,15 @@ const QuotationsReports = () => {
         </div>
         <DataTable
           columns={columns}
-          data={data}
+          data={filteredData}
           pagination
           customStyles={customStyles}
           highlightOnHover
           pointerOnHover
+          progressPending={loading}
         />
       </div>
-    </motion.div>
+    </div>
   );
 };
 

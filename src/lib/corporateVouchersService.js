@@ -113,47 +113,37 @@ export const markCorporateVoucherAsUsed = async (voucherCode) => {
   }
 };
 
-export const createBulkCorporateVouchers = async (bulkData, userId) => {
-  try {
-    const { quantity, companyName, amount, paymentMethod, validUntil } = bulkData;
+export const createBulkCorporateVouchers = async (bulkData) => {
+  // Calls Supabase Edge Function: bulk-corporate
+  // bulkData: { companyName, count, amount, paymentMethod, validFrom?, validUntil }
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) throw new Error('Not authenticated');
 
-    // Generate unique voucher codes for each voucher
-    const vouchers = [];
-    for (let i = 0; i < quantity; i++) {
-      const voucherCode = generateVoucherCode('CORP');
-      vouchers.push({
-        voucher_code: voucherCode,
-        passport_number: `BULK-${Date.now()}-${i}`, // Placeholder for bulk vouchers
-        company_name: companyName,
-        quantity: 1,
-        amount: amount / quantity, // Split total amount across vouchers
-        payment_method: paymentMethod,
-        valid_from: new Date().toISOString(),
-        valid_until: validUntil,
-        created_by: userId,
-      });
-    }
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bulk-corporate`;
+  const payload = {
+    company_name: bulkData.companyName,
+    count: bulkData.count,
+    amount: bulkData.amount, // per-voucher amount
+    payment_method: bulkData.paymentMethod,
+    valid_from: bulkData.validFrom || new Date().toISOString(),
+    valid_until: bulkData.validUntil,
+  };
 
-    const { data, error } = await supabase
-      .from('corporate_vouchers')
-      .insert(vouchers)
-      .select();
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
 
-    if (error) throw error;
-
-    // Create single transaction record for the batch
-    await supabase.from('transactions').insert([{
-      transaction_type: 'corporate_bulk',
-      reference_id: data[0].id,
-      amount: amount,
-      payment_method: paymentMethod,
-      passport_number: `BULK-${quantity}`,
-      created_by: userId,
-    }]);
-
-    return data;
-  } catch (error) {
-    console.error('Error creating bulk corporate vouchers:', error);
-    throw error;
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || 'Failed to create corporate vouchers');
   }
+
+  const json = await res.json();
+  return json.vouchers || [];
 };

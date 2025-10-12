@@ -154,13 +154,7 @@ const Users = () => {
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.5 }}
-        className="space-y-6"
-      >
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
             Users
@@ -237,7 +231,7 @@ const Users = () => {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       <Dialog open={isAddUserModalOpen} onOpenChange={setAddUserModalOpen}>
         <DialogContent>

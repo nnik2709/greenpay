@@ -1,13 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
-import ExportButton from '@/components/ExportButton';
+import { createClient } from '@supabase/supabase-js';
 
-const data = [
-  { id: 1, type: 'P', nationality: 'PNG', passportNo: 'PA123456', surname: 'DOE', givenName: 'JOHN', dob: '1990-01-01', sex: 'M', dateOfExpiry: '2030-01-01' },
-  { id: 2, type: 'P', nationality: 'AUS', passportNo: 'PB654321', surname: 'SMITH', givenName: 'JANE', dob: '1992-05-15', sex: 'F', dateOfExpiry: '2028-05-15' },
-];
+const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 const columns = [
   { name: 'Type', selector: row => row.type, sortable: true },
@@ -28,42 +25,157 @@ const customStyles = {
 };
 
 const PassportReports = () => {
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [passportFilter, setPassportFilter] = useState('');
+  const [surnameFilter, setSurnameFilter] = useState('');
+
+  useEffect(() => {
+    fetchPassports();
+  }, [fromDate, toDate]);
+
+  const fetchPassports = async () => {
+    try {
+      setLoading(true);
+      let query = supabase
+        .from('passports')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (fromDate) {
+        query = query.gte('created_at', fromDate);
+      }
+      if (toDate) {
+        query = query.lte('created_at', toDate);
+      }
+
+      const { data: passports, error } = await query;
+
+      if (error) throw error;
+
+      // Transform data to match table format
+      const transformedData = (passports || []).map(p => ({
+        id: p.id,
+        type: 'P', // Default type
+        nationality: p.nationality,
+        passportNo: p.passport_number,
+        surname: p.surname,
+        givenName: p.given_name,
+        dob: p.date_of_birth,
+        sex: p.sex,
+        dateOfExpiry: p.date_of_expiry,
+      }));
+
+      setData(transformedData);
+    } catch (error) {
+      console.error('Error fetching passports:', error);
+      alert('Failed to load passports');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    if (!accessToken) {
+      alert('You must be logged in to export');
+      return;
+    }
+
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/report-export`;
+    const body = {
+      type: 'passports',
+      filters: {
+        ...(fromDate ? { from: fromDate } : {}),
+        ...(toDate ? { to: toDate } : {}),
+      },
+      format: 'csv',
+    };
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      alert(`Export failed: ${text}`);
+      return;
+    }
+
+    const blob = await res.blob();
+    const dlUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = dlUrl;
+    a.download = `report_passports_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(dlUrl);
+  };
+
+  // Filter data based on search inputs
+  const filteredData = data.filter(row => {
+    const matchesPassport = !passportFilter || row.passportNo.toLowerCase().includes(passportFilter.toLowerCase());
+    const matchesSurname = !surnameFilter || row.surname.toLowerCase().includes(surnameFilter.toLowerCase());
+    return matchesPassport && matchesSurname;
+  });
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
           Passports Report
         </h1>
-        <ExportButton
-          data={data}
-          columns={columns}
-          filename="Passports_Report"
-          title="Passports Report"
-        />
+        <button
+          onClick={handleExportCsv}
+          className="inline-flex items-center rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700"
+        >
+          Export CSV
+        </button>
       </div>
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <Input placeholder="Filter by Type..." />
-          <Input placeholder="Filter by Nationality..." />
-          <Input placeholder="Filter by Passport No..." />
-          <Input placeholder="Filter by Surname..." />
+          <div className="flex flex-col">
+            <label className="text-sm text-slate-600 mb-1">From</label>
+            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+          </div>
+          <div className="flex flex-col">
+            <label className="text-sm text-slate-600 mb-1">To</label>
+            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+          </div>
+          <Input 
+            placeholder="Filter by Passport No..." 
+            value={passportFilter}
+            onChange={(e) => setPassportFilter(e.target.value)}
+          />
+          <Input 
+            placeholder="Filter by Surname..." 
+            value={surnameFilter}
+            onChange={(e) => setSurnameFilter(e.target.value)}
+          />
         </div>
         <DataTable
           columns={columns}
-          data={data}
+          data={filteredData}
           pagination
           customStyles={customStyles}
           highlightOnHover
           pointerOnHover
+          progressPending={loading}
+          progressComponent={<div className="py-8">Loading passports...</div>}
+          noDataComponent={<div className="py-8 text-slate-500">No passports found</div>}
         />
       </div>
-    </motion.div>
+    </div>
   );
 };
 

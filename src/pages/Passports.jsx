@@ -233,12 +233,7 @@ const Passports = () => {
 
   return (
     <>
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}
-        className="max-w-4xl mx-auto"
-      >
+      <motion.div className="max-w-4xl mx-auto">
         <motion.div variants={itemVariants} className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
             Passport Management

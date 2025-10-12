@@ -80,14 +80,16 @@ const CorporateExitPass = () => {
 
     try {
       const bulkData = {
-        quantity: totalVouchers,
         companyName: companyName.trim(),
-        amount: amountAfterDiscount,
+        count: totalVouchers,
+        // per-voucher amount; using voucherValue (unit price) rather than total
+        amount: voucherValue,
         paymentMethod: selectedMode,
+        validFrom: new Date().toISOString(),
         validUntil: new Date(validUntil).toISOString(),
       };
 
-      const vouchers = await createBulkCorporateVouchers(bulkData, user?.id);
+      const vouchers = await createBulkCorporateVouchers(bulkData);
       setGeneratedVouchers(vouchers);
       setStep(1);
 

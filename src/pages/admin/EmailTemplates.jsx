@@ -1,275 +1,490 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Mail, Eye, Save, Send, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  getEmailTemplates, 
+  createEmailTemplate, 
+  updateEmailTemplate, 
+  deleteEmailTemplate,
+  testEmailTemplate,
+  parseTemplateVariables,
+  validateTemplateVariables,
+  generateTemplatePreview,
+  getDefaultSampleData
+} from '@/lib/emailTemplatesService';
+import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabaseClient';
-
-// Lightweight, PNG English style default templates (no PHP refs)
-const TEMPLATE_DEFS = [
-  {
-    id: 'individual_voucher',
-    name: 'Individual Passport Voucher',
-    description: 'Voucher email for a single traveller passport purchase.',
-    subject: 'Your PNG Green Fee Voucher',
-    html: `<p>Dear traveller,</p>
-<p>Thank you for your payment. Your PNG Green Fee voucher is now ready.</p>
-<p><strong>Voucher Code:</strong> {{VOUCHER_CODE}}<br/>
-<strong>Passport No:</strong> {{PASSPORT_NUMBER}}<br/>
-<strong>Issued On:</strong> {{ISSUE_DATE}}</p>
-<p>Please keep this voucher for airport checks. For any questions, reply to this email.</p>
-<p>Kind regards,<br/>PNG Green Fees Team</p>`
-  },
-  {
-    id: 'invoice_share',
-    name: 'Share Invoice',
-    description: 'Invoice email for payments and records.',
-    subject: 'PNG Green Fee Invoice {{INVOICE_NUMBER}}',
-    html: `<p>Greetings,</p>
-<p>Please find your PNG Green Fee invoice attached and available online.</p>
-<p><strong>Invoice No:</strong> {{INVOICE_NUMBER}}<br/>
-<strong>Amount:</strong> {{AMOUNT}} {{CURRENCY}}<br/>
-<strong>Date:</strong> {{DATE}}</p>
-<p>You may proceed with payment using the provided options.</p>
-<p>Thank you,<br/>PNG Green Fees Team</p>`
-  },
-  {
-    id: 'bulk_vouchers',
-    name: 'Bulk Purchase Vouchers',
-    description: 'Email for bulk passport uploads with multiple vouchers.',
-    subject: 'PNG Green Fee Vouchers — Bulk Batch {{BATCH_NAME}}',
-    html: `<p>Hello,</p>
-<p>Your bulk PNG Green Fee vouchers are prepared. The batch includes {{COUNT}} travellers.</p>
-<p>You can download the vouchers here: {{DOWNLOAD_LINK}}</p>
-<p>Best regards,<br/>PNG Green Fees Team</p>`
-  },
-  {
-    id: 'quotation_share',
-    name: 'Share Quotation',
-    description: 'Quotation email for estimate sharing.',
-    subject: 'PNG Green Fee Quotation {{QUOTATION_NUMBER}}',
-    html: `<p>Dear Sir/Madam,</p>
-<p>Please review the attached quotation for PNG Green Fees.</p>
-<p><strong>Quotation No:</strong> {{QUOTATION_NUMBER}}<br/>
-<strong>Total:</strong> {{TOTAL}} {{CURRENCY}}</p>
-<p>We remain available to assist with any clarifications.</p>
-<p>Sincerely,<br/>PNG Green Fees Team</p>`
-  },
-  {
-    id: 'corporate_vouchers',
-    name: 'Corporate Purchase Vouchers',
-    description: 'Corporate voucher batch notification email.',
-    subject: 'Corporate Voucher Batch {{BATCH_NAME}} Ready',
-    html: `<p>Dear Partner,</p>
-<p>Your corporate voucher batch {{BATCH_NAME}} is ready.</p>
-<p>Download link: {{DOWNLOAD_LINK}}</p>
-<p>Regards,<br/>PNG Green Fees Team</p>`
-  },
-  {
-    id: 'ticket_created',
-    name: 'Support Ticket Created',
-    description: 'Customer support ticket acknowledgement.',
-    subject: 'We received your support request — Ticket {{TICKET_NUMBER}}',
-    html: `<p>Dear customer,</p>
-<p>We have registered your request with ticket number {{TICKET_NUMBER}}.</p>
-<p>Our team will get back to you shortly. Thank you for your patience.</p>
-<p>PNG Green Fees Support</p>`
-  },
-  {
-    id: 'welcome_user',
-    name: 'Welcome Email',
-    description: 'Welcome message for newly registered users.',
-    subject: 'Welcome to PNG Green Fees',
-    html: `<p>Welcome,</p>
-<p>Your PNG Green Fees account has been created.</p>
-<p>You can now sign in and manage your payments and vouchers.</p>
-<p>Warm regards,<br/>PNG Green Fees Team</p>`
-  },
-  {
-    id: 'new_user_admin_alert',
-    name: 'New User Notification',
-    description: 'Admin alert when a new user is created.',
-    subject: 'New User Created — {{USER_EMAIL}}',
-    html: `<p>Admin,</p>
-<p>A new user has been created: {{USER_EMAIL}}.</p>
-<p>Role: {{ROLE}}</p>
-<p>— PNG Green Fees System</p>`
-  },
-];
-
-const findTemplateDef = (id) => TEMPLATE_DEFS.find(t => t.id === id);
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter 
+} from '@/components/ui/dialog';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Mail, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Eye, 
+  Send, 
+  Save, 
+  X,
+  AlertCircle,
+  CheckCircle
+} from 'lucide-react';
 
 const EmailTemplates = () => {
   const { toast } = useToast();
-
-  const [selectedId, setSelectedId] = useState('individual_voucher');
-  const [subject, setSubject] = useState('');
-  const [html, setHtml] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [showTestDialog, setShowTestDialog] = useState(false);
+  const [previewData, setPreviewData] = useState({});
   const [testEmail, setTestEmail] = useState('');
-
-  const selectedDef = useMemo(() => findTemplateDef(selectedId), [selectedId]);
+  const [formData, setFormData] = useState({
+    name: '',
+    subject: '',
+    body: '',
+    variables: []
+  });
 
   useEffect(() => {
-    const loadTemplate = async () => {
+    fetchTemplates();
+  }, []);
+
+  const fetchTemplates = async () => {
+    try {
       setLoading(true);
-      try {
-        // Try to load from Supabase if exists, otherwise fallback to defaults
-        const { data, error } = await supabase
-          .from('email_templates')
-          .select('template_key, name, subject, html, body')
-          .eq('template_key', selectedId)
-          .maybeSingle();
+      const data = await getEmailTemplates();
+      setTemplates(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load email templates",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        if (error) {
-          // Table may not exist or RLS; fallback to defaults silently
-          setSubject(selectedDef?.subject || '');
-          setHtml(selectedDef?.html || '');
-          return;
-        }
+  const handleEdit = (template) => {
+    setSelectedTemplate(template);
+    setFormData({
+      name: template.name,
+      subject: template.subject,
+      body: template.body,
+      variables: template.variables || []
+    });
+    setShowEditDialog(true);
+  };
 
-        if (data) {
-          setSubject(data.subject || selectedDef?.subject || '');
-          // Prefer body if present to match existing schema, fallback to html/defaults
-          setHtml(data.body ?? data.html ?? selectedDef?.html ?? '');
-        } else {
-          setSubject(selectedDef?.subject || '');
-          setHtml(selectedDef?.html || '');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (selectedDef) loadTemplate();
-  }, [selectedId, selectedDef]);
+  const handleCreate = () => {
+    setSelectedTemplate(null);
+    setFormData({
+      name: '',
+      subject: '',
+      body: '',
+      variables: []
+    });
+    setShowEditDialog(true);
+  };
 
   const handleSave = async () => {
-    setSaving(true);
     try {
-      const payload = {
-        template_key: selectedId,
-        name: selectedDef?.name || selectedId,
-        subject,
-        html, // keep for forward compatibility
-        body: html, // write to existing 'body' column to satisfy NOT NULL
-        updated_at: new Date().toISOString(),
+      // Validate form data
+      const errors = validateTemplateVariables(formData);
+      if (errors.length > 0) {
+        toast({
+          title: "Validation Error",
+          description: errors.join(', '),
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Parse variables from body
+      const parsedVariables = parseTemplateVariables(formData.body);
+      
+      const templateData = {
+        ...formData,
+        variables: parsedVariables
       };
 
-      const { error } = await supabase
-        .from('email_templates')
-        .upsert(payload, { onConflict: 'template_key' });
+      if (selectedTemplate) {
+        await updateEmailTemplate(selectedTemplate.id, templateData);
+        toast({
+          title: "Success",
+          description: "Email template updated successfully"
+        });
+      } else {
+        await createEmailTemplate(templateData);
+        toast({
+          title: "Success",
+          description: "Email template created successfully"
+        });
+      }
 
-      if (error) throw error;
-
-      toast({ title: 'Saved', description: 'Template saved successfully.' });
-    } catch (e) {
-      toast({ variant: 'destructive', title: 'Save Failed', description: e.message || 'Could not save template.' });
-    } finally {
-      setSaving(false);
+      setShowEditDialog(false);
+      fetchTemplates();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save template",
+        variant: "destructive"
+      });
     }
   };
 
-  const handleSendTest = async () => {
-    if (!testEmail) {
-      toast({ variant: 'destructive', title: 'Recipient required', description: 'Enter a test email address.' });
+  const handleDelete = async (template) => {
+    if (!confirm(`Are you sure you want to delete the template "${template.name}"?`)) {
       return;
     }
-    setSending(true);
+
     try {
-      // Attempt to call an Edge Function named 'send-email'
-      const { error } = await supabase.functions.invoke('send-email', {
-        body: {
-          to: testEmail,
-          subject,
-          html,
-          templateId: selectedId,
-        }
+      await deleteEmailTemplate(template.id);
+      toast({
+        title: "Success",
+        description: "Email template deleted successfully"
       });
-
-      if (error) throw error;
-
-      toast({ title: 'Sent', description: 'Test email sent (if email service is configured).' });
-    } catch (e) {
-      // Fallback notice if no function configured
-      toast({ title: 'Send Not Configured', description: 'Email function not available. Template content is ready; configure Edge Function to enable sending.' });
-    } finally {
-      setSending(false);
+      fetchTemplates();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete template",
+        variant: "destructive"
+      });
     }
   };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-8"
-    >
-      <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-        Email Templates
-      </h1>
+  const handlePreview = (template) => {
+    setSelectedTemplate(template);
+    setPreviewData(getDefaultSampleData(template.name));
+    setShowPreviewDialog(true);
+  };
 
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-1">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Select Template</label>
-            <div className="space-y-2">
-              {TEMPLATE_DEFS.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setSelectedId(t.id)}
-                  className={`w-full text-left p-3 rounded-lg border ${selectedId === t.id ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 bg-slate-50'} hover:bg-emerald-50 transition`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-emerald-600" />
-                    <span className="font-semibold text-slate-800">{t.name}</span>
-                  </div>
-                  <div className="text-xs text-slate-500 mt-1">{t.description}</div>
-                </button>
-              ))}
-            </div>
-          </div>
+  const handleTest = (template) => {
+    setSelectedTemplate(template);
+    setTestEmail('');
+    setShowTestDialog(true);
+  };
 
-          <div className="md:col-span-2 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Subject</label>
-              <Input name="subject" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Email subject" />
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-slate-700">HTML Content</label>
-                <div className="text-xs text-slate-500">Use placeholders like {'{{VOUCHER_CODE}}'}, {'{{INVOICE_NUMBER}}'}</div>
-              </div>
-              <Textarea name="html" value={html} onChange={e => setHtml(e.target.value)} rows={12} className="font-mono" />
-            </div>
+  const sendTestEmail = async () => {
+    if (!testEmail || !selectedTemplate) return;
 
-            <div className="flex flex-wrap items-center gap-3">
-              <Button onClick={handleSave} disabled={saving || loading}>
-                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                Save Template
-              </Button>
-              <div className="flex items-center gap-2">
-                <Input value={testEmail} onChange={e => setTestEmail(e.target.value)} placeholder="Test recipient email" className="w-64" />
-                <Button variant="outline" onClick={handleSendTest} disabled={sending || loading}>
-                  {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                  Send Test
-                </Button>
-              </div>
-              <Button variant="secondary" onClick={() => window.open('about:blank', '_blank')?.document.write(html)}>
-                <Eye className="w-4 h-4 mr-2" /> Preview HTML
-              </Button>
-            </div>
+    try {
+      await testEmailTemplate(selectedTemplate.name, {
+        email: testEmail,
+        variables: getDefaultSampleData(selectedTemplate.name)
+      });
+      
+      toast({
+        title: "Success",
+        description: `Test email sent to ${testEmail}`
+      });
+      setShowTestDialog(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send test email",
+        variant: "destructive"
+      });
+    }
+  };
 
-            {loading && (
-              <div className="text-sm text-slate-500">Loading template…</div>
-            )}
-          </div>
-        </div>
+  const getPreviewHtml = () => {
+    if (!selectedTemplate) return '';
+    return generateTemplatePreview(selectedTemplate, previewData);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Loading email templates...</div>
       </div>
-    </motion.div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+            Email Templates
+          </h1>
+          <p className="text-slate-600 mt-2">
+            Manage email templates for automated communications
+          </p>
+        </div>
+        <Button onClick={handleCreate} className="flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          New Template
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="w-5 h-5" />
+            Templates ({templates.length})
+          </CardTitle>
+          <CardDescription>
+            Click edit to modify templates, preview to see how they look, or test to send a sample email
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {templates.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              <Mail className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+              <p>No email templates found</p>
+              <Button onClick={handleCreate} className="mt-4">
+                Create Your First Template
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Variables</TableHead>
+                  <TableHead>Updated</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {templates.map((template) => (
+                  <TableRow key={template.id}>
+                    <TableCell className="font-medium">
+                      {template.name}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {template.subject}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {(template.variables || []).slice(0, 3).map((variable, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {variable}
+                          </Badge>
+                        ))}
+                        {(template.variables || []).length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{(template.variables || []).length - 3} more
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-500">
+                      {new Date(template.updated_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePreview(template)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleTest(template)}
+                        >
+                          <Send className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(template)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(template)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedTemplate ? 'Edit Template' : 'Create New Template'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="name">Template Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                placeholder="e.g., welcome-email"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="subject">Subject Line</Label>
+              <Input
+                id="subject"
+                value={formData.subject}
+                onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                placeholder="e.g., Welcome to {app.name}"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="body">Email Body (HTML)</Label>
+              <Textarea
+                id="body"
+                value={formData.body}
+                onChange={(e) => setFormData({...formData, body: e.target.value})}
+                placeholder="Enter HTML content..."
+                className="min-h-[400px] font-mono text-sm"
+              />
+              <p className="text-sm text-slate-500 mt-1">
+                Use {{ $variable }} for Laravel syntax or {'{variable}'} for simple placeholders
+              </p>
+            </div>
+            
+            <div>
+              <Label>Detected Variables</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {parseTemplateVariables(formData.body).map((variable, index) => (
+                  <Badge key={index} variant="secondary">
+                    {variable}
+                  </Badge>
+                ))}
+                {parseTemplateVariables(formData.body).length === 0 && (
+                  <span className="text-sm text-slate-500">No variables detected</span>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} className="flex items-center gap-2">
+              <Save className="w-4 h-4" />
+              Save Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Email Preview</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="border rounded-lg p-4 bg-slate-50">
+              <h3 className="font-semibold mb-2">Sample Data</h3>
+              <pre className="text-sm bg-white p-3 rounded border overflow-auto">
+                {JSON.stringify(previewData, null, 2)}
+              </pre>
+            </div>
+            
+            <div className="border rounded-lg">
+              <div className="bg-slate-100 p-3 border-b">
+                <h3 className="font-semibold">Rendered Email</h3>
+              </div>
+              <div 
+                className="p-4 max-h-96 overflow-auto"
+                dangerouslySetInnerHTML={{ __html: getPreviewHtml() }}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPreviewDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Test Dialog */}
+      <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Test Email</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="testEmail">Email Address</Label>
+              <Input
+                id="testEmail"
+                type="email"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                placeholder="test@example.com"
+              />
+            </div>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-yellow-800">
+                <AlertCircle className="w-4 h-4" />
+                <span className="font-medium">Test Email</span>
+              </div>
+              <p className="text-sm text-yellow-700 mt-1">
+                A test email will be sent with sample data to verify the template works correctly.
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTestDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={sendTestEmail} 
+              disabled={!testEmail}
+              className="flex items-center gap-2"
+            >
+              <Send className="w-4 h-4" />
+              Send Test Email
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

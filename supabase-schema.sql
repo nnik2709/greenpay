@@ -1,8 +1,6 @@
 -- PNG Green Fees System - Supabase Database Schema
 -- Run this SQL in your Supabase SQL Editor
-
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- NOTE: UUID extensions are handled by migrations/000_extensions.sql
 
 -- =============================================
 -- PROFILES TABLE (Users)
@@ -461,6 +459,39 @@ $$ LANGUAGE plpgsql;
 
 -- Create sequence for quotation numbers
 CREATE SEQUENCE IF NOT EXISTS quotation_sequence START 1;
+
+-- =============================================
+-- SETTINGS TABLE
+-- =============================================
+CREATE TABLE IF NOT EXISTS settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  voucher_validity_days INTEGER NOT NULL DEFAULT 30,
+  default_amount DECIMAL(10,2) NOT NULL DEFAULT 50.00,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read settings" ON settings
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Only admins can update settings" ON settings
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role = 'Flex_Admin'
+    )
+  );
+
+-- Insert default settings
+INSERT INTO settings (voucher_validity_days, default_amount)
+SELECT 30, 50.00
+WHERE NOT EXISTS (SELECT 1 FROM settings LIMIT 1);
+
+CREATE TRIGGER update_settings_updated_at BEFORE UPDATE ON settings
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =============================================
 -- VIEWS FOR REPORTING

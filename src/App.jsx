@@ -10,10 +10,13 @@ import RoleBasedRedirect from '@/components/RoleBasedRedirect';
 import Login from '@/pages/Login';
 import NotFound from '@/pages/NotFound';
 import ResetPassword from '@/pages/ResetPassword';
+import PublicRegistration from '@/pages/PublicRegistration';
+import PublicRegistrationSuccess from '@/pages/PublicRegistrationSuccess';
 
 // Lazy load pages for code splitting and better performance
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Passports = lazy(() => import('@/pages/Passports'));
+const EditPassport = lazy(() => import('@/pages/EditPassport'));
 const Purchases = lazy(() => import('@/pages/Purchases'));
 const Reports = lazy(() => import('@/pages/Reports'));
 const Users = lazy(() => import('@/pages/Users'));
@@ -22,12 +25,14 @@ const Quotations = lazy(() => import('@/pages/Quotations'));
 const IndividualPurchase = lazy(() => import('@/pages/IndividualPurchase'));
 const BulkPassportUpload = lazy(() => import('@/pages/BulkPassportUpload'));
 const CorporateExitPass = lazy(() => import('@/pages/CorporateExitPass'));
+const CorporateBatchHistory = lazy(() => import('@/pages/CorporateBatchHistory'));
 const CreateQuotation = lazy(() => import('@/pages/CreateQuotation'));
 const OfflineTemplate = lazy(() => import('@/pages/OfflineTemplate'));
 const OfflineUpload = lazy(() => import('@/pages/OfflineUpload'));
 const PassportReports = lazy(() => import('@/pages/reports/PassportReports'));
 const PaymentModes = lazy(() => import('@/pages/admin/PaymentModes'));
 const EmailTemplates = lazy(() => import('@/pages/admin/EmailTemplates'));
+const Settings = lazy(() => import('@/pages/admin/Settings'));
 const IndividualPurchaseReports = lazy(() => import('@/pages/reports/IndividualPurchaseReports'));
 const CorporateVoucherReports = lazy(() => import('@/pages/reports/CorporateVoucherReports'));
 const RevenueGeneratedReports = lazy(() => import('@/pages/reports/RevenueGeneratedReports'));
@@ -35,6 +40,7 @@ const BulkPassportUploadReports = lazy(() => import('@/pages/reports/BulkPasspor
 const QuotationsReports = lazy(() => import('@/pages/reports/QuotationsReports'));
 const ScanAndValidate = lazy(() => import('@/pages/ScanAndValidate'));
 const AgentLanding = lazy(() => import('@/pages/AgentLanding'));
+const CashReconciliation = lazy(() => import('@/pages/CashReconciliation'));
 
 // Loading component for suspense fallback
 const PageLoader = () => (
@@ -117,10 +123,20 @@ const AppRoutes = () => {
             <BulkPassportUpload />
           </PrivateRoute>
         } />
+        <Route path="passports/edit/:id" element={
+          <PrivateRoute roles={['Flex_Admin', 'Counter_Agent']}>
+            <EditPassport />
+          </PrivateRoute>
+        } />
         <Route path="scan" element={<ScanRoute />} />
         <Route path="purchases/corporate-exit-pass" element={
           <PrivateRoute roles={['Flex_Admin', 'Counter_Agent', 'Finance_Manager']}>
             <CorporateExitPass />
+          </PrivateRoute>
+        } />
+        <Route path="purchases/corporate-batch-history" element={
+          <PrivateRoute roles={['Flex_Admin', 'Finance_Manager', 'IT_Support']}>
+            <CorporateBatchHistory />
           </PrivateRoute>
         } />
         <Route path="purchases/offline-template" element={
@@ -136,6 +152,11 @@ const AppRoutes = () => {
         <Route path="purchases" element={
           <PrivateRoute roles={['Flex_Admin', 'Counter_Agent']}>
             <Purchases />
+          </PrivateRoute>
+        } />
+        <Route path="cash-reconciliation" element={
+          <PrivateRoute roles={['Flex_Admin', 'Counter_Agent', 'Finance_Manager']}>
+            <CashReconciliation />
           </PrivateRoute>
         } />
         <Route path="quotations" element={
@@ -193,10 +214,20 @@ const AppRoutes = () => {
             <EmailTemplates />
           </PrivateRoute>
         } />
+        <Route path="admin/settings" element={
+          <PrivateRoute roles={['Flex_Admin']}>
+            <Settings />
+          </PrivateRoute>
+        } />
         <Route path="tickets" element={<Tickets />} />
-      </Route>
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        </Route>
+        
+        {/* Public Routes - No Authentication Required */}
+        <Route path="/register/:voucherCode" element={<PublicRegistration />} />
+        <Route path="/register/success/:voucherCode" element={<PublicRegistrationSuccess />} />
+        
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </Suspense>
   );
 };

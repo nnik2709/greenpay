@@ -1,0 +1,7 @@
+passportNo,surname,givenName,nationality,dob,sex,dateOfExpiry
+P123456,Doe,John,Papua New Guinea,1990-01-01,Male,2030-01-01
+P234567,Smith,Jane,Papua New Guinea,1985-05-15,Female,2029-06-30
+P345678,Brown,Robert,Papua New Guinea,1992-03-20,Male,2028-12-31
+P456789,Wilson,Mary,Papua New Guinea,1988-11-10,Female,2027-08-15
+P567890,Johnson,David,Papua New Guinea,1995-07-25,Male,2031-04-22
+
