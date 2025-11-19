@@ -8,12 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { useLocation } from 'react-router-dom';
 // Legacy import removed - using Supabase passportsService instead
 import { getPassportByNumber, createPassport } from '@/lib/passportsService';
 import { createIndividualPurchase } from '@/lib/individualPurchasesService';
 import { getPaymentModes } from '@/lib/paymentModesStorage';
 import { useAuth } from '@/contexts/AuthContext';
 import VoucherPrint from '@/components/VoucherPrint';
+import { processOnlinePayment, isGatewayActive, GATEWAY_NAMES } from '@/lib/paymentGatewayService';
 
 const StepIndicator = ({ currentStep }) => {
   const steps = [
@@ -284,6 +286,27 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
     loadPaymentModes();
   }, []);
 
+  // Refresh payment modes when component becomes visible (user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        const loadPaymentModes = async () => {
+          const modes = await getPaymentModes();
+          const activeModes = modes.filter(m => m.active);
+          setPaymentModes(activeModes);
+          // Don't change selected mode if user has already selected one
+          if (activeModes.length > 0 && !selectedMode) {
+            setSelectedMode(activeModes[0].name);
+          }
+        };
+        loadPaymentModes();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [selectedMode]);
+
   const amountAfterDiscount = amount - (amount * (discount / 100));
   const returnedAmount = collectedAmount - amountAfterDiscount;
   const selectedModeObj = paymentModes.find(m => m.name === selectedMode);
@@ -307,22 +330,90 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
 
     setIsProcessing(true);
 
-    // Store payment data
-    setPaymentData({
-      paymentMethod: selectedMode,
-      amount: amountAfterDiscount,
-      discount,
-      collectedAmount,
-      returnedAmount: returnedAmount > 0 ? returnedAmount : 0,
-      cardLastFour: requiresCardDetails ? cardNumber.slice(-4) : null,
-    });
+    try {
+      // Check if this is an online payment gateway
+      const isOnlineGateway = selectedMode === 'KINA BANK IPG' || selectedMode === 'BSP IPG';
 
-    toast({ title: "Payment Accepted", description: `Payment of PGK ${amountAfterDiscount.toFixed(2)} processed successfully.` });
+      if (isOnlineGateway) {
+        // Handle online payment gateway
+        const gatewayName = selectedMode === 'KINA BANK IPG' ? GATEWAY_NAMES.KINA_BANK : GATEWAY_NAMES.BSP;
 
-    setTimeout(() => {
+        // Check if gateway is active
+        const isActive = await isGatewayActive(gatewayName);
+        if (!isActive) {
+          toast({
+            variant: "destructive",
+            title: "Gateway Not Available",
+            description: `${selectedMode} is not currently active. Please select another payment method.`
+          });
+          setIsProcessing(false);
+          return;
+        }
+
+        // Initiate online payment
+        const paymentResult = await processOnlinePayment(
+          gatewayName,
+          {
+            amount: amountAfterDiscount,
+            currency: 'PGK',
+            customerEmail: passportInfo.email || 'customer@example.com',
+            customerName: `${passportInfo.givenName} ${passportInfo.surname}`,
+            passportNumber: passportInfo.passportNumber,
+            nationality: passportInfo.nationality,
+            description: `PNG Green Fees - ${passportInfo.passportNumber}`,
+            returnUrl: `${window.location.origin}/payment-callback`,
+            cancelUrl: `${window.location.origin}/individual-purchase`
+          },
+          null // userId will be set in service from auth context
+        );
+
+        // Redirect to payment gateway
+        if (paymentResult.success && paymentResult.paymentUrl) {
+          toast({
+            title: "Redirecting to Payment Gateway",
+            description: "You will be redirected to complete your payment securely."
+          });
+
+          // Store payment intent for later retrieval
+          sessionStorage.setItem('payment_merchant_ref', paymentResult.merchantReference);
+          sessionStorage.setItem('payment_passport_info', JSON.stringify(passportInfo));
+
+          // Redirect to gateway payment page
+          setTimeout(() => {
+            window.location.href = paymentResult.paymentUrl;
+          }, 1500);
+        } else {
+          throw new Error('Failed to initiate payment gateway session');
+        }
+
+      } else {
+        // Traditional payment method (cash, bank transfer, etc.)
+        setPaymentData({
+          paymentMethod: selectedMode,
+          amount: amountAfterDiscount,
+          discount,
+          collectedAmount,
+          returnedAmount: returnedAmount > 0 ? returnedAmount : 0,
+          cardLastFour: requiresCardDetails ? cardNumber.slice(-4) : null,
+        });
+
+        toast({ title: "Payment Accepted", description: `Payment of PGK ${amountAfterDiscount.toFixed(2)} processed successfully.` });
+
+        setTimeout(() => {
+          setIsProcessing(false);
+          onNext();
+        }, 800);
+      }
+
+    } catch (error) {
+      console.error('Payment processing error:', error);
+      toast({
+        variant: "destructive",
+        title: "Payment Error",
+        description: error.message || "Failed to process payment. Please try again."
+      });
       setIsProcessing(false);
-      onNext();
-    }, 800);
+    }
   };
 
   return (
@@ -530,11 +621,23 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
 const IndividualPurchase = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
   const [step, setStep] = useState(0);
   const [passportInfo, setPassportInfo] = useState({});
   const [paymentData, setPaymentData] = useState(null);
   const [voucher, setVoucher] = useState(null);
   const [isCreatingVoucher, setIsCreatingVoucher] = useState(false);
+
+  // Handle pre-filled data from camera scan
+  useEffect(() => {
+    if (location.state?.prefillData && location.state?.fromScan) {
+      setPassportInfo(location.state.prefillData);
+      toast({
+        title: "Passport Data Loaded",
+        description: `Scanned data for ${location.state.prefillData.givenName} ${location.state.prefillData.surname} has been loaded.`,
+      });
+    }
+  }, [location.state, toast]);
 
   const handleNext = () => setStep((prev) => Math.min(prev + 1, 2));
   const handleBack = () => setStep((prev) => Math.max(prev - 1, 0));

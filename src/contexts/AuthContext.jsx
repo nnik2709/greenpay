@@ -91,10 +91,46 @@ export const AuthProvider = ({ children }) => {
         role: profile.role,
       });
       setIsAuthenticated(true);
+
+      // Log the login event
+      await logLoginEvent(data.user.id, profile.email);
+
       return true;
     } catch (error) {
       console.error('Login error:', error);
       return false;
+    }
+  };
+
+  const logLoginEvent = async (userId, email) => {
+    try {
+      // Get user's IP address and user agent
+      const userAgent = navigator.userAgent;
+      const ipAddress = await getClientIP();
+
+      await supabase
+        .from('login_events')
+        .insert({
+          user_id: userId,
+          ip_address: ipAddress,
+          user_agent: userAgent,
+          created_at: new Date().toISOString()
+        });
+    } catch (error) {
+      console.error('Error logging login event:', error);
+      // Don't throw error here as it shouldn't break the login flow
+    }
+  };
+
+  const getClientIP = async () => {
+    try {
+      // Try to get IP from a public service
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      // Fallback to localhost for development
+      return '127.0.0.1';
     }
   };
 

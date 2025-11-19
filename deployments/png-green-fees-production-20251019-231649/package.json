@@ -1,0 +1,16 @@
+{
+  "name": "png-green-fees-production",
+  "version": "1.0.0",
+  "description": "PNG Green Fees System - Production Build",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "serve": "npx serve -s . -l 3000"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

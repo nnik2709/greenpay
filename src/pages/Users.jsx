@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { UserPlus, Search, Key, Mail } from 'lucide-react';
+import { UserPlus, Search, Key, Mail, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { getUsers } from '@/lib/usersService';
 import {
@@ -28,8 +29,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const Users = () => {
+function Users() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddUserModalOpen, setAddUserModalOpen] = useState(false);
@@ -70,16 +72,19 @@ const Users = () => {
     }
   }, [selectedUser]);
 
-  const handleAction = (actionName) => {
-    toast({
-      title: "🚧 Feature In Progress!",
-      description: `${actionName} isn't implemented yet. You can request it in your next prompt! 🚀`,
+  const handleViewLoginHistory = (user) => {
+    // Navigate to login history page with user filter
+    navigate('/admin/login-history', { 
+      state: { 
+        userFilter: user.id,
+        userName: user.email 
+      } 
     });
   };
 
   const handleAddUser = (e) => {
     e.preventDefault();
-    const newId = Math.max(...users.map(u => u.id)) + 1;
+    const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
     setUsers([...users, { ...newUser, id: newId, active: true }]);
     setAddUserModalOpen(false);
     setNewUser({ email: '', password: '', role: '' });
@@ -152,6 +157,14 @@ const Users = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="space-y-6">
@@ -159,10 +172,20 @@ const Users = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
             Users
           </h1>
-          <Button onClick={() => setAddUserModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-            <UserPlus className="w-4 h-4 mr-2" />
-            Add User
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => navigate('/admin/login-history')} 
+              variant="outline" 
+              className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+            >
+              <History className="w-4 h-4 mr-2" />
+              Login History
+            </Button>
+            <Button onClick={() => setAddUserModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add User
+            </Button>
+          </div>
         </div>
 
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
@@ -187,38 +210,50 @@ const Users = () => {
                 </tr>
               </thead>
               <tbody>
-                {users.map(user => (
-                  <tr key={user.id} className="bg-white border-b hover:bg-slate-50">
-                    <td className="px-6 py-4">{user.id}</td>
-                    <td className="px-6 py-4 font-medium text-slate-900">{user.email}</td>
-                    <td className="px-6 py-4">{user.role.replace(/_/g, ' ')}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${user.active ? 'text-green-800 bg-green-100' : 'text-red-800 bg-red-100'}`}>
-                        {user.active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Button variant="link" className="p-0 h-auto text-emerald-600" onClick={() => handleAction('View Login History')}>
-                        View Login History
-                      </Button>
-                    </td>
-                    <td className="px-6 py-4 flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => openEditModal(user)}>Edit</Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => openPasswordResetModal(user)}
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                      >
-                        <Key className="w-3 h-3 mr-1" />
-                        Reset Password
-                      </Button>
-                      <Button size="sm" variant={user.active ? "destructive" : "outline"} onClick={() => openDeactivateModal(user)}>
-                        {user.active ? 'Deactivate' : 'Activate'}
-                      </Button>
+                {users.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-8 text-center text-slate-500">
+                      No users found. Click "Add User" to create the first user.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  users.map(user => (
+                    <tr key={user.id} className="bg-white border-b hover:bg-slate-50">
+                      <td className="px-6 py-4">{user.id}</td>
+                      <td className="px-6 py-4 font-medium text-slate-900">{user.email}</td>
+                      <td className="px-6 py-4">{user.role.replace(/_/g, ' ')}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${user.active ? 'text-green-800 bg-green-100' : 'text-red-800 bg-red-100'}`}>
+                          {user.active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Button 
+                          variant="link" 
+                          className="p-0 h-auto text-emerald-600 hover:text-emerald-700" 
+                          onClick={() => handleViewLoginHistory(user)}
+                        >
+                          View Login History
+                        </Button>
+                      </td>
+                      <td className="px-6 py-4 flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => openEditModal(user)}>Edit</Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => openPasswordResetModal(user)}
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Key className="w-3 h-3 mr-1" />
+                          Reset Password
+                        </Button>
+                        <Button size="sm" variant={user.active ? "destructive" : "outline"} onClick={() => openDeactivateModal(user)}>
+                          {user.active ? 'Deactivate' : 'Activate'}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

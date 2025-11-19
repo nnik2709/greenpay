@@ -321,3 +321,10 @@ console.log('DB error:', dbError);
 
 **Try it now and check the browser console for the detailed logging!**
 
+
+
+
+
+
+
+

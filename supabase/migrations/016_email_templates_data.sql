@@ -542,3 +542,10 @@ UPDATE email_templates SET
     updated_at = NOW()
 WHERE name = 'individual-passport-voucher';
 
+
+
+
+
+
+
+

@@ -204,3 +204,10 @@ npm run build
 **🎉 Your PNG Green Fees application should now work perfectly in production!**
 
 **The blank screen issue will be resolved with the proper environment variables and all fixes included in this deployment.**
+
+
+
+
+
+
+

@@ -173,3 +173,10 @@ echo "   • Check deployed files: ssh $VPS_USER@$VPS_HOST 'ls -la $VPS_APP_DIR/
 echo "   • Verify environment: ssh $VPS_USER@$VPS_HOST 'cat $VPS_APP_DIR/.env.production'"
 echo ""
 print_success "Deployment completed! The blank screen issue should be resolved."
+
+
+
+
+
+
+

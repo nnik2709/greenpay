@@ -46,3 +46,10 @@ npm run test -- tests/new-features/public-registration.spec.ts --grep "photo upl
 ✅ Done! Your storage is ready.
 
 
+
+
+
+
+
+
+

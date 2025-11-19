@@ -221,3 +221,10 @@ ssh root@195.200.14.62 'cd /var/www/png-green-fees && tar -xzf /tmp/png-green-fe
 **🎉 Your PNG Green Fees application is ready for production deployment!**
 
 **Choose the deployment method that works best for your setup and follow the steps above.**
+
+
+
+
+
+
+

@@ -1,131 +1,83 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import DataTable from 'react-data-table-component';
-import { Button } from '@/components/ui/button';
+import { Package, Download, Mail, Eye, Calendar, DollarSign, Users, Search, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
-import { Download, Package, Eye, Mail, FileText } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-
-const customStyles = {
-  header: { style: { minHeight: '56px' } },
-  headRow: { 
-    style: { 
-      borderTopStyle: 'solid', 
-      borderTopWidth: '1px', 
-      borderTopColor: '#E2E8F0', 
-      backgroundColor: '#F8FAFC' 
-    } 
-  },
-  headCells: { 
-    style: { 
-      '&:not(:last-of-type)': { 
-        borderRightStyle: 'solid', 
-        borderRightWidth: '1px', 
-        borderRightColor: '#E2E8F0' 
-      }, 
-      color: '#475569', 
-      fontSize: '12px', 
-      fontWeight: '600', 
-      textTransform: 'uppercase' 
-    } 
-  },
-  cells: { 
-    style: { 
-      '&:not(:last-of-type)': { 
-        borderRightStyle: 'solid', 
-        borderRightWidth: '1px', 
-        borderRightColor: '#E2E8F0' 
-      } 
-    } 
-  },
-};
-
-const StatCard = ({ title, value, icon: Icon }) => (
-  <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 shadow-sm border border-emerald-100">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm text-slate-500">{title}</p>
-        <p className="text-2xl font-bold text-slate-800 mt-1">{value}</p>
-      </div>
-      {Icon && <Icon className="w-8 h-8 text-emerald-500 opacity-50" />}
-    </div>
-  </div>
-);
+import ExportButton from '@/components/ExportButton';
 
 const CorporateBatchHistory = () => {
   const { toast } = useToast();
   const [batches, setBatches] = useState([]);
+  const [filteredBatches, setFilteredBatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
   const [selectedBatch, setSelectedBatch] = useState(null);
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const [batchVouchers, setBatchVouchers] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showEmailDialog, setShowEmailDialog] = useState(false);
-  const [emailAddress, setEmailAddress] = useState('');
-  const [emailLoading, setEmailLoading] = useState(false);
+  const [showBatchDetails, setShowBatchDetails] = useState(false);
 
   useEffect(() => {
     fetchBatches();
   }, []);
 
+  useEffect(() => {
+    filterBatches();
+  }, [batches, searchQuery, statusFilter, dateFilter]);
+
   const fetchBatches = async () => {
     try {
       setLoading(true);
-      
-      // Query corporate_vouchers and group by batch_id or company
-      const { data: vouchers, error } = await supabase
+      const { data, error } = await supabase
         .from('corporate_vouchers')
-        .select('*')
+        .select(`
+          *,
+          profiles!inner(
+            id,
+            full_name,
+            email
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Group vouchers by batch (using created_at date + company as batch identifier)
+      // Group vouchers by batch_id
       const batchMap = new Map();
-      
-      (vouchers || []).forEach(voucher => {
-        const batchKey = voucher.batch_id || `${voucher.company_name}_${new Date(voucher.created_at).toDateString()}`;
-        
-        if (!batchMap.has(batchKey)) {
-          batchMap.set(batchKey, {
-            batchId: batchKey,
-            companyName: voucher.company_name,
+      (data || []).forEach(voucher => {
+        const batchId = voucher.batch_id || 'individual';
+        if (!batchMap.has(batchId)) {
+          batchMap.set(batchId, {
+            batchId,
+            companyName: voucher.company_name || 'Unknown Company',
+            contactEmail: voucher.contact_email || 'No email',
+            createdBy: voucher.profiles?.full_name || 'Unknown',
             createdAt: voucher.created_at,
-            paymentMethod: voucher.payment_method,
             vouchers: [],
             totalAmount: 0,
-            quantity: 0
+            usedCount: 0,
+            status: 'active'
           });
         }
         
-        const batch = batchMap.get(batchKey);
+        const batch = batchMap.get(batchId);
         batch.vouchers.push(voucher);
         batch.totalAmount += parseFloat(voucher.amount || 0);
-        batch.quantity += parseInt(voucher.quantity || 1);
+        if (voucher.used_at) {
+          batch.usedCount++;
+        }
       });
 
-      const batchesArray = Array.from(batchMap.values()).map((batch, index) => ({
-        id: index + 1,
-        batchId: batch.batchId,
-        companyName: batch.companyName,
-        date: new Date(batch.createdAt).toLocaleString(),
-        quantity: batch.quantity,
-        totalAmount: batch.totalAmount,
-        paymentMethod: batch.paymentMethod,
-        vouchers: batch.vouchers,
-        usedCount: batch.vouchers.filter(v => v.used_at).length,
-        validCount: batch.vouchers.filter(v => !v.used_at).length
+      const batchList = Array.from(batchMap.values()).map(batch => ({
+        ...batch,
+        voucherCount: batch.vouchers.length,
+        usageRate: batch.vouchers.length > 0 ? (batch.usedCount / batch.vouchers.length * 100).toFixed(1) : 0
       }));
 
-      setBatches(batchesArray);
+      setBatches(batchList);
     } catch (error) {
       console.error('Error fetching batches:', error);
       toast({
@@ -138,396 +90,398 @@ const CorporateBatchHistory = () => {
     }
   };
 
-  const handleViewDetails = (batch) => {
-    setSelectedBatch(batch);
-    setBatchVouchers(batch.vouchers);
-    setShowDetailsDialog(true);
+  const filterBatches = () => {
+    let filtered = [...batches];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(batch => 
+        batch.companyName.toLowerCase().includes(query) ||
+        batch.contactEmail.toLowerCase().includes(query) ||
+        batch.createdBy.toLowerCase().includes(query) ||
+        batch.batchId.toLowerCase().includes(query)
+      );
+    }
+
+    // Status filter
+    if (statusFilter) {
+      if (statusFilter === 'used') {
+        filtered = filtered.filter(batch => batch.usedCount > 0);
+      } else if (statusFilter === 'unused') {
+        filtered = filtered.filter(batch => batch.usedCount === 0);
+      } else if (statusFilter === 'partial') {
+        filtered = filtered.filter(batch => batch.usedCount > 0 && batch.usedCount < batch.voucherCount);
+      }
+    }
+
+    // Date filter
+    if (dateFilter) {
+      const filterDate = new Date(dateFilter);
+      const nextDay = new Date(filterDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      
+      filtered = filtered.filter(batch => {
+        const batchDate = new Date(batch.createdAt);
+        return batchDate >= filterDate && batchDate < nextDay;
+      });
+    }
+
+    setFilteredBatches(filtered);
   };
 
-  const handleDownloadBatch = async (batch) => {
-    toast({
-      title: "Download Started",
-      description: `Preparing ZIP file for ${batch.companyName}...`,
-    });
-    
+  const downloadBatchZip = async (batchId) => {
     try {
-      // Call the generate-corporate-zip Edge Function
-      const voucherIds = batch.vouchers.map(v => v.id);
-      
       const { data, error } = await supabase.functions.invoke('generate-corporate-zip', {
-        body: { 
-          voucherIds,
-          companyName: batch.companyName 
-        }
+        body: { batchId }
       });
 
       if (error) throw error;
 
+      // Create download link
+      const link = document.createElement('a');
+      link.href = data.downloadUrl;
+      link.download = `corporate-batch-${batchId}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
       toast({
-        title: "Download Ready",
-        description: "ZIP file generated successfully",
+        title: "Download Started",
+        description: "Corporate batch ZIP file is being downloaded",
       });
     } catch (error) {
       console.error('Error downloading batch:', error);
       toast({
         title: "Download Failed",
-        description: error.message || "Failed to generate ZIP file",
+        description: error.message || "Failed to download batch ZIP",
         variant: "destructive"
       });
     }
   };
 
-  const handleEmailBatch = async () => {
-    if (!emailAddress || !selectedBatch) return;
-
-    setEmailLoading(true);
-    
+  const emailBatch = async (batchId, companyEmail) => {
     try {
-      const { data, error } = await supabase.functions.invoke('send-corporate-batch-email', {
-        body: {
-          batchId: selectedBatch.batchId,
-          recipientEmail: emailAddress
+      const { error } = await supabase.functions.invoke('send-voucher-batch', {
+        body: { 
+          batchId,
+          email: companyEmail,
+          message: 'Your corporate voucher batch is ready for download.'
         }
       });
 
       if (error) throw error;
 
       toast({
-        title: "Email Sent Successfully",
-        description: `Corporate batch details sent to ${emailAddress}`,
+        title: "Email Sent",
+        description: `Batch sent to ${companyEmail}`,
       });
-
-      setShowEmailDialog(false);
-      setEmailAddress('');
     } catch (error) {
-      console.error('Error sending email:', error);
+      console.error('Error emailing batch:', error);
       toast({
         title: "Email Failed",
-        description: error.message || "Failed to send email",
+        description: error.message || "Failed to send batch email",
         variant: "destructive"
       });
-    } finally {
-      setEmailLoading(false);
     }
   };
 
-  const columns = [
-    { 
-      name: 'Batch ID', 
-      selector: row => row.id, 
-      sortable: true,
-      width: '100px'
-    },
-    { 
-      name: 'Company Name', 
-      selector: row => row.companyName, 
-      sortable: true,
-      wrap: true
-    },
-    { 
-      name: 'Date Created', 
-      selector: row => row.date, 
-      sortable: true 
-    },
-    { 
-      name: 'Quantity', 
-      selector: row => row.quantity, 
-      sortable: true,
-      right: true,
-      width: '100px'
-    },
-    { 
-      name: 'Total Amount', 
-      selector: row => `PGK ${row.totalAmount.toFixed(2)}`, 
-      sortable: true,
-      right: true 
-    },
-    { 
-      name: 'Payment Method', 
-      selector: row => row.paymentMethod, 
-      sortable: true 
-    },
-    { 
-      name: 'Status', 
-      cell: row => (
-        <div className="flex flex-col gap-1 py-1">
-          <span className="text-xs">
-            <span className="font-semibold text-green-600">{row.validCount}</span> Valid
-          </span>
-          <span className="text-xs">
-            <span className="font-semibold text-slate-600">{row.usedCount}</span> Used
-          </span>
-        </div>
-      ),
-      width: '100px'
-    },
-    {
-      name: 'Actions',
-      cell: row => (
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleViewDetails(row)}
-            title="View Details"
-          >
-            <Eye className="w-4 h-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleDownloadBatch(row)}
-            title="Download ZIP"
-          >
-            <Download className="w-4 h-4" />
-          </Button>
-        </div>
-      ),
-      width: '120px'
-    }
+  const exportColumns = [
+    { name: 'Batch ID', selector: row => row.batchId },
+    { name: 'Company', selector: row => row.companyName },
+    { name: 'Contact Email', selector: row => row.contactEmail },
+    { name: 'Created By', selector: row => row.createdBy },
+    { name: 'Created Date', selector: row => new Date(row.createdAt).toLocaleString() },
+    { name: 'Voucher Count', selector: row => row.voucherCount },
+    { name: 'Total Amount', selector: row => `PGK ${row.totalAmount.toFixed(2)}` },
+    { name: 'Used Count', selector: row => row.usedCount },
+    { name: 'Usage Rate', selector: row => `${row.usageRate}%` },
   ];
 
-  const filteredBatches = batches.filter(batch => 
-    batch.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    batch.batchId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const stats = {
+    total: filteredBatches.length,
+    totalVouchers: filteredBatches.reduce((sum, batch) => sum + batch.voucherCount, 0),
+    totalAmount: filteredBatches.reduce((sum, batch) => sum + batch.totalAmount, 0),
+    usedVouchers: filteredBatches.reduce((sum, batch) => sum + batch.usedCount, 0)
+  };
 
-  const totalBatches = batches.length;
-  const totalVouchers = batches.reduce((sum, b) => sum + b.quantity, 0);
-  const totalRevenue = batches.reduce((sum, b) => sum + b.totalAmount, 0);
-  const totalUsed = batches.reduce((sum, b) => sum + b.usedCount, 0);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
             Corporate Batch History
           </h1>
-          <p className="text-slate-600">
-            View and manage all corporate voucher batches
-          </p>
+          <p className="text-slate-600 mt-1">View and manage corporate voucher batches</p>
         </div>
-        <Button 
-          onClick={fetchBatches}
-          variant="outline"
-          disabled={loading}
-        >
-          <Package className="w-4 h-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          title="Total Batches" 
-          value={totalBatches} 
-          icon={Package} 
-        />
-        <StatCard 
-          title="Total Vouchers" 
-          value={totalVouchers} 
-          icon={FileText} 
-        />
-        <StatCard 
-          title="Total Revenue" 
-          value={`PGK ${totalRevenue.toFixed(2)}`} 
-        />
-        <StatCard 
-          title="Vouchers Used" 
-          value={`${totalUsed} / ${totalVouchers}`} 
-        />
-      </div>
-
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
-        <div className="mb-4">
-          <Input
-            placeholder="Search by company name or batch ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-md"
-          />
-        </div>
-        
-        <DataTable
-          columns={columns}
+        <ExportButton
           data={filteredBatches}
-          pagination
-          paginationPerPage={10}
-          paginationRowsPerPageOptions={[10, 25, 50]}
-          customStyles={customStyles}
-          highlightOnHover
-          pointerOnHover
-          progressPending={loading}
-          noDataComponent={
-            <div className="py-8 text-center text-slate-500">
-              No corporate batches found
-            </div>
-          }
+          columns={exportColumns}
+          filename="Corporate_Batch_History_Report"
+          title="Corporate Batch History Report"
         />
       </div>
 
-      {/* Batch Details Dialog */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Batch Details</DialogTitle>
-            <DialogDescription>
-              {selectedBatch && `${selectedBatch.companyName} - ${selectedBatch.quantity} vouchers`}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedBatch && (
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-emerald-600" />
+              <div>
+                <p className="text-sm text-slate-500">Total Batches</p>
+                <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="text-sm text-slate-500">Total Vouchers</p>
+                <p className="text-2xl font-bold text-slate-800">{stats.totalVouchers}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-purple-600" />
+              <div>
+                <p className="text-sm text-slate-500">Total Amount</p>
+                <p className="text-2xl font-bold text-slate-800">PGK {stats.totalAmount.toFixed(2)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-orange-600" />
+              <div>
+                <p className="text-sm text-slate-500">Used Vouchers</p>
+                <p className="text-2xl font-bold text-slate-800">{stats.usedVouchers}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Search</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Input
+                  placeholder="Search by company, email, or batch ID..."
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="unused">Unused</SelectItem>
+                  <SelectItem value="partial">Partially used</SelectItem>
+                  <SelectItem value="used">Fully used</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Date</label>
+              <Input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Batch List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Corporate Batches ({filteredBatches.length} batches)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {filteredBatches.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              No corporate batches found matching your criteria.
+            </div>
+          ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg">
+              {filteredBatches.map((batch, index) => (
+                <motion.div
+                  key={batch.batchId}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                          <Package className="w-4 h-4 text-emerald-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-slate-800">
+                            {batch.companyName}
+                          </h3>
+                          <p className="text-sm text-slate-500">
+                            Batch ID: {batch.batchId} • Created by {batch.createdBy}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-slate-400" />
+                          <span>{new Date(batch.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-slate-400" />
+                          <span>{batch.voucherCount} vouchers</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 text-slate-400" />
+                          <span>PGK {batch.totalAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Filter className="w-4 h-4 text-slate-400" />
+                          <span>{batch.usageRate}% used</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedBatch(batch);
+                          setShowBatchDetails(true);
+                        }}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        Details
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => downloadBatchZip(batch.batchId)}
+                      >
+                        <Download className="w-4 h-4 mr-1" />
+                        Download
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => emailBatch(batch.batchId, batch.contactEmail)}
+                      >
+                        <Mail className="w-4 h-4 mr-1" />
+                        Email
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Batch Details Modal */}
+      {showBatchDetails && selectedBatch && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Batch Details - {selectedBatch.companyName}</span>
+                <Button variant="outline" onClick={() => setShowBatchDetails(false)}>
+                  Close
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-sm text-slate-500">Batch ID</p>
-                  <p className="font-semibold text-slate-800 text-sm">{selectedBatch.batchId}</p>
+                  <p className="font-semibold">{selectedBatch.batchId}</p>
                 </div>
                 <div>
                   <p className="text-sm text-slate-500">Company</p>
-                  <p className="font-semibold text-slate-800">{selectedBatch.companyName}</p>
+                  <p className="font-semibold">{selectedBatch.companyName}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Date Created</p>
-                  <p className="font-semibold text-slate-800">{selectedBatch.date}</p>
+                  <p className="text-sm text-slate-500">Contact Email</p>
+                  <p className="font-semibold">{selectedBatch.contactEmail}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Payment Method</p>
-                  <p className="font-semibold text-slate-800">{selectedBatch.paymentMethod}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Total Amount</p>
-                  <p className="font-semibold text-emerald-600">PGK {selectedBatch.totalAmount.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Status</p>
-                  <p className="font-semibold text-slate-800">
-                    {selectedBatch.validCount} Valid, {selectedBatch.usedCount} Used
-                  </p>
+                  <p className="text-sm text-slate-500">Created By</p>
+                  <p className="font-semibold">{selectedBatch.createdBy}</p>
                 </div>
               </div>
-
-              <div>
-                <h3 className="font-semibold text-slate-800 mb-3">Vouchers in This Batch</h3>
-                <div className="max-h-96 overflow-y-auto space-y-2">
-                  {batchVouchers.map((voucher, index) => (
-                    <div 
-                      key={voucher.id} 
-                      className="p-3 bg-white border border-slate-200 rounded-lg flex justify-between items-center"
-                    >
-                      <div>
-                        <p className="font-mono text-sm font-semibold text-slate-800">
-                          {voucher.voucher_code}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Passport: {voucher.passport_number || 'N/A'}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-emerald-600">
-                          PGK {parseFloat(voucher.amount || 0).toFixed(2)}
-                        </p>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          voucher.used_at 
-                            ? 'bg-gray-200 text-gray-700' 
-                            : 'bg-green-100 text-green-700'
-                        }`}>
-                          {voucher.used_at ? 'Used' : 'Valid'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+              
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-2">Vouchers in this batch:</h3>
+                <div className="max-h-60 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Voucher Code</th>
+                        <th className="px-3 py-2 text-left">Passport</th>
+                        <th className="px-3 py-2 text-left">Amount</th>
+                        <th className="px-3 py-2 text-left">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedBatch.vouchers.map((voucher, index) => (
+                        <tr key={index} className="border-b">
+                          <td className="px-3 py-2 font-mono">{voucher.voucher_code}</td>
+                          <td className="px-3 py-2">{voucher.passport_number}</td>
+                          <td className="px-3 py-2">PGK {voucher.amount}</td>
+                          <td className="px-3 py-2">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              voucher.used_at 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-slate-100 text-slate-800'
+                            }`}>
+                              {voucher.used_at ? 'Used' : 'Unused'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-
-              <div className="flex gap-2 pt-4">
-                <Button 
-                  onClick={() => handleDownloadBatch(selectedBatch)}
-                  className="flex-1"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download ZIP
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setShowEmailDialog(true)}
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  Email Batch
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Email Dialog */}
-      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Email Corporate Batch</DialogTitle>
-            <DialogDescription>
-              Send batch details to an email address
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Email Address
-              </label>
-              <Input
-                type="email"
-                placeholder="recipient@company.com"
-                value={emailAddress}
-                onChange={(e) => setEmailAddress(e.target.value)}
-                className="w-full"
-              />
-            </div>
-            
-            {selectedBatch && (
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-sm text-slate-600">
-                  <strong>Batch:</strong> {selectedBatch.companyName}
-                </p>
-                <p className="text-sm text-slate-600">
-                  <strong>Vouchers:</strong> {selectedBatch.quantity}
-                </p>
-                <p className="text-sm text-slate-600">
-                  <strong>Amount:</strong> PGK {selectedBatch.totalAmount.toFixed(2)}
-                </p>
-              </div>
-            )}
-            
-            <div className="flex gap-2 pt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowEmailDialog(false)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleEmailBatch}
-                disabled={!emailAddress || emailLoading}
-                className="flex-1"
-              >
-                {emailLoading ? "Sending..." : "Send Email"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </motion.div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
   );
 };
 
 export default CorporateBatchHistory;
-

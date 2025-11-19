@@ -24,3 +24,10 @@ CREATE INDEX IF NOT EXISTS idx_passports_signature ON passports(signature_path) 
 -- No additional table policies needed
 
 
+
+
+
+
+
+
+

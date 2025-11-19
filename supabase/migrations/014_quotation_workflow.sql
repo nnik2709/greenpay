@@ -59,3 +59,10 @@ FROM quotations;
 GRANT SELECT ON quotation_statistics TO authenticated;
 
 
+
+
+
+
+
+
+

@@ -6,15 +6,17 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Printer, QrCode, Check, Loader2, Building, Calendar, DollarSign, Hash } from 'lucide-react';
+import { Printer, QrCode, Check, Loader2, Building, Calendar, DollarSign, Hash, History } from 'lucide-react';
 import { getPaymentModes } from '@/lib/paymentModesStorage';
 import { createBulkCorporateVouchers } from '@/lib/corporateVouchersService';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import VoucherPrint from '@/components/VoucherPrint';
 
 const CorporateExitPass = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState(0); // 0 = form, 1 = generated list
   const [paymentModes, setPaymentModes] = useState([]);
   const [selectedMode, setSelectedMode] = useState('');
@@ -53,6 +55,27 @@ const CorporateExitPass = () => {
     defaultExpiry.setDate(defaultExpiry.getDate() + 30);
     setValidUntil(defaultExpiry.toISOString().split('T')[0]);
   }, []);
+
+  // Refresh payment modes when component becomes visible (user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        const loadPaymentModes = async () => {
+          const modes = await getPaymentModes();
+          const activeModes = modes.filter(m => m.active);
+          setPaymentModes(activeModes);
+          // Don't change selected mode if user has already selected one
+          if (activeModes.length > 0 && !selectedMode) {
+            setSelectedMode(activeModes[0].name);
+          }
+        };
+        loadPaymentModes();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [selectedMode]);
 
   useEffect(() => {
     setCollectedAmount(amountAfterDiscount);
@@ -129,9 +152,19 @@ const CorporateExitPass = () => {
       transition={{ duration: 0.5 }}
       className="max-w-6xl mx-auto space-y-8"
     >
-      <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-        Corporate Exit Pass
-      </h1>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+          Corporate Exit Pass
+        </h1>
+        <Button 
+          onClick={() => navigate('/corporate-batch-history')} 
+          variant="outline" 
+          className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+        >
+          <History className="w-4 h-4 mr-2" />
+          Batch History
+        </Button>
+      </div>
 
       <AnimatePresence mode="wait">
         {step === 0 && (

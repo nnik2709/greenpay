@@ -32,3 +32,10 @@ test('Simple Settings Page Test', async ({ page }) => {
   expect(bodyText?.length || 0).toBeGreaterThan(1000);
 });
 
+
+
+
+
+
+
+

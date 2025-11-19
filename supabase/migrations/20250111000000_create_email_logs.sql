@@ -64,3 +64,10 @@ CREATE POLICY "Service role can update email logs" ON email_logs
 
 -- Add comment
 COMMENT ON TABLE email_logs IS 'Logs of emails sent through the system, including corporate batch emails';
+
+
+
+
+
+
+

@@ -16,6 +16,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from '@/lib/supabaseClient';
 import { getPassports, searchPassports } from '@/lib/passportsService';
+import CameraMRZScanner from '@/components/CameraMRZScanner';
 
 const PassportCard = ({ passport, index, selectedIds, setSelectedIds, openSendEmail }) => {
   return (
@@ -370,19 +371,26 @@ const Passports = () => {
       </motion.div>
 
       <Dialog open={isScanModalOpen} onOpenChange={setIsScanModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Scan Passport</DialogTitle>
+            <DialogTitle>Scan Passport MRZ</DialogTitle>
             <DialogDescription>
-              Passport scanning via camera is not yet implemented. This feature will allow you to use your device's camera to automatically fill in passport details.
+              Use your camera to scan the Machine Readable Zone (MRZ) at the bottom of the passport to automatically fill in passport details.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex items-center justify-center p-8 bg-slate-100 rounded-lg">
-            <p className="text-slate-500">Camera feed would appear here.</p>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setIsScanModalOpen(false)}>Close</Button>
-          </DialogFooter>
+          <CameraMRZScanner 
+            onScanSuccess={(passportData) => {
+              // Navigate to create passport with pre-filled data
+              navigate('/passports/create', { 
+                state: { 
+                  prefillData: passportData,
+                  fromScan: true 
+                } 
+              });
+              setIsScanModalOpen(false);
+            }}
+            onClose={() => setIsScanModalOpen(false)}
+          />
         </DialogContent>
       </Dialog>
 

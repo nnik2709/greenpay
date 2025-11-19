@@ -75,6 +75,18 @@ const Purchases = () => {
     loadSettings();
   }, []);
 
+  // Refresh payment modes when component becomes visible (user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadPaymentModes();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   useEffect(() => {
     filterTransactions();
   }, [searchQuery, transactions, typeFilter]);

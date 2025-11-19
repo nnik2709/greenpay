@@ -2,13 +2,10 @@ import { supabase } from './supabaseClient';
 
 export const getUsers = async () => {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.rpc('get_all_users');
 
     if (error) throw error;
-    return data;
+    return data || [];
   } catch (error) {
     console.error('Error loading users:', error);
     return [];

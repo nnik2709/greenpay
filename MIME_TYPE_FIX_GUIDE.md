@@ -230,3 +230,10 @@ ping eywademo.cloud
 ---
 
 **🚀 Run the fix script and the MIME type error will be resolved!**
+
+
+
+
+
+
+

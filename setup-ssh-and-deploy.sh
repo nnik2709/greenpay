@@ -61,3 +61,10 @@ else
     echo "⏳ Please set up the SSH key first, then run:"
     echo "   ./setup-ssh-and-deploy.sh"
 fi
+
+
+
+
+
+
+

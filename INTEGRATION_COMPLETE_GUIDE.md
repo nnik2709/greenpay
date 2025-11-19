@@ -293,3 +293,10 @@ supabase functions deploy function-name
 All backend features are now accessible through the UI!
 
 
+
+
+
+
+
+
+
