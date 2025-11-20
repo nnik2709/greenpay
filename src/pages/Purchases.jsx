@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Printer, Search, Calendar, DollarSign, Hash, User, CreditCard, Filter, Download, Settings as SettingsIcon, Save } from 'lucide-react';
+import { Plus, Printer, Search, Calendar, DollarSign, Hash, User, CreditCard, Filter, Download, Settings as SettingsIcon, Save, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/lib/supabaseClient';
 import { getPassports, searchPassports, createPassport } from '@/lib/passportsService';
 import { createIndividualPurchase } from '@/lib/individualPurchasesService';
@@ -16,6 +17,8 @@ import { getPaymentModes } from '@/lib/paymentModesStorage';
 import { getSettings, updateSettings } from '@/lib/settingsService';
 import { useAuth } from '@/contexts/AuthContext';
 import VoucherPrint from '@/components/VoucherPrint';
+import { useScannerInput } from '@/hooks/useScannerInput';
+import { getPassportByNumber } from '@/lib/passportsService';
 import * as XLSX from 'xlsx';
 
 const Purchases = () => {
@@ -68,6 +71,99 @@ const Purchases = () => {
 
   const amountAfterDiscount = amount - (amount * (discount / 100));
   const returnedAmount = collectedAmount - amountAfterDiscount;
+
+  // Hardware scanner support - only active when dialog is open
+  const { isScanning: isScannerActive } = useScannerInput({
+    onScanComplete: async (data) => {
+      // Only process scans when the add payment dialog is open
+      if (!showAddPayment) return;
+
+      if (data.type === 'mrz') {
+        // MRZ passport scan
+        if (newPassportMode) {
+          // In new passport mode - auto-fill form
+          setNewPassportData({
+            passportNumber: data.passportNumber,
+            surname: data.surname,
+            givenName: data.givenName,
+            nationality: data.nationality,
+            dob: data.dob,
+            sex: data.sex,
+            dateOfExpiry: data.dateOfExpiry,
+          });
+          toast({
+            title: "MRZ Scanned",
+            description: "New passport details auto-filled from MRZ scan."
+          });
+        } else {
+          // In search mode - search by passport number
+          try {
+            const passport = await getPassportByNumber(data.passportNumber);
+            if (passport) {
+              handleSelectPassport({
+                id: passport.id,
+                passport_number: passport.passport_number,
+                surname: passport.surname,
+                given_name: passport.given_name,
+                nationality: passport.nationality,
+                dob: passport.dob,
+                sex: passport.sex,
+                date_of_expiry: passport.date_of_expiry,
+              });
+              toast({
+                title: "Passport Found",
+                description: `${passport.given_name} ${passport.surname} selected.`
+              });
+            } else {
+              // Not found - switch to new passport mode and fill
+              setNewPassportMode(true);
+              setNewPassportData({
+                passportNumber: data.passportNumber,
+                surname: data.surname,
+                givenName: data.givenName,
+                nationality: data.nationality,
+                dob: data.dob,
+                sex: data.sex,
+                dateOfExpiry: data.dateOfExpiry,
+              });
+              toast({
+                title: "New Passport Detected",
+                description: "Passport not found. Create new passport with scanned data."
+              });
+            }
+          } catch (error) {
+            toast({
+              variant: "destructive",
+              title: "Search Error",
+              description: "Failed to search passport."
+            });
+          }
+        }
+      } else {
+        // Simple passport number scan
+        if (newPassportMode) {
+          setNewPassportData({ ...newPassportData, passportNumber: data.value });
+        } else {
+          setPassportSearch(data.value);
+          // Auto-search
+          setTimeout(() => handleSearchPassport(), 100);
+        }
+      }
+    },
+    onScanError: (error) => {
+      if (showAddPayment) {
+        toast({
+          title: "Scan Error",
+          description: error.message || "Failed to process scan.",
+          variant: "destructive"
+        });
+      }
+    },
+    minLength: 5,
+    scanTimeout: 100,
+    enableMrzParsing: true,
+    debugMode: false
+  });
 
   useEffect(() => {
     loadTransactions();
@@ -631,6 +727,24 @@ const Purchases = () => {
             {/* Step 0: Passport Selection */}
             {step === 0 && (
               <motion.div key="passport" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                {/* Scanner Status Indicator */}
+                {isScannerActive && (
+                  <Alert className="bg-emerald-50 border-emerald-300">
+                    <ScanLine className="w-5 h-5 text-emerald-600 animate-pulse" />
+                    <AlertDescription className="text-emerald-900 font-medium">
+                      Scanning... {newPassportMode ? 'Scan passport MRZ to auto-fill new passport form.' : 'Scan passport to search or create new.'}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {!isScannerActive && (
+                  <Alert className="bg-blue-50 border-blue-300">
+                    <ScanLine className="w-5 h-5 text-blue-600" />
+                    <AlertDescription className="text-blue-900">
+                      <strong>Tip:</strong> Use hardware scanner to scan passport MRZ or barcode for automatic search/entry.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {!newPassportMode ? (
                   <>
                     <div className="flex gap-2">
