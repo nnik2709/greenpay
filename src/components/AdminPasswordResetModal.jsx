@@ -41,23 +41,14 @@ const AdminPasswordResetModal = ({ isOpen, onClose }) => {
       setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
-      
-      // Fallback: Use hardcoded list of known users
-      console.log('Using fallback user list...');
-      const fallbackUsers = [
-        { id: 'ef8e43d7-759d-40cd-b404-55154644faa2', email: 'admin@example.com', role: 'Flex_Admin', active: true },
-        { id: '2c16d848-f284-4ec0-a152-7d5d9d44a61f', email: 'agent@example.com', role: 'Counter_Agent', active: true },
-        { id: 'de1242f2-05c0-4be8-82ca-5eef0720314b', email: 'finance@example.com', role: 'Finance_Manager', active: true },
-        { id: 'e0dd1410-a4ab-4d73-bce7-7d1614f18388', email: 'support@example.com', role: 'IT_Support', active: true }
-      ];
-      
-      console.log('Setting fallback users:', fallbackUsers);
-      setUsers(fallbackUsers);
-      
+
+      // Show error state - no hardcoded fallback data
+      setUsers([]);
+
       toast({
-        title: "Warning",
-        description: "Using cached user list. Some users may not be up to date.",
-        variant: "default",
+        title: "Error Loading Users",
+        description: "Failed to load users from database. Please check your connection and try again.",
+        variant: "destructive",
       });
     } finally {
       setIsLoadingUsers(false);

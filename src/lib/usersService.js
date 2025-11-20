@@ -54,7 +54,7 @@ export const createUser = async (userData) => {
 
     // Non-blocking notifications: welcome_user to the new user and admin alert
     try {
-      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@example.com';
+      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
       const toUser = userData.email;
 
       // Send welcome email with magic link guidance (do not send plain password)
@@ -67,8 +67,8 @@ export const createUser = async (userData) => {
         }
       });
 
-      // Admin notification
-      if (adminEmail && adminEmail !== 'admin@example.com') {
+      // Admin notification (only if admin email is configured)
+      if (adminEmail) {
         await supabase.functions.invoke('send-email', {
           body: {
             to: adminEmail,
@@ -80,6 +80,7 @@ export const createUser = async (userData) => {
       }
     } catch (e) {
       // ignore email errors in user creation flow
+      console.warn('Failed to send notification emails:', e);
     }
 
     return data;

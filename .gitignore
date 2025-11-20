@@ -63,3 +63,6 @@ temp/
 deploy-*.log
 deployment-*.log
 .DS_Store
+*.tar.gz
+.env.bak
+*.bak

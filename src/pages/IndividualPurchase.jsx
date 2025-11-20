@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useLocation } from 'react-router-dom';
 // Legacy import removed - using Supabase passportsService instead
-import { getPassportByNumber, createPassport } from '@/lib/passportsService';
+import { getPassportByNumber, createPassport, searchPassports } from '@/lib/passportsService';
 import { createIndividualPurchase } from '@/lib/individualPurchasesService';
 import { getPaymentModes } from '@/lib/paymentModesStorage';
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,31 +66,71 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
   const [scanInput, setScanInput] = useState('');
   const [searchResult, setSearchResult] = useState(null);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!searchQuery.trim()) {
       toast({ variant: "destructive", title: "Search is empty", description: "Please enter a passport number." });
       return;
     }
-    const result = mockPassports.find(p => p.passportNumber.toLowerCase() === searchQuery.toLowerCase());
-    if (result) {
-      setSearchResult(result);
-      setPassportInfo(result);
-      toast({ title: "Passport Found", description: `${result.givenName} ${result.surname}'s details have been loaded.` });
-    } else {
+    try {
+      const result = await getPassportByNumber(searchQuery.trim());
+      if (result) {
+        // Map database fields to component state format
+        const passportData = {
+          id: result.id,
+          passportNumber: result.passport_number,
+          nationality: result.nationality,
+          surname: result.surname,
+          givenName: result.given_name,
+          dob: result.dob,
+          sex: result.sex,
+          dateOfExpiry: result.date_of_expiry,
+          passportPhoto: result.passport_photo,
+          signatureImage: result.signature_image,
+        };
+        setSearchResult(passportData);
+        setPassportInfo(passportData);
+        toast({ title: "Passport Found", description: `${passportData.givenName} ${passportData.surname}'s details have been loaded.` });
+      } else {
+        setSearchResult(null);
+        toast({ variant: "destructive", title: "Not Found", description: "No passport found with that number. You can enter the details manually." });
+      }
+    } catch (error) {
+      console.error('Error searching passport:', error);
       setSearchResult(null);
-      toast({ variant: "destructive", title: "Not Found", description: "No passport found with that number." });
+      toast({ variant: "destructive", title: "Search Error", description: "Failed to search for passport. Please try again." });
     }
   };
 
-  const handleScan = useCallback((value) => {
-    const result = mockPassports.find(p => p.passportNumber.toLowerCase() === value.toLowerCase());
-    if (result) {
-      setSearchResult(result);
-      setPassportInfo(result);
-      setSearchQuery(result.passportNumber);
-      toast({ title: "Passport Scanned & Found", description: `${result.givenName} ${result.surname}'s details have been loaded.` });
-    } else {
-      toast({ variant: "destructive", title: "Scan Failed", description: "No passport found for the scanned code." });
+  const handleScan = useCallback(async (value) => {
+    try {
+      const result = await getPassportByNumber(value.trim());
+      if (result) {
+        // Map database fields to component state format
+        const passportData = {
+          id: result.id,
+          passportNumber: result.passport_number,
+          nationality: result.nationality,
+          surname: result.surname,
+          givenName: result.given_name,
+          dob: result.dob,
+          sex: result.sex,
+          dateOfExpiry: result.date_of_expiry,
+          passportPhoto: result.passport_photo,
+          signatureImage: result.signature_image,
+        };
+        setSearchResult(passportData);
+        setPassportInfo(passportData);
+        setSearchQuery(passportData.passportNumber);
+        toast({ title: "Passport Scanned & Found", description: `${passportData.givenName} ${passportData.surname}'s details have been loaded.` });
+      } else {
+        // Set the scanned passport number for manual entry
+        setSearchQuery(value.trim());
+        setPassportInfo(prev => ({ ...prev, passportNumber: value.trim() }));
+        toast({ variant: "default", title: "New Passport", description: "Passport not found in system. Please enter details manually." });
+      }
+    } catch (error) {
+      console.error('Error scanning passport:', error);
+      toast({ variant: "destructive", title: "Scan Error", description: "Failed to search for passport. Please try again." });
     }
     setScanInput('');
   }, [setPassportInfo, toast]);
@@ -356,7 +396,7 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
           {
             amount: amountAfterDiscount,
             currency: 'PGK',
-            customerEmail: passportInfo.email || 'customer@example.com',
+            customerEmail: passportInfo.email || '',
             customerName: `${passportInfo.givenName} ${passportInfo.surname}`,
             passportNumber: passportInfo.passportNumber,
             nationality: passportInfo.nationality,
@@ -684,6 +724,9 @@ const IndividualPurchase = () => {
         paymentMethod: paymentData.paymentMethod,
         cardLastFour: paymentData.cardLastFour,
         nationality: passport.nationality,
+        discount: paymentData.discount || 0,
+        collectedAmount: paymentData.collectedAmount,
+        returnedAmount: paymentData.returnedAmount || 0,
       };
       console.log('Purchase data:', purchaseData);
 

@@ -26,6 +26,8 @@ export const createQuotation = async (quotationData, userId) => {
   try {
     const quotationNumber = generateQuotationNumber();
     const totalAmount = quotationData.numberOfPassports * quotationData.amountPerPassport;
+    const discountAmount = quotationData.discountAmount || 0;
+    const amountAfterDiscount = quotationData.amountAfterDiscount || totalAmount;
 
     const { data, error } = await supabase
       .from('quotations')
@@ -37,7 +39,11 @@ export const createQuotation = async (quotationData, userId) => {
         contact_phone: quotationData.contactPhone,
         number_of_passports: quotationData.numberOfPassports,
         amount_per_passport: quotationData.amountPerPassport,
+        price_per_passport: quotationData.amountPerPassport,
         total_amount: totalAmount,
+        discount: quotationData.discount || 0,
+        discount_amount: discountAmount,
+        amount_after_discount: amountAfterDiscount,
         valid_until: quotationData.validUntil,
         notes: quotationData.notes,
         status: 'pending',

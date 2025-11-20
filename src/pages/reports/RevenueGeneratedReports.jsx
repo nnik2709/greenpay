@@ -81,19 +81,27 @@ const RevenueGeneratedReports = () => {
       if (corporateError) throw corporateError;
 
       // Transform individual purchases
-      const individualRows = (individualData || []).map(item => ({
-        id: `ind-${item.id}`,
-        type: 'Individual',
-        totalExitPass: 1,
-        exitPassValue: item.amount || 0,
-        totalAmount: item.amount || 0,
-        discount: 0, // TODO: Add discount field to schema
-        amountAfterDiscount: item.amount || 0,
-        collectedAmount: item.amount || 0,
-        returnedAmount: 0, // TODO: Add returned_amount field to schema
-        paymentMode: item.payment_method || 'N/A',
-        paymentDate: item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : 'N/A'
-      }));
+      const individualRows = (individualData || []).map(item => {
+        const discount = item.discount || 0;
+        const totalAmount = item.amount || 0;
+        const amountAfterDiscount = totalAmount - discount;
+        const collectedAmount = item.collected_amount || totalAmount;
+        const returnedAmount = item.returned_amount || 0;
+
+        return {
+          id: `ind-${item.id}`,
+          type: 'Individual',
+          totalExitPass: 1,
+          exitPassValue: totalAmount,
+          totalAmount: totalAmount,
+          discount: discount,
+          amountAfterDiscount: amountAfterDiscount,
+          collectedAmount: collectedAmount,
+          returnedAmount: returnedAmount,
+          paymentMode: item.payment_method || 'N/A',
+          paymentDate: item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : 'N/A'
+        };
+      });
 
       // Transform corporate vouchers (group by company/batch)
       const corporateGroups = {};
@@ -115,10 +123,17 @@ const RevenueGeneratedReports = () => {
             companyName: voucher.company_name
           };
         }
+        const voucherAmount = voucher.amount || 0;
+        const voucherDiscount = voucher.discount || 0;
+        const voucherCollected = voucher.collected_amount || voucherAmount;
+        const voucherReturned = voucher.returned_amount || 0;
+
         corporateGroups[key].totalExitPass += voucher.quantity || 1;
-        corporateGroups[key].totalAmount += voucher.amount || 0;
-        corporateGroups[key].amountAfterDiscount += voucher.amount || 0;
-        corporateGroups[key].collectedAmount += voucher.amount || 0;
+        corporateGroups[key].totalAmount += voucherAmount;
+        corporateGroups[key].discount += voucherDiscount;
+        corporateGroups[key].amountAfterDiscount += (voucherAmount - voucherDiscount);
+        corporateGroups[key].collectedAmount += voucherCollected;
+        corporateGroups[key].returnedAmount += voucherReturned;
       });
 
       const corporateRows = Object.values(corporateGroups);

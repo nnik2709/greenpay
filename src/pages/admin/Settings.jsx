@@ -14,8 +14,8 @@ const Settings = () => {
     voucher_validity_days: 30,
     default_amount: 50,
     company_name: 'PNG Green Fees System',
-    company_email: 'admin@example.com',
-    support_email: 'support@example.com',
+    company_email: '',
+    support_email: '',
     max_bulk_upload: 1000,
     auto_approve_threshold: 100
   });
@@ -100,8 +100,8 @@ const Settings = () => {
       voucher_validity_days: 30,
       default_amount: 50,
       company_name: 'PNG Green Fees System',
-      company_email: 'admin@example.com',
-      support_email: 'support@example.com',
+      company_email: '',
+      support_email: '',
       max_bulk_upload: 1000,
       auto_approve_threshold: 100
     });

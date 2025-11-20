@@ -41,6 +41,9 @@ export const createIndividualPurchase = async (purchaseData, userId) => {
         amount: purchaseData.amount,
         payment_method: purchaseData.paymentMethod,
         card_last_four: purchaseData.cardLastFour,
+        discount: purchaseData.discount || 0,
+        collected_amount: purchaseData.collectedAmount,
+        returned_amount: purchaseData.returnedAmount || 0,
         valid_until: validUntil.toISOString(),
         created_by: userId,
       }])

@@ -178,15 +178,55 @@ PNG Green Fees System
 This is an automated email. Please do not reply.
 `;
 
-    // For now, we'll simulate sending the email
-    // In production, you would integrate with an email service like SendGrid, AWS SES, etc.
-    console.log('Email would be sent to:', recipientEmail);
-    console.log('Subject:', emailSubject);
-    console.log('HTML Content Length:', emailHtml.length);
-    console.log('Text Content Length:', emailText.length);
+    // Check for email provider configuration
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+    const FROM_EMAIL = Deno.env.get('FROM_EMAIL') || 'PNG Green Fees <no-reply@pnggreenfeees.gov.pg>';
 
-    // Simulate email sending delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (!RESEND_API_KEY) {
+      return new Response(
+        JSON.stringify({
+          error: 'Email provider not configured',
+          hint: 'Set RESEND_API_KEY in Edge Function environment variables'
+        }),
+        {
+          status: 501,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Send email via Resend
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: recipientEmail,
+        subject: emailSubject,
+        html: emailHtml,
+        text: emailText,
+        tags: [{ name: 'type', value: 'corporate-batch' }],
+      }),
+    });
+
+    const emailResult = await emailResponse.json().catch(() => ({}));
+
+    if (!emailResponse.ok) {
+      console.error('Resend API error:', emailResult);
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to send email',
+          details: emailResult
+        }),
+        {
+          status: 502,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
     // Log the email sending activity
     const { error: logError } = await supabase
@@ -207,15 +247,16 @@ This is an automated email. Please do not reply.
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'Email sent successfully',
         batchId,
         recipientEmail,
         voucherCount: batchData.length,
-        totalAmount
+        totalAmount,
+        emailId: emailResult?.id
       }),
-      { 
+      {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       }
