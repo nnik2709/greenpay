@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Check, Upload, AlertCircle, Loader2 } from 'lucide-react';
+import { Check, Upload, AlertCircle, Loader2, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
 import { uploadPassportPhoto, validateImageFile, MAX_FILE_SIZE } from '@/lib/storageService';
+import { useScannerInput } from '@/hooks/useScannerInput';
 
 /**
  * Public Registration Flow
@@ -36,6 +37,54 @@ const PublicRegistration = () => {
     dateOfBirth: '',
     nationality: '',
     sex: 'Male'
+  });
+
+  // Hardware scanner support with MRZ parsing
+  const { isScanning: isScannerActive } = useScannerInput({
+    onScanComplete: (data) => {
+      if (data.type === 'mrz') {
+        // MRZ passport scan - auto-fill all passport fields
+        setFormData({
+          passportNumber: data.passportNumber,
+          surname: data.surname,
+          givenName: data.givenName,
+          nationality: data.nationality,
+          dateOfBirth: data.dob,
+          sex: data.sex
+        });
+        toast({
+          title: "Passport MRZ Scanned",
+          description: "Passport details have been auto-filled. Please verify and add your photo."
+        });
+      } else {
+        // Simple passport number or voucher code scan
+        if (data.value.startsWith('VCH-') || data.value.startsWith('CORP-')) {
+          // Looks like voucher code - ignore (already have voucher from URL)
+          toast({
+            title: "Voucher Code Detected",
+            description: "Voucher already loaded. Please scan passport MRZ."
+          });
+        } else {
+          // Passport number scan
+          setFormData(prev => ({ ...prev, passportNumber: data.value }));
+          toast({
+            title: "Passport Number Scanned",
+            description: "Please enter remaining passport details."
+          });
+        }
+      }
+    },
+    onScanError: (error) => {
+      toast({
+        title: "Scan Error",
+        description: error.message || "Failed to process scan. Please try again.",
+        variant: "destructive"
+      });
+    },
+    minLength: 5,
+    scanTimeout: 100,
+    enableMrzParsing: true,
+    debugMode: false
   });
 
   // Validate voucher on mount
@@ -263,6 +312,24 @@ const PublicRegistration = () => {
           </CardHeader>
 
           <CardContent className="p-8">
+            {/* Scanner Status Indicator */}
+            {isScannerActive && (
+              <Alert className="mb-6 bg-emerald-50 border-emerald-300">
+                <ScanLine className="w-5 h-5 text-emerald-600 animate-pulse" />
+                <AlertDescription className="text-emerald-900 font-medium">
+                  Scanning passport MRZ... Please scan the 2 lines at the bottom of your passport.
+                </AlertDescription>
+              </Alert>
+            )}
+            {!isScannerActive && (
+              <Alert className="mb-6 bg-blue-50 border-blue-300">
+                <ScanLine className="w-5 h-5 text-blue-600" />
+                <AlertDescription className="text-blue-900">
+                  <strong>Tip:</strong> Use a hardware scanner to scan your passport MRZ for automatic form filling, or enter details manually below.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Passport Number */}
               <div className="space-y-2">

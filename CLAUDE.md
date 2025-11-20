@@ -184,6 +184,58 @@ Tailwind configured with custom theme in `tailwind.config.js`:
 - shadcn/ui animations (accordion, etc.)
 - Responsive breakpoints
 
+## Hardware Scanner Integration
+
+The application supports **USB keyboard wedge scanners** for passport MRZ and QR/barcode scanning:
+
+### Scanner Infrastructure
+- **`src/hooks/useScannerInput.js`** - React hook for detecting and processing scanner input
+- **`src/lib/mrzParser.js`** - ICAO-compliant MRZ (Machine Readable Zone) parser
+- **`src/components/ScannerInput.jsx`** - Reusable input component with scanner support
+- **`src/lib/scannerConfig.js`** - Scanner hardware configuration and profiles
+
+### How It Works
+- USB keyboard wedge scanners act as keyboards (no drivers needed)
+- Hook detects rapid keystroke patterns (50-100ms between chars)
+- Automatically parses MRZ format (88 characters from passport)
+- Supports simple barcode/QR codes and voucher codes
+- Visual feedback with scanning animations and success indicators
+
+### Scanner Test Page
+- **Route:** `/scanner-test` (Flex_Admin, IT_Support, Counter_Agent roles)
+- **Component:** `src/pages/ScannerTest.jsx`
+- Interactive testing interface for scanner hardware
+- Real-time configuration adjustment
+- Scan history with performance metrics
+- Sample MRZ data for manual testing
+
+### Usage in Pages
+Scanner support is available in:
+- `ScanAndValidate.jsx` - QR/Voucher validation (existing, ready for upgrade)
+- `IndividualPurchase.jsx` - Passport purchase (existing paste listener, ready for upgrade)
+- `CreatePassport.jsx` - Manual passport entry (ready for scanner integration)
+- `PublicRegistration.jsx` - Customer portal (ready for scanner integration)
+
+### Configuration
+Adjust scanner settings in `src/lib/scannerConfig.js`:
+- `scanTimeout` - Time between keystrokes (default: 100ms)
+- `minLength` - Minimum characters for valid scan (default: 5)
+- `enableMrzParsing` - Auto-parse passport MRZ (default: true)
+- Multiple profiles: generic, professional, budget, bluetooth, testing
+
+### Hardware Requirements
+- **Passport Scanner:** USB keyboard wedge, outputs 88-char MRZ
+- **QR/Barcode Scanner:** USB or Bluetooth keyboard wedge
+- **No special drivers required** - devices act as standard keyboards
+- Compatible with all modern browsers (uses keyboard events)
+
+### MRZ Format
+Standard ICAO Document 9303 format (2 lines × 44 characters):
+```
+P<ISSUINGCOUNTRYSURNAME<<GIVENNAMES<<<<<<<<<
+PASSPORTNUMBER<NAT<DOBYYMMDDSEXEXPIRYYYMMDD<
+```
+
 ## Development Notes
 
 - All components use `.jsx` extension
@@ -198,3 +250,4 @@ Tailwind configured with custom theme in `tailwind.config.js`:
 - `src/lib/testSupabase.js` - Auto-runs in dev mode to verify Supabase connection
 - Check browser console for connection test results
 - Ensure all tables are created before testing (run `supabase-schema.sql`)
+- **Scanner Testing:** Visit `/scanner-test` to test hardware scanners before deployment

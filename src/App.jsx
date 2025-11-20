@@ -44,6 +44,7 @@ const RevenueGeneratedReports = lazy(() => import('@/pages/reports/RevenueGenera
 const BulkPassportUploadReports = lazy(() => import('@/pages/reports/BulkPassportUploadReports'));
 const QuotationsReports = lazy(() => import('@/pages/reports/QuotationsReports'));
 const ScanAndValidate = lazy(() => import('@/pages/ScanAndValidate'));
+const ScannerTest = lazy(() => import('@/pages/ScannerTest'));
 const AgentLanding = lazy(() => import('@/pages/AgentLanding'));
 const CashReconciliation = lazy(() => import('@/pages/CashReconciliation'));
 
@@ -139,6 +140,11 @@ const AppRoutes = () => {
             </PrivateRoute>
           } />
           <Route path="scan" element={<ScanRoute />} />
+          <Route path="scanner-test" element={
+            <PrivateRoute roles={['Flex_Admin', 'IT_Support', 'Counter_Agent']}>
+              <ScannerTest />
+            </PrivateRoute>
+          } />
           <Route path="purchases/corporate-exit-pass" element={
             <PrivateRoute roles={['Flex_Admin', 'Counter_Agent', 'Finance_Manager']}>
               <CorporateExitPass />

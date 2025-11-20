@@ -1,13 +1,15 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { QrCode, Keyboard, Camera, XCircle, CheckCircle, AlertCircle, Loader2, FileText, User, Calendar, Hash } from 'lucide-react';
+import { QrCode, Keyboard, Camera, XCircle, CheckCircle, AlertCircle, Loader2, FileText, User, Calendar, Hash, ScanLine } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { supabase } from '@/lib/supabaseClient';
+import { useScannerInput } from '@/hooks/useScannerInput';
+import { parseMrz as parseMrzUtil } from '@/lib/mrzParser';
 
 const ScanAndValidate = () => {
   const { toast } = useToast();
@@ -24,6 +26,52 @@ const ScanAndValidate = () => {
   useEffect(() => {
     audioContext.current = new (window.AudioContext || window.webkitAudioContext)();
   }, []);
+
+  // Hardware scanner support
+  const { isScanning: isScannerActive } = useScannerInput({
+    onScanComplete: (data) => {
+      // Handle both MRZ and simple scans
+      if (data.type === 'mrz') {
+        // MRZ passport scan - convert to our format
+        const mrzResult = {
+          type: 'passport',
+          status: 'success',
+          data: {
+            passportNumber: data.passportNumber,
+            surname: data.surname,
+            givenName: data.givenName,
+            nationality: data.nationality,
+            dob: data.dob,
+            sex: data.sex,
+            dateOfExpiry: data.dateOfExpiry,
+          },
+          message: data.message
+        };
+        setValidationResult(mrzResult);
+        setInputValue('');
+
+        // Success feedback
+        playSuccessBeep();
+        setShowSuccessFlash(true);
+        setTimeout(() => setShowSuccessFlash(false), 1000);
+        if (navigator.vibrate) navigator.vibrate(200);
+      } else {
+        // Simple barcode/QR scan
+        handleValidation(data.value);
+      }
+    },
+    onScanError: (error) => {
+      toast({
+        title: "Scan Error",
+        description: error.message || "Failed to process scan. Please try again.",
+        variant: "destructive"
+      });
+    },
+    minLength: 5,
+    scanTimeout: 100,
+    enableMrzParsing: true,
+    debugMode: false
+  });
 
   // Success beep function
   const playSuccessBeep = async () => {
@@ -54,49 +102,26 @@ const ScanAndValidate = () => {
     }
   };
 
+  // Use the centralized MRZ parser
   const parseMrz = (mrzString) => {
-    try {
-      const cleanedMrz = mrzString.replace(/\s/g, '');
-      if (cleanedMrz.length < 88) throw new Error("MRZ length is too short.");
-
-      const line1 = cleanedMrz.substring(0, 44);
-      const line2 = cleanedMrz.substring(44, 88);
-
-      const names = line1.substring(5).split('<<');
-      const surname = names[0].replace(/</g, ' ').trim();
-      const givenName = names.slice(1).join(' ').replace(/</g, ' ').trim();
-
-      const passportNumber = line2.substring(0, 9).replace(/</g, '').trim();
-      const nationality = line2.substring(10, 13);
-      
-      const dobRaw = line2.substring(13, 19);
-      let dobYear = parseInt(dobRaw.substring(0, 2), 10);
-      dobYear += (dobYear > (new Date().getFullYear() % 100)) ? 1900 : 2000;
-      const dob = `${dobYear}-${dobRaw.substring(2, 4)}-${dobRaw.substring(4, 6)}`;
-
-      const sex = line2.substring(20, 21);
-      
-      const expiryRaw = line2.substring(21, 27);
-      let expiryYear = parseInt(expiryRaw.substring(0, 2), 10);
-      expiryYear += (expiryYear > 50) ? 1900 : 2000;
-      const expiryDate = `${expiryYear}-${expiryRaw.substring(2, 4)}-${expiryRaw.substring(4, 6)}`;
-
+    const result = parseMrzUtil(mrzString);
+    if (result.success) {
       return {
         type: 'passport',
         status: 'success',
         data: {
-          passportNumber,
-          surname,
-          givenName,
-          nationality,
-          dob,
-          sex: sex === 'M' ? 'Male' : 'Female',
-          dateOfExpiry: expiryDate,
+          passportNumber: result.passportNumber,
+          surname: result.surname,
+          givenName: result.givenName,
+          nationality: result.nationality,
+          dob: result.dob,
+          sex: result.sex,
+          dateOfExpiry: result.dateOfExpiry,
         },
-        message: 'Passport MRZ parsed successfully.'
+        message: result.message
       };
-    } catch (error) {
-      return { type: 'error', status: 'error', message: 'Invalid MRZ format.' };
+    } else {
+      return { type: 'error', status: 'error', message: result.message };
     }
   };
 
@@ -412,15 +437,19 @@ const ScanAndValidate = () => {
             )}
           </AnimatePresence>
           <div className="relative">
-            <QrCode className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            {isScannerActive ? (
+              <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600 animate-pulse" />
+            ) : (
+              <QrCode className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            )}
             <Input
               id="manual-input"
-              placeholder="Enter code or wait for scanner..."
-              className="pl-10 h-14 text-lg"
+              placeholder={isScannerActive ? "Scanning..." : "Enter code or scan with device..."}
+              className={`pl-10 h-14 text-lg ${isScannerActive ? 'border-emerald-500 ring-2 ring-emerald-200' : ''}`}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleValidation(inputValue)}
-              disabled={isProcessing}
+              disabled={isProcessing || isScannerActive}
             />
             {isProcessing && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 animate-spin" />}
           </div>
@@ -436,10 +465,10 @@ const ScanAndValidate = () => {
           <CardTitle className="flex items-center gap-2 text-blue-800"><AlertCircle /> How to Use</CardTitle>
         </CardHeader>
         <CardContent className="text-blue-700 space-y-2">
-          <p><strong>USB Scanner:</strong> Simply scan a barcode. The system will treat it as keyboard input and process it automatically.</p>
-          <p><strong>Camera:</strong> Click 'Use Camera' and grant permission. Position the QR code or barcode within the frame. <em>Requires HTTPS in production.</em></p>
-          <p><strong>Manual:</strong> Type or paste the code into the input field and press Enter.</p>
-          <p><strong>HTTPS Note:</strong> Camera access requires a secure connection (HTTPS) in production environments. Use manual entry or visit via HTTPS for camera functionality.</p>
+          <p><strong>USB/Bluetooth Scanner (Recommended):</strong> Simply scan a QR code, barcode, or passport MRZ. The system automatically detects and processes the scan. Visual feedback shows scanning status.</p>
+          <p><strong>Camera:</strong> Click 'Scan with Camera' and grant permission. Position the QR code or barcode within the frame. <em>Requires HTTPS in production.</em></p>
+          <p><strong>Manual Entry:</strong> Type or paste the code into the input field and press Enter.</p>
+          <p><strong>Passport MRZ:</strong> If scanning a passport, scan the 2 lines at the bottom. The system will automatically parse and display passport details.</p>
         </CardContent>
       </Card>
     </motion.div>

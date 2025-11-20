@@ -16,6 +16,7 @@ import { getPaymentModes } from '@/lib/paymentModesStorage';
 import { useAuth } from '@/contexts/AuthContext';
 import VoucherPrint from '@/components/VoucherPrint';
 import { processOnlinePayment, isGatewayActive, GATEWAY_NAMES } from '@/lib/paymentGatewayService';
+import { useScannerInput } from '@/hooks/useScannerInput';
 
 const StepIndicator = ({ currentStep }) => {
   const steps = [
@@ -65,6 +66,81 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [scanInput, setScanInput] = useState('');
   const [searchResult, setSearchResult] = useState(null);
+
+  // Hardware scanner support with MRZ parsing
+  const { isScanning: isScannerActive } = useScannerInput({
+    onScanComplete: async (data) => {
+      if (data.type === 'mrz') {
+        // MRZ passport scan - auto-fill all fields
+        const passportData = {
+          passportNumber: data.passportNumber,
+          surname: data.surname,
+          givenName: data.givenName,
+          nationality: data.nationality,
+          dob: data.dob,
+          sex: data.sex,
+          dateOfExpiry: data.dateOfExpiry,
+        };
+
+        // Check if passport exists in database
+        try {
+          const existingPassport = await getPassportByNumber(data.passportNumber);
+          if (existingPassport) {
+            // Passport exists - load full record
+            const fullPassportData = {
+              id: existingPassport.id,
+              passportNumber: existingPassport.passport_number,
+              nationality: existingPassport.nationality,
+              surname: existingPassport.surname,
+              givenName: existingPassport.given_name,
+              dob: existingPassport.dob,
+              sex: existingPassport.sex,
+              dateOfExpiry: existingPassport.date_of_expiry,
+              passportPhoto: existingPassport.passport_photo,
+              signatureImage: existingPassport.signature_image,
+            };
+            setSearchResult(fullPassportData);
+            setPassportInfo(fullPassportData);
+            setSearchQuery(fullPassportData.passportNumber);
+            toast({
+              title: "MRZ Scanned - Passport Found",
+              description: `${fullPassportData.givenName} ${fullPassportData.surname}'s details have been loaded from database.`
+            });
+          } else {
+            // New passport - use MRZ data
+            setPassportInfo(passportData);
+            setSearchQuery(data.passportNumber);
+            toast({
+              title: "MRZ Scanned - New Passport",
+              description: "Passport details auto-filled from MRZ. Please verify and add photo if needed."
+            });
+          }
+        } catch (error) {
+          // Error checking database, still use MRZ data
+          setPassportInfo(passportData);
+          setSearchQuery(data.passportNumber);
+          toast({
+            title: "MRZ Scanned",
+            description: "Passport details auto-filled. Please verify information."
+          });
+        }
+      } else {
+        // Simple barcode/passport number scan
+        handleScan(data.value);
+      }
+    },
+    onScanError: (error) => {
+      toast({
+        title: "Scan Error",
+        description: error.message || "Failed to process scan. Please try again.",
+        variant: "destructive"
+      });
+    },
+    minLength: 5,
+    scanTimeout: 100,
+    enableMrzParsing: true,
+    debugMode: false
+  });
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -135,17 +211,7 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
     setScanInput('');
   }, [setPassportInfo, toast]);
 
-  useEffect(() => {
-    const handlePaste = (event) => {
-      const paste = (event.clipboardData || window.clipboardData).getData('text');
-      if (paste.length > 5) { // Simple check for barcode scanner input
-        setScanInput(paste.trim());
-        handleScan(paste.trim());
-      }
-    };
-    window.addEventListener('paste', handlePaste);
-    return () => window.removeEventListener('paste', handlePaste);
-  }, [handleScan]);
+  // Old paste event listener removed - now using useScannerInput hook above
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -190,22 +256,39 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or Scan with KB Scanner</span>
+              <span className="bg-card px-2 text-muted-foreground">Or Scan with Hardware Scanner</span>
             </div>
           </div>
-          <div>
-            <label className="font-semibold text-slate-700">Scan Passport</label>
-            <div className="relative mt-1">
-              <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <Input
-                placeholder="Ready to scan... (or paste here)"
-                className="pl-10"
-                value={scanInput}
-                onChange={(e) => setScanInput(e.target.value)}
-                onBlur={() => scanInput && handleScan(scanInput)}
-              />
-            </div>
-          </div>
+          {isScannerActive && (
+            <Card className="bg-emerald-50 border-emerald-300">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <ScanLine className="w-6 h-6 text-emerald-600 animate-pulse" />
+                  <div>
+                    <h3 className="font-bold text-emerald-900">Scanning...</h3>
+                    <p className="text-emerald-700 text-sm">
+                      Please scan passport MRZ (2 lines at bottom) or passport number barcode.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {!isScannerActive && (
+            <Card className="bg-blue-50 border-blue-300">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <ScanLine className="w-6 h-6 text-blue-600" />
+                  <div>
+                    <h3 className="font-bold text-blue-900">Ready for Hardware Scanner</h3>
+                    <p className="text-blue-700 text-sm">
+                      Use your USB/Bluetooth scanner to scan passport MRZ or barcode. The system will auto-detect and fill the form.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </CardContent>
       </Card>
 
