@@ -392,9 +392,13 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
   const [amount, setAmount] = useState(50);
   const [discount, setDiscount] = useState(0);
   const [collectedAmount, setCollectedAmount] = useState(50);
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
+
+  // POS Terminal transaction tracking (PCI-compliant - NO card data stored)
+  const [posTerminalId, setPosTerminalId] = useState('');
+  const [posTransactionRef, setPosTransactionRef] = useState('');
+  const [posApprovalCode, setPosApprovalCode] = useState('');
+  const [cardLastFour, setCardLastFour] = useState(''); // Only last 4 digits
+
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -446,8 +450,13 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
       return;
     }
 
-    if (requiresCardDetails && (!cardNumber || !expiry || !cvc)) {
-      toast({ variant: "destructive", title: "Card Details Required", description: "Please enter all card details." });
+    // For card/POS payments, require transaction reference
+    if (requiresCardDetails && !posTransactionRef) {
+      toast({
+        variant: "destructive",
+        title: "Transaction Reference Required",
+        description: "Please enter the POS transaction reference number from the receipt."
+      });
       return;
     }
 
@@ -517,7 +526,11 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
           discount,
           collectedAmount,
           returnedAmount: returnedAmount > 0 ? returnedAmount : 0,
-          cardLastFour: requiresCardDetails ? cardNumber.slice(-4) : null,
+          // PCI-compliant: Only store transaction references
+          cardLastFour: requiresCardDetails ? cardLastFour : null,
+          posTerminalId: requiresCardDetails ? posTerminalId : null,
+          posTransactionRef: requiresCardDetails ? posTransactionRef : null,
+          posApprovalCode: requiresCardDetails ? posApprovalCode : null,
         });
 
         toast({ title: "Payment Accepted", description: `Payment of PGK ${amountAfterDiscount.toFixed(2)} processed successfully.` });
@@ -589,31 +602,59 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
             </RadioGroup>
           </div>
 
-          {/* Card Details (if required) */}
+          {/* POS Transaction Details (PCI-Compliant) */}
           {requiresCardDetails && (
             <div className="space-y-4 border-t pt-4">
-              <h3 className="font-semibold text-slate-700">Card Information</h3>
-              <div className="space-y-2">
-                <Label>Card Number</Label>
-                <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                  <Input placeholder="0000 0000 0000 0000" className="pl-10" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} maxLength={19} />
-                </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                <p className="text-sm text-blue-900">
+                  <strong>🔒 PCI-Compliant:</strong> Enter transaction details from POS terminal receipt.
+                  <br />
+                  <span className="text-xs text-blue-700">No full card numbers are stored for security compliance.</span>
+                </p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Expiry Date</Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <Input placeholder="MM/YY" className="pl-10" value={expiry} onChange={(e) => setExpiry(e.target.value)} maxLength={5} />
+              <h3 className="font-semibold text-slate-700">POS Transaction Details</h3>
+              <div className="space-y-3">
+                <div>
+                  <Label>Transaction Reference Number *</Label>
+                  <Input
+                    placeholder="e.g., TXN123456789 (from POS receipt)"
+                    value={posTransactionRef}
+                    onChange={(e) => setPosTransactionRef(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>POS Terminal ID</Label>
+                    <Input
+                      placeholder="e.g., POS-001"
+                      value={posTerminalId}
+                      onChange={(e) => setPosTerminalId(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Approval Code</Label>
+                    <Input
+                      placeholder="e.g., APP123 (from receipt)"
+                      value={posApprovalCode}
+                      onChange={(e) => setPosApprovalCode(e.target.value)}
+                    />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>CVC</Label>
-                  <div className="relative">
-                    <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <Input placeholder="123" className="pl-10" value={cvc} onChange={(e) => setCvc(e.target.value)} maxLength={4} type="password" />
-                  </div>
+                <div>
+                  <Label>Card Last 4 Digits (optional)</Label>
+                  <Input
+                    placeholder="1234 (for reconciliation only)"
+                    value={cardLastFour}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                      setCardLastFour(value);
+                    }}
+                    maxLength={4}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Only enter the last 4 digits - never the full card number
+                  </p>
                 </div>
               </div>
             </div>
