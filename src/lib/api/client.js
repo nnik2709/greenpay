@@ -185,6 +185,12 @@ export const api = {
       body: JSON.stringify({ message, is_staff_response: isStaffResponse }),
     }),
   },
+
+  // Transactions
+  transactions: {
+    getAll: (params = {}) => fetchAPI(`/transactions?${new URLSearchParams(params)}`),
+    getById: (id) => fetchAPI(`/transactions/${id}`),
+  },
 };
 
 // Auth helpers

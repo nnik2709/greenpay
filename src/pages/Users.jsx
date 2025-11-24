@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabaseClient';
 import { getUsers } from '@/lib/usersService';
 import {
   Dialog,
@@ -133,15 +132,10 @@ function Users() {
 
     setIsResettingPassword(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(selectedUser.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
-
+      // TODO: Implement password reset via API
       toast({
-        title: "Password Reset Email Sent! 📧",
-        description: `A password reset link has been sent to ${selectedUser.email}`,
+        title: "Password reset feature pending",
+        description: "Password reset functionality will be implemented in the backend API.",
       });
 
       setPasswordResetModalOpen(false);

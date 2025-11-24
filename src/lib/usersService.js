@@ -1,10 +1,9 @@
-import { supabase } from './supabaseClient';
+import api from './api/client';
 
 export const getUsers = async () => {
   try {
-    const { data, error } = await supabase.rpc('get_all_users');
-
-    if (error) throw error;
+    const response = await api.users.getAll();
+    const data = response.users || response.data || response;
     return data || [];
   } catch (error) {
     console.error('Error loading users:', error);
@@ -14,14 +13,8 @@ export const getUsers = async () => {
 
 export const getUserById = async (id) => {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) throw error;
-    return data;
+    const response = await api.users.getById(id);
+    return response.user || response.data || response;
   } catch (error) {
     console.error('Error loading user:', error);
     return null;
@@ -30,60 +23,16 @@ export const getUserById = async (id) => {
 
 export const createUser = async (userData) => {
   try {
-    // First, create the auth user
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // Create user via API - backend will handle user creation and role assignment
+    const payload = {
       email: userData.email,
       password: userData.password,
-    });
+      role: userData.role,
+      name: userData.name || userData.email.split('@')[0],
+    };
 
-    if (authError) throw authError;
-
-    // Then create the profile
-    const { data, error } = await supabase
-      .from('profiles')
-      .insert([{
-        id: authData.user.id,
-        email: userData.email,
-        role: userData.role,
-        active: true,
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    // Non-blocking notifications: welcome_user to the new user and admin alert
-    try {
-      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-      const toUser = userData.email;
-
-      // Send welcome email with magic link guidance (do not send plain password)
-      await supabase.functions.invoke('send-email', {
-        body: {
-          to: toUser,
-          templateId: 'welcome_user',
-          subject: 'Welcome to PNG Green Fees',
-          html: `<p>Your account has been created.</p><p>Please use the password reset link on the login page to set a secure password.</p>`
-        }
-      });
-
-      // Admin notification (only if admin email is configured)
-      if (adminEmail) {
-        await supabase.functions.invoke('send-email', {
-          body: {
-            to: adminEmail,
-            templateId: 'new_user_notification',
-            subject: 'New User Created',
-            html: `<p>A new user has been created.</p><p><strong>Email:</strong> ${toUser}<br/><strong>Role:</strong> ${userData.role}</p>`
-          }
-        });
-      }
-    } catch (e) {
-      // ignore email errors in user creation flow
-      console.warn('Failed to send notification emails:', e);
-    }
-
-    return data;
+    const response = await api.auth.register(payload);
+    return response.user || response.data || response;
   } catch (error) {
     console.error('Error creating user:', error);
     throw error;
@@ -96,16 +45,10 @@ export const updateUser = async (id, updates) => {
     if (updates.email !== undefined) updateData.email = updates.email;
     if (updates.role !== undefined) updateData.role = updates.role;
     if (updates.active !== undefined) updateData.active = updates.active;
+    if (updates.name !== undefined) updateData.name = updates.name;
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    const response = await api.users.update(id, updateData);
+    return response.user || response.data || response;
   } catch (error) {
     console.error('Error updating user:', error);
     throw error;
@@ -114,15 +57,8 @@ export const updateUser = async (id, updates) => {
 
 export const deactivateUser = async (id) => {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({ active: false })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    const response = await api.users.update(id, { active: false });
+    return response.user || response.data || response;
   } catch (error) {
     console.error('Error deactivating user:', error);
     throw error;
@@ -131,15 +67,8 @@ export const deactivateUser = async (id) => {
 
 export const activateUser = async (id) => {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({ active: true })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    const response = await api.users.update(id, { active: true });
+    return response.user || response.data || response;
   } catch (error) {
     console.error('Error activating user:', error);
     throw error;

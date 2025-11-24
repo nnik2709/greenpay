@@ -1,13 +1,9 @@
-import { supabase } from './supabaseClient';
+import api from './api/client';
 
 export const getPassports = async () => {
   try {
-    const { data, error } = await supabase
-      .from('passports')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
+    const response = await api.passports.getAll();
+    const data = response.passports || response.data || response;
     return data;
   } catch (error) {
     console.error('Error loading passports:', error);
@@ -17,14 +13,10 @@ export const getPassports = async () => {
 
 export const getPassportByNumber = async (passportNumber) => {
   try {
-    const { data, error } = await supabase
-      .from('passports')
-      .select('*')
-      .eq('passport_number', passportNumber)
-      .maybeSingle();
-
-    if (error) throw error;
-    return data;
+    // Use search with exact passport number
+    const response = await api.passports.getAll({ passport_number: passportNumber });
+    const data = response.passports || response.data || response;
+    return data && data.length > 0 ? data[0] : null;
   } catch (error) {
     console.error('Error finding passport:', error);
     return null;
@@ -33,13 +25,9 @@ export const getPassportByNumber = async (passportNumber) => {
 
 export const searchPassports = async (query) => {
   try {
-    const { data, error } = await supabase
-      .from('passports')
-      .select('*')
-      .or(`passport_number.ilike.%${query}%,surname.ilike.%${query}%,given_name.ilike.%${query}%`)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
+    // Use API search endpoint with query parameter
+    const response = await api.passports.getAll({ search: query });
+    const data = response.passports || response.data || response;
     return data;
   } catch (error) {
     console.error('Error searching passports:', error);
@@ -49,23 +37,19 @@ export const searchPassports = async (query) => {
 
 export const createPassport = async (passportData, userId) => {
   try {
-    const { data, error } = await supabase
-      .from('passports')
-      .insert([{
-        passport_number: passportData.passportNumber,
-        nationality: passportData.nationality,
-        surname: passportData.surname,
-        given_name: passportData.givenName,
-        date_of_birth: passportData.dob,
-        sex: passportData.sex,
-        date_of_expiry: passportData.dateOfExpiry,
-        created_by: userId,
-      }])
-      .select()
-      .single();
+    const payload = {
+      passport_number: passportData.passportNumber,
+      nationality: passportData.nationality,
+      surname: passportData.surname,
+      given_name: passportData.givenName,
+      date_of_birth: passportData.dob,
+      sex: passportData.sex,
+      date_of_expiry: passportData.dateOfExpiry,
+      created_by: userId,
+    };
 
-    if (error) throw error;
-    return data;
+    const response = await api.passports.create(payload);
+    return response.passport || response.data || response;
   } catch (error) {
     console.error('Error creating passport:', error);
     throw error;
@@ -83,15 +67,8 @@ export const updatePassport = async (id, updates) => {
     if (updates.sex) updateData.sex = updates.sex;
     if (updates.dateOfExpiry) updateData.date_of_expiry = updates.dateOfExpiry;
 
-    const { data, error } = await supabase
-      .from('passports')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    const response = await api.passports.update(id, updateData);
+    return response.passport || response.data || response;
   } catch (error) {
     console.error('Error updating passport:', error);
     throw error;

@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/lib/supabaseClient';
+import api from '@/lib/api/client';
 
 const StatCard = ({ title, value, index }) => {
   return (
@@ -85,19 +85,16 @@ const Dashboard = () => {
   const loadTransactions = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      // Fetch all transactions from API
+      const response = await api.transactions.getAll();
+      const data = response.transactions || response.data || response;
 
       // Transform to match expected format
       const formattedData = (data || []).map(t => ({
-        date: new Date(t.created_at),
+        date: new Date(t.created_at || t.createdAt),
         amount: parseFloat(t.amount),
-        paymentMethod: t.payment_method || 'Cash',
-        type: (t.transaction_type === 'individual' || t.transaction_type === 'individual_purchase') ? 'Individual' : 'Corporate',
+        paymentMethod: t.payment_method || t.paymentMethod || 'Cash',
+        type: (t.transaction_type === 'individual' || t.transaction_type === 'individual_purchase' || t.transactionType === 'individual') ? 'Individual' : 'Corporate',
         nationality: t.nationality || 'Unknown'
       }));
 

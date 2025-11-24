@@ -14,7 +14,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from '@/lib/supabaseClient';
 import { getPassports, searchPassports } from '@/lib/passportsService';
 import CameraMRZScanner from '@/components/CameraMRZScanner';
 
@@ -149,28 +148,12 @@ const Passports = () => {
     }
     setIsSending(true);
     try {
-      // Try to read template from Supabase
-      const { data } = await supabase
-        .from('email_templates')
-        .select('subject, html, body')
-        .eq('template_key', 'individual_voucher')
-        .maybeSingle();
-
-      const subject = (data?.subject) || defaultVoucherTemplate.subject;
-      const htmlRaw = (data?.body ?? data?.html ?? defaultVoucherTemplate.html);
-      const html = fillPlaceholders(htmlRaw);
-
-      const { error: fnError } = await supabase.functions.invoke('send-email', {
-        body: {
-          to: recipientEmail,
-          subject,
-          html,
-          templateId: 'individual_voucher',
-        }
+      // TODO: Implement email sending via API
+      // For now, show a placeholder message
+      toast({
+        title: 'Email feature pending',
+        description: 'Email sending functionality will be implemented in the backend API.'
       });
-      if (fnError) throw fnError;
-
-      toast({ title: 'Email sent', description: 'Voucher email sent to recipient.' });
       setIsEmailModalOpen(false);
     } catch (e) {
       toast({ variant: 'destructive', title: 'Send failed', description: e?.message || 'Unable to send email.' });
@@ -451,11 +434,11 @@ const Passports = () => {
                 }
                 setBulkSending(true);
                 try {
-                  const { error: fnError } = await supabase.functions.invoke('send-bulk-passport-vouchers', {
-                    body: { passportIds: selectedIds, email: bulkEmail, message: bulkMessage || undefined }
+                  // TODO: Implement bulk email sending via API
+                  toast({
+                    title: 'Bulk email feature pending',
+                    description: 'Bulk email functionality will be implemented in the backend API.'
                   });
-                  if (fnError) throw fnError;
-                  toast({ title: 'Bulk email queued', description: 'Vouchers will be generated and emailed.' });
                   setBulkOpen(false);
                   setSelectedIds([]);
                 } catch (e) {
