@@ -1,7 +1,24 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import api from '@/lib/api/client';
 
 const AuthContext = createContext(null);
+
+// Map backend role names to frontend role names
+const mapBackendRoleToFrontend = (backendRole) => {
+  const roleMap = {
+    'Admin': 'Flex_Admin',
+    'Manager': 'Finance_Manager',
+    'Agent': 'Counter_Agent',
+    'Support': 'IT_Support',
+    'Customer': 'Customer',
+    // Also handle if backend already returns frontend format
+    'Flex_Admin': 'Flex_Admin',
+    'Finance_Manager': 'Finance_Manager',
+    'Counter_Agent': 'Counter_Agent',
+    'IT_Support': 'IT_Support',
+  };
+  return roleMap[backendRole] || 'Customer';
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -11,89 +28,48 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
+        // Check if we have a session
+        const { session } = api.auth.getSession();
 
-          if (profile) {
-            setUser({
-              id: profile.id,
-              email: profile.email,
-              role: profile.role,
-            });
-            setIsAuthenticated(true);
-          }
+        if (session?.user) {
+          // Fetch full user data from API
+          const userData = await api.auth.getCurrentUser();
+
+          setUser({
+            id: userData.id,
+            email: userData.email,
+            role: mapBackendRoleToFrontend(userData.role_name || 'Customer'),
+            name: userData.name,
+          });
+          setIsAuthenticated(true);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        // Clear invalid session
+        api.clearAuth();
       } finally {
         setLoading(false);
       }
     };
 
     initAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      try {
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (profile) {
-            setUser({
-              id: profile.id,
-              email: profile.email,
-              role: profile.role,
-            });
-            setIsAuthenticated(true);
-          }
-        } else {
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-      } catch (error) {
-        console.error('Error in auth state change:', error);
-      } finally {
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
   const login = async (email, password) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
+      const data = await api.auth.login(email, password);
 
       setUser({
-        id: profile.id,
-        email: profile.email,
-        role: profile.role,
+        id: data.user.id,
+        email: data.user.email,
+        role: mapBackendRoleToFrontend(data.user.role_name || 'Customer'),
+        name: data.user.name,
       });
       setIsAuthenticated(true);
 
-      // Log the login event
-      await logLoginEvent(data.user.id, profile.email);
+      // Log the login event (handled by backend now)
+      // But we can still log client-side info if needed
+      await logLoginEvent(data.user.id, data.user.email);
 
       return true;
     } catch (error) {
@@ -104,43 +80,38 @@ export const AuthProvider = ({ children }) => {
 
   const logLoginEvent = async (userId, email) => {
     try {
-      // Get user's IP address and user agent
       const userAgent = navigator.userAgent;
       const ipAddress = await getClientIP();
 
-      await supabase
-        .from('login_events')
-        .insert({
-          user_id: userId,
-          ip_address: ipAddress,
-          user_agent: userAgent,
-          created_at: new Date().toISOString()
-        });
+      // Note: You might need to add an endpoint for this on your backend
+      // For now, this is handled by the backend's login endpoint
+      console.log('Login event:', { userId, email, userAgent, ipAddress });
     } catch (error) {
       console.error('Error logging login event:', error);
-      // Don't throw error here as it shouldn't break the login flow
     }
   };
 
   const getClientIP = async () => {
     try {
-      // Try to get IP from a public service
       const response = await fetch('https://api.ipify.org?format=json');
       const data = await response.json();
       return data.ip;
     } catch (error) {
-      // Fallback to localhost for development
       return '127.0.0.1';
     }
   };
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      await api.auth.logout();
       setUser(null);
       setIsAuthenticated(false);
     } catch (error) {
       console.error('Logout error:', error);
+      // Even if API call fails, clear local state
+      api.clearAuth();
+      setUser(null);
+      setIsAuthenticated(false);
     }
   };
 
