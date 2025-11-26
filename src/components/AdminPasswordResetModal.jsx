@@ -159,7 +159,7 @@ const AdminPasswordResetModal = ({ isOpen, onClose }) => {
                 <option value="">Choose a user to reset password for</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.email} ({user.role})
+                    {user.email} ({user.role_name || user.role || 'User'})
                   </option>
                 ))}
               </select>

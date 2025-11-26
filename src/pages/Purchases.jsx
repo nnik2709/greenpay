@@ -452,9 +452,11 @@ const Purchases = () => {
     setGeneratedVoucher(null);
     setDiscount(0);
     setCollectedAmount(amount);
-    setCardNumber('');
-    setExpiry('');
-    setCvc('');
+    // POS terminal fields
+    setPosTerminalId('');
+    setPosTransactionRef('');
+    setPosApprovalCode('');
+    setCardLastFour('');
   };
 
   const getExitPassId = (transaction) => {

@@ -131,11 +131,12 @@ export const getDashboardStats = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // TODO: Migrate to PostgreSQL API endpoints for counts
     const [passports, individual, corporate, quotations] = await Promise.all([
-      supabase.from('passports').select('id', { count: 'exact', head: true }),
-      supabase.from('individual_purchases').select('id', { count: 'exact', head: true }),
-      supabase.from('corporate_vouchers').select('id', { count: 'exact', head: true }),
-      supabase.from('quotations').select('id', { count: 'exact', head: true }),
+      Promise.resolve({ count: 0 }), // supabase.from('passports').select('id', { count: 'exact', head: true }),
+      Promise.resolve({ count: 0 }), // supabase.from('individual_purchases').select('id', { count: 'exact', head: true }),
+      Promise.resolve({ count: 0 }), // supabase.from('corporate_vouchers').select('id', { count: 'exact', head: true }),
+      Promise.resolve({ count: 0 }), // supabase.from('quotations').select('id', { count: 'exact', head: true }),
     ]);
 
     // Get revenue for today

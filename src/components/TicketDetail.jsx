@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const TicketDetail = ({ ticket, onBack, onUpdate, onAddResponse }) => {
   const [newResponse, setNewResponse] = useState('');
   const { user } = useAuth();
-  const isAdmin = user.role === 'ROLE_VFLEX_ADMIN' || user.role === 'ROLE_IT_SUPPORT';
+  const isAdmin = user?.role === 'ROLE_VFLEX_ADMIN' || user?.role === 'ROLE_IT_SUPPORT' || user?.role === 'Flex_Admin' || user?.role === 'IT_Support';
 
   if (!ticket) {
     return (

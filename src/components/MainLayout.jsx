@@ -7,10 +7,10 @@ import { useAuth } from '@/contexts/AuthContext';
 const MainLayout = () => {
   const location = useLocation();
   const { user } = useAuth();
-  
+
   // Don't show header for agent landing page
   const isAgentLanding = location.pathname === '/agent';
-  
+
   return (
     <div className="flex min-h-screen w-full flex-col">
       {!isAgentLanding && <Header />}

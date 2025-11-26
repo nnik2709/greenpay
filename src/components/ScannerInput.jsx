@@ -55,9 +55,22 @@ const ScannerInput = ({
   successClassName = 'border-green-500',
   errorClassName = 'border-red-500',
 
-  // Additional props
+  // Additional HTML input props (filtered)
   ...inputProps
 }) => {
+  // Filter out custom scanner props that shouldn't go to DOM
+  const {
+    mrzLength,
+    enterKeySubmits,
+    prefixChars,
+    suffixChars,
+    enableBeep,
+    enableVibration,
+    beepFrequency,
+    beepDuration,
+    vibrationDuration,
+    ...domInputProps
+  } = inputProps;
   const [manualValue, setManualValue] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -230,7 +243,7 @@ const ScannerInput = ({
           showStatusIndicator ? 'pr-10' : '',
           getInputClassName()
         )}
-        {...inputProps}
+        {...domInputProps}
       />
 
       {/* Status Indicator */}

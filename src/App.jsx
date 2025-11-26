@@ -12,6 +12,7 @@ import NotFound from '@/pages/NotFound';
 import ResetPassword from '@/pages/ResetPassword';
 import PublicRegistration from '@/pages/PublicRegistration';
 import PublicRegistrationSuccess from '@/pages/PublicRegistrationSuccess';
+import ScannerTest from '@/pages/ScannerTest';
 
 // Lazy load pages for code splitting and better performance
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -44,7 +45,6 @@ const RevenueGeneratedReports = lazy(() => import('@/pages/reports/RevenueGenera
 const BulkPassportUploadReports = lazy(() => import('@/pages/reports/BulkPassportUploadReports'));
 const QuotationsReports = lazy(() => import('@/pages/reports/QuotationsReports'));
 const ScanAndValidate = lazy(() => import('@/pages/ScanAndValidate'));
-const ScannerTest = lazy(() => import('@/pages/ScannerTest'));
 const AgentLanding = lazy(() => import('@/pages/AgentLanding'));
 const CashReconciliation = lazy(() => import('@/pages/CashReconciliation'));
 
@@ -76,14 +76,19 @@ const ScanRoute = () => {
 };
 
 const PrivateRoute = ({ children, roles }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
   const location = useLocation();
+
+  // Wait for auth to finish loading
+  if (loading) {
+    return <PageLoader />;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-  
-  const userRole = user?.role || 'Flex_Admin'; 
+
+  const userRole = user?.role || 'Flex_Admin';
 
   if (roles && !roles.includes(userRole)) {
     return <Navigate to="/" replace />;
@@ -99,15 +104,14 @@ const AppRoutes = () => {
         <Route path="/login" element={<LoginRoute />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/payment-callback" element={<PaymentCallback />} />
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <MainLayout />
-            </PrivateRoute>
-          }
-        >
-          <Route index element={<RoleBasedRedirect />} />
+
+        {/* All authenticated routes under MainLayout */}
+        <Route path="/" element={
+          <PrivateRoute>
+            <MainLayout />
+          </PrivateRoute>
+        }>
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="agent" element={
             <PrivateRoute roles={['Counter_Agent']}>

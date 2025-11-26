@@ -153,7 +153,7 @@ const navItemsByRole = {
       label: 'Scan & Validate'
     }]
   }, {
-    to: '/payments',
+    to: '/purchases',
     icon: <CreditCard className="h-4 w-4" />,
     label: 'Purchases'
   }],
@@ -263,7 +263,7 @@ const Header = () => {
   
   const userNavItems = navItemsByRole[user?.role] || [];
   const isAdmin = user?.role === 'Flex_Admin';
-  
+
   return (
     <>
       <header className="sticky top-0 z-50 flex h-18 items-center gap-4 border-b border-emerald-700/20 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 px-6 md:px-8 shadow-lg backdrop-blur-sm">
@@ -285,7 +285,7 @@ const Header = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full bg-white/20 hover:bg-white/30 transition-all hover:scale-105">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-lg shadow-inner">
-                  {user?.email.charAt(0).toUpperCase()}
+                  {user?.email?.charAt(0).toUpperCase() || 'U'}
                 </div>
               </Button>
             </DropdownMenuTrigger>

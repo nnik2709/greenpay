@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '@/lib/api/client';
+import api, { clearAuth } from '@/lib/api/client';
 
 const AuthContext = createContext(null);
 
@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
           setUser({
             id: userData.id,
             email: userData.email,
-            role: mapBackendRoleToFrontend(userData.role_name || 'Customer'),
+            role: mapBackendRoleToFrontend(userData.role || userData.role_name || 'Customer'),
             name: userData.name,
           });
           setIsAuthenticated(true);
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('Error initializing auth:', error);
         // Clear invalid session
-        api.clearAuth();
+        clearAuth();
       } finally {
         setLoading(false);
       }
@@ -59,10 +59,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await api.auth.login(email, password);
 
+      const mappedRole = mapBackendRoleToFrontend(data.user.role || data.user.role_name || 'Customer');
+
       setUser({
         id: data.user.id,
         email: data.user.email,
-        role: mapBackendRoleToFrontend(data.user.role_name || 'Customer'),
+        role: mappedRole,
         name: data.user.name,
       });
       setIsAuthenticated(true);
@@ -109,7 +111,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
       // Even if API call fails, clear local state
-      api.clearAuth();
+      clearAuth();
       setUser(null);
       setIsAuthenticated(false);
     }

@@ -1,0 +1,14 @@
+NODE_ENV=production
+PORT=3001
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=greenpay_db
+DB_USER=greenpay_user
+DB_PASSWORD="GreenPay2025!Secure#PG"
+
+JWT_SECRET=a26baa9a385b39e5fb8f99f54734391075784715b7c6cbded9651da6ce696a38
+JWT_EXPIRES_IN=7d
+
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:5174,https://greenpay.eywademo.cloud
+FRONTEND_URL=https://greenpay.eywademo.cloud

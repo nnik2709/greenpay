@@ -47,7 +47,14 @@ const fetchAPI = async (endpoint, options = {}) => {
 
     return response.json();
   } catch (error) {
-    console.error('API Error:', error);
+    // Only log unexpected errors (not 404s for endpoints not yet implemented)
+    const isExpected404 = endpoint.includes('/transactions') ||
+                          endpoint.includes('/bulk-uploads') ||
+                          endpoint.includes('/payment-modes');
+
+    if (!isExpected404 || !error.message.includes('Route not found')) {
+      console.error('API Error:', error);
+    }
     throw error;
   }
 };
@@ -89,7 +96,9 @@ export const api = {
     
     getCurrentUser: async () => {
       try {
-        return await fetchAPI('/auth/me');
+        const response = await fetchAPI('/auth/me');
+        // Backend returns { user: {...} }, unwrap it
+        return response.user || response;
       } catch (error) {
         removeToken();
         throw error;
@@ -108,6 +117,21 @@ export const api = {
     changePassword: (currentPassword, newPassword) => fetchAPI('/auth/change-password', {
       method: 'POST',
       body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
+    requestPasswordReset: (email) => fetchAPI('/auth/request-password-reset', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+    resetPassword: (token, newPassword) => fetchAPI('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+    }),
+
+    verifyResetToken: (token) => fetchAPI('/auth/verify-reset-token', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
     }),
   },
 
@@ -180,6 +204,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+    update: (id, data) => fetchAPI(`/tickets/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    delete: (id) => fetchAPI(`/tickets/${id}`, {
+      method: 'DELETE',
+    }),
     addResponse: (id, message, isStaffResponse = false) => fetchAPI(`/tickets/${id}/responses`, {
       method: 'POST',
       body: JSON.stringify({ message, is_staff_response: isStaffResponse }),
@@ -190,6 +221,39 @@ export const api = {
   transactions: {
     getAll: (params = {}) => fetchAPI(`/transactions?${new URLSearchParams(params)}`),
     getById: (id) => fetchAPI(`/transactions/${id}`),
+  },
+
+  // Settings
+  settings: {
+    get: () => fetchAPI('/settings'),
+    update: (data) => fetchAPI('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  },
+
+  // Payment Modes
+  paymentModes: {
+    getAll: () => fetchAPI('/payment-modes'),
+    create: (data) => fetchAPI('/payment-modes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    update: (id, data) => fetchAPI(`/payment-modes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    delete: (id) => fetchAPI(`/payment-modes/${id}`, {
+      method: 'DELETE',
+    }),
+  },
+
+  // Vouchers
+  vouchers: {
+    validate: (code) => fetchAPI(`/vouchers/validate/${encodeURIComponent(code)}`),
+    markUsed: (code) => fetchAPI(`/vouchers/mark-used/${encodeURIComponent(code)}`, {
+      method: 'POST',
+    }),
   },
 };
 

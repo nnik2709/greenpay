@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { api } from './api/client';
 
 export const generateTicketNumber = () => {
   const timestamp = Date.now().toString(36).toUpperCase();
@@ -8,23 +8,18 @@ export const generateTicketNumber = () => {
 
 export const getTickets = async () => {
   try {
-    const { data, error } = await supabase
-      .from('tickets')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const data = await api.tickets.getAll();
 
-    if (error) throw error;
-
-    return data.map(ticket => ({
+    return (data || []).map(ticket => ({
       id: ticket.id,
-      ticketNumber: ticket.ticket_number,
+      ticketNumber: ticket.ticketNumber,
       title: ticket.title,
       description: ticket.description,
       priority: ticket.priority,
       status: ticket.status,
-      createdAt: ticket.created_at,
+      createdAt: ticket.createdAt,
+      createdBy: ticket.createdBy,
       responses: ticket.responses || [],
-      createdBy: ticket.created_by,
     }));
   } catch (error) {
     console.error('Error loading tickets:', error);
@@ -34,32 +29,22 @@ export const getTickets = async () => {
 
 export const createTicket = async (ticketData, userId) => {
   try {
-    const { data, error } = await supabase
-      .from('tickets')
-      .insert([{
-        ticket_number: generateTicketNumber(),
-        title: ticketData.title,
-        description: ticketData.description,
-        priority: ticketData.priority || 'medium',
-        status: 'open',
-        created_by: userId,
-        responses: [],
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
+    const data = await api.tickets.create({
+      title: ticketData.title,
+      description: ticketData.description,
+      priority: ticketData.priority || 'medium',
+    });
 
     return {
       id: data.id,
-      ticketNumber: data.ticket_number,
+      ticketNumber: data.ticketNumber,
       title: data.title,
       description: data.description,
       priority: data.priority,
       status: data.status,
-      createdAt: data.created_at,
-      responses: data.responses || [],
-      createdBy: data.created_by,
+      createdAt: data.createdAt,
+      createdBy: data.createdBy,
+      responses: [],
     };
   } catch (error) {
     console.error('Error creating ticket:', error);
@@ -74,27 +59,19 @@ export const updateTicket = async (ticketId, updates) => {
     if (updates.description !== undefined) updateData.description = updates.description;
     if (updates.priority !== undefined) updateData.priority = updates.priority;
     if (updates.status !== undefined) updateData.status = updates.status;
-    if (updates.responses !== undefined) updateData.responses = updates.responses;
 
-    const { data, error } = await supabase
-      .from('tickets')
-      .update(updateData)
-      .eq('id', ticketId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    const data = await api.tickets.update(ticketId, updateData);
 
     return {
       id: data.id,
-      ticketNumber: data.ticket_number,
+      ticketNumber: data.ticketNumber,
       title: data.title,
       description: data.description,
       priority: data.priority,
       status: data.status,
-      createdAt: data.created_at,
+      createdAt: data.createdAt,
+      createdBy: data.createdBy,
       responses: data.responses || [],
-      createdBy: data.created_by,
     };
   } catch (error) {
     console.error('Error updating ticket:', error);
@@ -104,53 +81,30 @@ export const updateTicket = async (ticketId, updates) => {
 
 export const deleteTicket = async (ticketId) => {
   try {
-    const { error } = await supabase
-      .from('tickets')
-      .delete()
-      .eq('id', ticketId);
-
-    if (error) throw error;
+    await api.tickets.delete(ticketId);
   } catch (error) {
     console.error('Error deleting ticket:', error);
     throw error;
   }
 };
 
-export const addResponse = async (ticketId, message) => {
+export const addResponse = async (ticketId, message, isStaffResponse = false) => {
   try {
-    const { data: ticket, error: fetchError } = await supabase
-      .from('tickets')
-      .select('responses')
-      .eq('id', ticketId)
-      .single();
+    await api.tickets.addResponse(ticketId, message, isStaffResponse);
 
-    if (fetchError) throw fetchError;
-
-    const responses = ticket.responses || [];
-    responses.push({
-      message,
-      timestamp: new Date().toISOString(),
-    });
-
-    const { data, error } = await supabase
-      .from('tickets')
-      .update({ responses })
-      .eq('id', ticketId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    // Fetch updated ticket to get all responses
+    const data = await api.tickets.getById(ticketId);
 
     return {
       id: data.id,
-      ticketNumber: data.ticket_number,
+      ticketNumber: data.ticketNumber,
       title: data.title,
       description: data.description,
       priority: data.priority,
       status: data.status,
-      createdAt: data.created_at,
+      createdAt: data.createdAt,
+      createdBy: data.createdBy,
       responses: data.responses || [],
-      createdBy: data.created_by,
     };
   } catch (error) {
     console.error('Error adding response:', error);

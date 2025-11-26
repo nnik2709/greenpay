@@ -60,6 +60,7 @@ export const testSupabaseConnection = async () => {
 };
 
 // Auto-run test in development
-if (import.meta.env.DEV) {
-  testSupabaseConnection();
-}
+// DISABLED: Migrated to PostgreSQL API
+// if (import.meta.env.DEV) {
+//   testSupabaseConnection();
+// }

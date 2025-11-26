@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { QrCode } from 'lucide-react';
+import { QrCode, Edit, DollarSign } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
 import VoucherPrint from '@/components/VoucherPrint';
 import ExportButton from '@/components/ExportButton';
+import EditPaymentModal from '@/components/EditPaymentModal';
+import RefundPaymentModal from '@/components/RefundPaymentModal';
 
 
 const customStyles = {
@@ -29,6 +31,9 @@ const IndividualPurchaseReports = () => {
   const [loading, setLoading] = useState(true);
   const [selectedVoucher, setSelectedVoucher] = useState(null);
   const [showPrint, setShowPrint] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
 
   useEffect(() => {
     fetchVouchers();
@@ -60,6 +65,69 @@ const IndividualPurchaseReports = () => {
     setShowPrint(true);
   };
 
+  const handleEditPayment = (payment) => {
+    setSelectedPayment(payment);
+    setShowEditModal(true);
+  };
+
+  const handleRefundPayment = (payment) => {
+    setSelectedPayment(payment);
+    setShowRefundModal(true);
+  };
+
+  const handleSavePayment = async (id, updatedData) => {
+    try {
+      const { error } = await supabase
+        .from('individual_purchases')
+        .update(updatedData)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Refresh data
+      await fetchVouchers();
+
+      toast({
+        title: "Success",
+        description: "Payment updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      throw error;
+    }
+  };
+
+  const handleProcessRefund = async (id, refundData) => {
+    try {
+      // Update the payment record with refund information
+      const { error } = await supabase
+        .from('individual_purchases')
+        .update({
+          refunded: true,
+          refund_amount: refundData.refund_amount,
+          refund_reason: refundData.refund_reason,
+          refund_method: refundData.refund_method,
+          refund_notes: refundData.notes,
+          refunded_at: refundData.refunded_at,
+          status: refundData.refund_amount === refundData.original_amount ? 'refunded' : 'partial_refund'
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Refresh data
+      await fetchVouchers();
+
+      toast({
+        title: "Success",
+        description: "Refund processed successfully",
+      });
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      throw error;
+    }
+  };
+
   const columns = [
     { name: 'Voucher Code', selector: row => row.voucher_code, sortable: true, width: '150px' },
     { name: 'Passport No', selector: row => row.passport_number, sortable: true },
@@ -67,25 +135,56 @@ const IndividualPurchaseReports = () => {
     { name: 'Payment Method', selector: row => row.payment_method, sortable: true },
     { name: 'Created', selector: row => new Date(row.created_at).toLocaleDateString(), sortable: true },
     { name: 'Valid Until', selector: row => new Date(row.valid_until).toLocaleDateString(), sortable: true },
-    { name: 'Status', selector: row => row.used_at ? 'Used' : 'Valid', sortable: true, cell: row => (
-      <span className={`px-2 py-1 rounded text-xs font-semibold ${row.used_at ? 'bg-gray-200 text-gray-700' : 'bg-green-100 text-green-700'}`}>
-        {row.used_at ? 'Used' : 'Valid'}
-      </span>
-    )},
+    { name: 'Status', selector: row => row.refunded ? 'Refunded' : row.used_at ? 'Used' : 'Valid', sortable: true, cell: row => {
+      if (row.refunded) {
+        const isPartialRefund = row.refund_amount && row.refund_amount < row.amount;
+        return (
+          <span className={`px-2 py-1 rounded text-xs font-semibold ${isPartialRefund ? 'bg-yellow-200 text-yellow-800' : 'bg-red-200 text-red-800'}`}>
+            {isPartialRefund ? 'Partial Refund' : 'Refunded'}
+          </span>
+        );
+      }
+      return (
+        <span className={`px-2 py-1 rounded text-xs font-semibold ${row.used_at ? 'bg-gray-200 text-gray-700' : 'bg-green-100 text-green-700'}`}>
+          {row.used_at ? 'Used' : 'Valid'}
+        </span>
+      );
+    }},
     {
       name: 'Actions',
       cell: row => (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => handlePrintVoucher(row)}
-          disabled={row.used_at !== null}
-          title={row.used_at ? 'Cannot print used voucher' : 'Print voucher'}
-        >
-          <QrCode className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handlePrintVoucher(row)}
+            disabled={row.used_at !== null || row.refunded}
+            title={row.used_at ? 'Cannot print used voucher' : row.refunded ? 'Cannot print refunded voucher' : 'Print voucher'}
+          >
+            <QrCode className="w-4 h-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleEditPayment(row)}
+            disabled={row.refunded}
+            title={row.refunded ? 'Cannot edit refunded payment' : 'Edit payment'}
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleRefundPayment(row)}
+            disabled={row.refunded}
+            title={row.refunded ? 'Already refunded' : 'Refund payment'}
+            className="text-red-600 hover:text-red-700"
+          >
+            <DollarSign className="w-4 h-4" />
+          </Button>
+        </div>
       ),
-      width: '100px'
+      width: '180px'
     }
   ];
 
@@ -133,6 +232,26 @@ const IndividualPurchaseReports = () => {
         isOpen={showPrint}
         onClose={() => setShowPrint(false)}
         voucherType="Individual"
+      />
+
+      <EditPaymentModal
+        payment={selectedPayment}
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedPayment(null);
+        }}
+        onSave={handleSavePayment}
+      />
+
+      <RefundPaymentModal
+        payment={selectedPayment}
+        isOpen={showRefundModal}
+        onClose={() => {
+          setShowRefundModal(false);
+          setSelectedPayment(null);
+        }}
+        onRefund={handleProcessRefund}
       />
     </div>
   );

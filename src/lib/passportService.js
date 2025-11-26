@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import api from './api/client';
 
 /**
  * Passport Service
@@ -71,8 +72,10 @@ export async function getPassports(filters = {}) {
  */
 export async function createPassport(passportData) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    // TODO: Migrate to use PostgreSQL API
+    const { session } = api.auth.getSession();
+    const user = session?.user;
+
     if (!user) {
       return { success: false, error: 'User not authenticated' };
     }
@@ -105,8 +108,10 @@ export async function createPassport(passportData) {
  */
 export async function updatePassport(id, passportData) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    // TODO: Migrate to use PostgreSQL API
+    const { session } = api.auth.getSession();
+    const user = session?.user;
+
     if (!user) {
       return { success: false, error: 'User not authenticated' };
     }

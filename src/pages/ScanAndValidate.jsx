@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { supabase } from '@/lib/supabaseClient';
+import api from '@/lib/api/client';
 import { useScannerInput } from '@/hooks/useScannerInput';
 import { parseMrz as parseMrzUtil } from '@/lib/mrzParser';
 
@@ -18,6 +18,7 @@ const ScanAndValidate = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
   const [showSuccessFlash, setShowSuccessFlash] = useState(false);
+  const [showErrorFlash, setShowErrorFlash] = useState(false);
   const lastScannedCode = useRef(null);
   const lastScanTime = useRef(0);
   const audioContext = useRef(null);
@@ -89,7 +90,7 @@ const ScanAndValidate = () => {
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.current.destination);
 
-      oscillator.frequency.value = 800; // Hz
+      oscillator.frequency.value = 800; // Hz - pleasant high tone
       oscillator.type = 'sine';
 
       gainNode.gain.setValueAtTime(0.3, audioContext.current.currentTime);
@@ -99,6 +100,36 @@ const ScanAndValidate = () => {
       oscillator.stop(audioContext.current.currentTime + 0.2);
     } catch (error) {
       console.error('Beep sound error:', error);
+    }
+  };
+
+  // Error alert sound function
+  const playErrorAlert = async () => {
+    if (!audioContext.current) return;
+
+    try {
+      // Resume audio context if suspended (mobile browsers)
+      if (audioContext.current.state === 'suspended') {
+        await audioContext.current.resume();
+      }
+
+      const oscillator = audioContext.current.createOscillator();
+      const gainNode = audioContext.current.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.current.destination);
+
+      // Lower frequency for error sound (more alarming)
+      oscillator.frequency.value = 300; // Hz - lower, more ominous tone
+      oscillator.type = 'sawtooth'; // Harsher sound for errors
+
+      gainNode.gain.setValueAtTime(0.4, audioContext.current.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.current.currentTime + 0.5);
+
+      oscillator.start(audioContext.current.currentTime);
+      oscillator.stop(audioContext.current.currentTime + 0.5);
+    } catch (error) {
+      console.error('Error sound error:', error);
     }
   };
 
@@ -129,66 +160,19 @@ const ScanAndValidate = () => {
     try {
       console.log('Validating voucher code:', code.trim());
 
-      // Try individual purchases first
-      const { data: individualData, error: individualError } = await supabase
-        .from('individual_purchases')
-        .select('*')
-        .eq('voucher_code', code.trim())
-        .maybeSingle();
+      // Call the PostgreSQL API endpoint
+      const result = await api.vouchers.validate(code.trim());
 
-      console.log('Individual query result:', { individualData, individualError });
+      console.log('Validation result:', result);
 
-      // Try corporate vouchers if not found
-      const { data: corporateData, error: corporateError } = await supabase
-        .from('corporate_vouchers')
-        .select('*')
-        .eq('voucher_code', code.trim())
-        .maybeSingle();
-
-      console.log('Corporate query result:', { corporateData, corporateError });
-
-      const data = individualData || corporateData;
-      const voucherType = individualData ? 'Individual' : corporateData ? 'Corporate' : null;
-
-      if (!data) {
-        console.log('No voucher found for code:', code.trim());
-        return { type: 'error', status: 'error', message: 'Voucher code not found.' };
-      }
-
-      console.log('Found voucher:', { type: voucherType, data });
-
-      const now = new Date();
-      const expiryDate = new Date(data.valid_until);
-      const isExpired = expiryDate < now;
-      const isUsed = data.used_at !== null;
-
-      if (isUsed) {
-        return {
-          type: 'voucher',
-          status: 'error',
-          message: `${voucherType} voucher has already been used on ${new Date(data.used_at).toLocaleDateString()}.`,
-          data: { ...data, voucherType }
-        };
-      }
-
-      if (isExpired) {
-        return {
-          type: 'voucher',
-          status: 'error',
-          message: `${voucherType} voucher has expired.`,
-          data: { ...data, voucherType }
-        };
-      }
-
-      return {
-        type: 'voucher',
-        status: 'success',
-        message: `${voucherType} voucher is valid and ready to use!`,
-        data: { ...data, voucherType }
-      };
+      return result;
     } catch (error) {
       console.error('Voucher validation error:', error);
-      return { type: 'error', status: 'error', message: 'Error validating voucher.' };
+      return {
+        type: 'error',
+        status: 'error',
+        message: error.message || 'Error validating voucher.'
+      };
     }
   };
 
@@ -229,15 +213,26 @@ const ScanAndValidate = () => {
       setValidationResult(result);
       setInputValue('');
 
-      // Play beep and show flash on success
+      // Play sound and show flash based on result
       if (result.status === 'success') {
+        // Success feedback: green flash + beep
         playSuccessBeep();
         setShowSuccessFlash(true);
         setTimeout(() => setShowSuccessFlash(false), 1000);
 
-        // Add vibration for mobile devices
+        // Single short vibration for success
         if (navigator.vibrate) {
-          navigator.vibrate(200); // Vibrate for 200ms
+          navigator.vibrate(200);
+        }
+      } else {
+        // Error feedback: red flash + alert sound
+        playErrorAlert();
+        setShowErrorFlash(true);
+        setTimeout(() => setShowErrorFlash(false), 1000);
+
+        // Two short vibrations for error
+        if (navigator.vibrate) {
+          navigator.vibrate([200, 100, 200]);
         }
       }
     } catch (error) {
@@ -372,9 +367,21 @@ const ScanAndValidate = () => {
         {showSuccessFlash && (
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.3 }}
+            animate={{ opacity: 0.4 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-green-500 pointer-events-none z-50"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Error Flash Overlay */}
+      <AnimatePresence>
+        {showErrorFlash && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.4 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-red-500 pointer-events-none z-50"
           />
         )}
       </AnimatePresence>

@@ -89,12 +89,23 @@ export const SCANNER_PROFILES = {
     preventManualInput: false,
     name: 'Testing Profile',
     description: 'Permissive settings for manual testing'
+  },
+
+  // PrehKeyTec MC 147 A S (Professional MRZ Scanner)
+  prehkeytec: {
+    ...DEFAULT_SCANNER_CONFIG,
+    scanTimeout: 60,         // PrehKeyTec is very fast (30-50ms between chars)
+    enterKeySubmits: true,   // Usually configured to send Enter after scan
+    prefixChars: '',         // Check if your unit adds prefix
+    suffixChars: '',         // Check if your unit adds suffix
+    name: 'PrehKeyTec MC 147 A S',
+    description: 'Professional MRZ/Barcode scanner with autodetect'
   }
 };
 
 /**
  * Get scanner configuration by profile name
- * @param {string} profileName - Profile name (generic, professional, budget, bluetooth, testing)
+ * @param {string} profileName - Profile name (generic, professional, budget, bluetooth, testing, prehkeytec)
  * @returns {Object} Scanner configuration
  */
 export const getScannerConfig = (profileName = 'generic') => {
@@ -119,17 +130,19 @@ export const createScannerConfig = (overrides = {}) => {
  */
 export const SCANNER_HARDWARE_INFO = {
   passport: {
-    model: 'Unknown',         // e.g., "Honeywell 1900"
+    model: 'PrehKeyTec MC 147 A S Autodetect',
     type: 'USB Keyboard Wedge',
-    capabilities: ['MRZ', 'Barcode', 'QR Code'],
-    notes: 'Update when hardware is available'
+    manufacturer: 'PrehKeyTec (Germany)',
+    capabilities: ['MRZ', '1D Barcode', '2D Barcode', 'QR Code'],
+    scanSpeed: '30-50ms between characters',
+    notes: 'High-quality professional scanner with automatic format detection'
   },
 
   qrCode: {
-    model: 'Unknown',         // e.g., "Zebra DS2208"
-    type: 'USB/Bluetooth',
-    capabilities: ['QR Code', '1D Barcode', '2D Barcode'],
-    notes: 'Update when hardware is available'
+    model: 'PrehKeyTec MC 147 A S',
+    type: 'USB Keyboard Wedge',
+    capabilities: ['QR Code', '1D Barcode', '2D Barcode', 'MRZ'],
+    notes: 'Same unit handles both MRZ and QR/Barcode scanning'
   }
 };
 

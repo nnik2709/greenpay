@@ -177,11 +177,11 @@ const ProfileSettings = () => {
             <div>
               <span className="font-medium text-gray-700">Status:</span>
               <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                profile.active 
-                  ? 'bg-green-100 text-green-800' 
+                (profile.isActive !== undefined ? profile.isActive : profile.active)
+                  ? 'bg-green-100 text-green-800'
                   : 'bg-red-100 text-red-800'
               }`}>
-                {profile.active ? 'Active' : 'Inactive'}
+                {(profile.isActive !== undefined ? profile.isActive : profile.active) ? 'Active' : 'Inactive'}
               </span>
             </div>
             <div>

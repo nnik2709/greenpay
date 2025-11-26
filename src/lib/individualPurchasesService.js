@@ -1,18 +1,36 @@
-import { supabase } from './supabaseClient';
-import { generateVoucherCode } from './utils';
+import api from './api/client';
+
+// Helper to make direct fetch calls for individual purchases
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://greenpay.eywademo.cloud/api';
+const getToken = () => localStorage.getItem('greenpay_auth_token');
+
+const fetchAPI = async (endpoint, options = {}) => {
+  const token = getToken();
+
+  const config = {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers,
+    },
+  };
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Request failed' }));
+    console.error('API Error Response:', error);
+    throw new Error(error.message || error.error || `HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  return response.json();
+};
 
 export const getIndividualPurchases = async () => {
   try {
-    const { data, error } = await supabase
-      .from('individual_purchases')
-      .select(`
-        *,
-        passport:passports(*)
-      `)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data;
+    const response = await fetchAPI('/individual-purchases');
+    return response.data || [];
   } catch (error) {
     console.error('Error loading individual purchases:', error);
     return [];
@@ -21,8 +39,6 @@ export const getIndividualPurchases = async () => {
 
 export const createIndividualPurchase = async (purchaseData, userId) => {
   try {
-    const voucherCode = generateVoucherCode('IND');
-
     // Use custom validity if provided, otherwise default to 30 days
     let validUntil;
     if (purchaseData.validUntil) {
@@ -32,38 +48,22 @@ export const createIndividualPurchase = async (purchaseData, userId) => {
       validUntil.setDate(validUntil.getDate() + 30);
     }
 
-    const { data, error } = await supabase
-      .from('individual_purchases')
-      .insert([{
-        voucher_code: voucherCode,
-        passport_id: purchaseData.passportId,
-        passport_number: purchaseData.passportNumber,
+    const response = await fetchAPI('/individual-purchases', {
+      method: 'POST',
+      body: JSON.stringify({
+        passportNumber: purchaseData.passportNumber,
         amount: purchaseData.amount,
-        payment_method: purchaseData.paymentMethod,
-        card_last_four: purchaseData.cardLastFour,
+        paymentMethod: purchaseData.paymentMethod,
+        cardLastFour: purchaseData.cardLastFour,
         discount: purchaseData.discount || 0,
-        collected_amount: purchaseData.collectedAmount,
-        returned_amount: purchaseData.returnedAmount || 0,
-        valid_until: validUntil.toISOString(),
-        created_by: userId,
-      }])
-      .select()
-      .single();
+        collectedAmount: purchaseData.collectedAmount,
+        returnedAmount: purchaseData.returnedAmount || 0,
+        validUntil: validUntil.toISOString(),
+        nationality: purchaseData.nationality
+      })
+    });
 
-    if (error) throw error;
-
-    // Create transaction record
-    await supabase.from('transactions').insert([{
-      transaction_type: 'individual',
-      reference_id: data.id,
-      amount: purchaseData.amount,
-      payment_method: purchaseData.paymentMethod,
-      passport_number: purchaseData.passportNumber,
-      nationality: purchaseData.nationality,
-      created_by: userId,
-    }]);
-
-    return data;
+    return response.data;
   } catch (error) {
     console.error('Error creating individual purchase:', error);
     throw error;
@@ -72,28 +72,8 @@ export const createIndividualPurchase = async (purchaseData, userId) => {
 
 export const validateVoucher = async (voucherCode) => {
   try {
-    const { data, error } = await supabase
-      .from('individual_purchases')
-      .select(`
-        *,
-        passport:passports(*)
-      `)
-      .eq('voucher_code', voucherCode)
-      .maybeSingle();
-
-    if (error) throw error;
-    if (!data) return { valid: false, message: 'Voucher not found' };
-
-    if (data.used_at) {
-      return { valid: false, message: 'Voucher already used', data };
-    }
-
-    const validUntil = new Date(data.valid_until);
-    if (validUntil < new Date()) {
-      return { valid: false, message: 'Voucher expired', data };
-    }
-
-    return { valid: true, message: 'Voucher is valid', data };
+    const response = await api.vouchers.validate(voucherCode);
+    return response;
   } catch (error) {
     console.error('Error validating voucher:', error);
     return { valid: false, message: 'Error validating voucher' };
@@ -102,15 +82,8 @@ export const validateVoucher = async (voucherCode) => {
 
 export const markVoucherAsUsed = async (voucherCode) => {
   try {
-    const { data, error } = await supabase
-      .from('individual_purchases')
-      .update({ used_at: new Date().toISOString() })
-      .eq('voucher_code', voucherCode)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    const response = await api.vouchers.markUsed(voucherCode);
+    return response.data;
   } catch (error) {
     console.error('Error marking voucher as used:', error);
     throw error;

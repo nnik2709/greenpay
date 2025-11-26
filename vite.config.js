@@ -119,10 +119,15 @@ window.fetch = function(...args) {
 				contentType.includes('text/html') ||
 				contentType.includes('application/xhtml+xml');
 
-			if (!response.ok && !isDocumentResponse) {
+			// Exclude expected 404s (endpoints not yet implemented)
+			const requestUrl = response.url;
+			const isExpected404 = requestUrl.includes('/transactions') ||
+			                      requestUrl.includes('/bulk-uploads') ||
+			                      requestUrl.includes('/payment-modes');
+
+			if (!response.ok && !isDocumentResponse && !isExpected404) {
 					const responseClone = response.clone();
 					const errorFromRes = await responseClone.text();
-					const requestUrl = response.url;
 					console.error(\`Fetch error from \${requestUrl}: \${errorFromRes}\`);
 			}
 

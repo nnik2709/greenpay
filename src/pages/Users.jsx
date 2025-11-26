@@ -114,10 +114,11 @@ function Users() {
   };
 
   const handleDeactivateUser = () => {
-    setUsers(users.map(u => u.id === selectedUser.id ? { ...u, active: !u.active } : u));
+    const isActive = selectedUser.isActive !== undefined ? selectedUser.isActive : selectedUser.active;
+    setUsers(users.map(u => u.id === selectedUser.id ? { ...u, isActive: !isActive, active: !isActive } : u));
     setDeactivateModalOpen(false);
     toast({
-      title: `User ${selectedUser.active ? 'Deactivated' : 'Activated'}!`,
+      title: `User ${isActive ? 'Deactivated' : 'Activated'}!`,
       description: `User ${selectedUser.email}'s status has been updated.`,
     });
   };
@@ -215,10 +216,10 @@ function Users() {
                     <tr key={user.id} className="bg-white border-b hover:bg-slate-50">
                       <td className="px-6 py-4">{user.id}</td>
                       <td className="px-6 py-4 font-medium text-slate-900">{user.email}</td>
-                      <td className="px-6 py-4">{user.role.replace(/_/g, ' ')}</td>
+                      <td className="px-6 py-4">{(user.role_name || user.role || 'N/A').replace(/_/g, ' ')}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${user.active ? 'text-green-800 bg-green-100' : 'text-red-800 bg-red-100'}`}>
-                          {user.active ? 'Active' : 'Inactive'}
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${(user.isActive !== undefined ? user.isActive : user.active) ? 'text-green-800 bg-green-100' : 'text-red-800 bg-red-100'}`}>
+                          {(user.isActive !== undefined ? user.isActive : user.active) ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -241,8 +242,8 @@ function Users() {
                           <Key className="w-3 h-3 mr-1" />
                           Reset Password
                         </Button>
-                        <Button size="sm" variant={user.active ? "destructive" : "outline"} onClick={() => openDeactivateModal(user)}>
-                          {user.active ? 'Deactivate' : 'Activate'}
+                        <Button size="sm" variant={(user.isActive !== undefined ? user.isActive : user.active) ? "destructive" : "outline"} onClick={() => openDeactivateModal(user)}>
+                          {(user.isActive !== undefined ? user.isActive : user.active) ? 'Deactivate' : 'Activate'}
                         </Button>
                       </td>
                     </tr>
@@ -355,7 +356,7 @@ function Users() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will {selectedUser?.active ? 'deactivate' : 'activate'} the user account for <span className="font-bold">{selectedUser?.email}</span>. They will {selectedUser?.active ? 'lose' : 'regain'} access to the system.
+              This will {(selectedUser?.isActive !== undefined ? selectedUser?.isActive : selectedUser?.active) ? 'deactivate' : 'activate'} the user account for <span className="font-bold">{selectedUser?.email}</span>. They will {(selectedUser?.isActive !== undefined ? selectedUser?.isActive : selectedUser?.active) ? 'lose' : 'regain'} access to the system.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

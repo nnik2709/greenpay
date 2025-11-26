@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabaseClient';
+import { api } from '@/lib/api/client';
 import { Settings as SettingsIcon, Save, RefreshCw } from 'lucide-react';
 
 const SettingsRPC = () => {
@@ -24,12 +24,15 @@ const SettingsRPC = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.rpc('get_system_settings');
+      const data = await api.settings.get();
 
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        setSettings(data[0]);
+      if (data) {
+        setSettings({
+          voucher_validity_days: data.voucherValidityDays || 30,
+          default_amount: data.defaultAmount || 50.00,
+          created_at: data.createdAt,
+          updated_at: data.updatedAt
+        });
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -46,17 +49,18 @@ const SettingsRPC = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const { error } = await supabase.rpc('update_system_settings', {
-        p_voucher_validity_days: settings.voucher_validity_days,
-        p_default_amount: settings.default_amount
+      await api.settings.update({
+        voucher_validity_days: settings.voucher_validity_days,
+        default_amount: settings.default_amount
       });
-
-      if (error) throw error;
 
       toast({
         title: "Success",
         description: "Settings updated successfully",
       });
+
+      // Refresh to get updated timestamps
+      await fetchSettings();
     } catch (error) {
       console.error('Error updating settings:', error);
       toast({

@@ -65,15 +65,31 @@ export const supabase = {
 
   from: (table) => {
     console.warn(`Direct table access to '${table}' needs migration`);
-    return {
-      select: () => ({
-        eq: () => ({
-          maybeSingle: async () => ({ data: null, error: null }),
-          single: async () => ({ data: null, error: null })
-        })
-      }),
-      insert: () => ({ select: () => ({ single: async () => ({ data: null, error: null }) }) })
+    // Return a more complete mock query builder
+    const mockQuery = {
+      select: () => mockQuery,
+      insert: () => mockQuery,
+      update: () => mockQuery,
+      delete: () => mockQuery,
+      eq: () => mockQuery,
+      neq: () => mockQuery,
+      gt: () => mockQuery,
+      gte: () => mockQuery,
+      lt: () => mockQuery,
+      lte: () => mockQuery,
+      like: () => mockQuery,
+      ilike: () => mockQuery,
+      is: () => mockQuery,
+      in: () => mockQuery,
+      contains: () => mockQuery,
+      order: () => mockQuery,
+      limit: () => mockQuery,
+      range: () => mockQuery,
+      single: async () => ({ data: null, error: null }),
+      maybeSingle: async () => ({ data: null, error: null }),
+      then: async (resolve) => resolve({ data: [], error: null })
     };
+    return mockQuery;
   }
 };
 

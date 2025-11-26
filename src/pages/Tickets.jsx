@@ -6,7 +6,6 @@ import CreateTicket from '@/components/CreateTicket';
 import TicketDetail from '@/components/TicketDetail';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabaseClient';
 
 const Tickets = () => {
   const [view, setView] = useState('dashboard');
@@ -31,23 +30,6 @@ const Tickets = () => {
         title: "Ticket Created!",
         description: `Ticket #${newTicket.ticketNumber} has been successfully created.`,
       });
-      // Send admin notification email (non-blocking)
-      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-      if (adminEmail) {
-        try {
-          await supabase.functions.invoke('send-email', {
-            body: {
-              to: adminEmail,
-              templateId: 'ticket_created',
-              subject: `New Support Ticket #${newTicket.ticketNumber}`,
-              html: `<p>A new support ticket has been created.</p><p><strong>Ticket #:</strong> ${newTicket.ticketNumber}<br/><strong>Title:</strong> ${newTicket.title || ''}</p>`
-            }
-          });
-        } catch (e) {
-          // ignore email errors for UX
-          console.warn('Failed to send admin notification:', e);
-        }
-      }
       fetchTickets();
       setView('dashboard');
     } catch (error) {

@@ -843,7 +843,7 @@ const IndividualPurchase = () => {
       // Create individual purchase voucher
       const purchaseData = {
         passportId: passport.id,
-        passportNumber: passport.passport_number,
+        passportNumber: passport.passportNo || passport.passport_number || passportInfo.passportNumber,
         amount: paymentData.amount,
         paymentMethod: paymentData.paymentMethod,
         cardLastFour: paymentData.cardLastFour,

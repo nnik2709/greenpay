@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { generateVoucherCode } from './utils';
+import api from './api/client';
 
 export const getCorporateVouchers = async () => {
   try {
@@ -46,14 +47,15 @@ export const createCorporateVoucher = async (voucherData, userId) => {
     if (error) throw error;
 
     // Create transaction record
-    await supabase.from('transactions').insert([{
-      transaction_type: 'corporate',
-      reference_id: data.id,
-      amount: voucherData.amount,
-      payment_method: voucherData.paymentMethod,
-      passport_number: voucherData.passportNumber,
-      created_by: userId,
-    }]);
+    // TODO: Migrate to PostgreSQL API endpoint /api/transactions
+    // await supabase.from('transactions').insert([{
+    //   transaction_type: 'corporate',
+    //   reference_id: data.id,
+    //   amount: voucherData.amount,
+    //   payment_method: voucherData.paymentMethod,
+    //   passport_number: voucherData.passportNumber,
+    //   created_by: userId,
+    // }]);
 
     return data;
   } catch (error) {
@@ -119,8 +121,9 @@ export const markCorporateVoucherAsUsed = async (voucherCode) => {
 export const createBulkCorporateVouchers = async (bulkData) => {
   // Calls Supabase Edge Function: bulk-corporate
   // bulkData: { companyName, count, amount, paymentMethod, validFrom?, validUntil }
-  const { data: sessionData } = await supabase.auth.getSession();
-  const accessToken = sessionData?.session?.access_token;
+  // TODO: Migrate to use PostgreSQL API auth
+  const { session } = api.auth.getSession();
+  const accessToken = session?.token;
   if (!accessToken) throw new Error('Not authenticated');
 
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bulk-corporate`;

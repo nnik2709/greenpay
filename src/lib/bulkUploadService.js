@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import api from './api/client';
 
 /**
  * Bulk Upload Service
@@ -74,26 +75,15 @@ export async function uploadBulkPassports(file) {
   }
 
   try {
-    // Check if Supabase client is initialized
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      throw new Error('Database connection not available');
-    }
-
-    // Get current session
+    // Get current session from new API
     console.log('Checking authentication...');
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.error('Session error:', sessionError);
-      throw new Error('Authentication failed. Please refresh and try again.');
-    }
-    
+    const { session } = api.auth.getSession();
+
     if (!session || !session.user) {
       console.error('No session or user found');
       throw new Error('Not authenticated. Please log in.');
     }
-    
+
     const user = session.user;
     console.log('User authenticated:', user.email, 'ID:', user.id);
 
@@ -252,22 +242,25 @@ export async function uploadBulkPassports(file) {
  */
 export async function getBulkUploadHistory(limit = 10) {
   try {
-    const { data, error } = await supabase
-      .from('bulk_uploads')
-      .select(`
-        *,
-        uploader:created_by(full_name, email)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(limit);
+    // TODO: Migrate to PostgreSQL API endpoint
+    // For now, return empty array until backend endpoint is ready
+    // const { data, error } = await supabase
+    //   .from('bulk_uploads')
+    //   .select(`
+    //     *,
+    //     uploader:created_by(full_name, email)
+    //   `)
+    //   .order('created_at', { ascending: false })
+    //   .limit(limit);
 
-    if (error) {
-      console.error('Error fetching upload history:', error);
-      // Return empty array if table doesn't exist or error
-      return [];
-    }
-    
-    return data || [];
+    // if (error) {
+    //   console.error('Error fetching upload history:', error);
+    //   // Return empty array if table doesn't exist or error
+    //   return [];
+    // }
+
+    // return data || [];
+    return []; // Return empty until backend endpoint is ready
   } catch (error) {
     console.error('Error fetching upload history:', error);
     return [];
@@ -281,14 +274,16 @@ export async function getBulkUploadHistory(limit = 10) {
  */
 export async function getPassportsFromUpload(uploadId) {
   try {
-    const { data, error } = await supabase
-      .from('passports')
-      .select('*')
-      .eq('bulk_upload_id', uploadId)
-      .order('created_at', { ascending: false });
+    // TODO: Migrate to PostgreSQL API endpoint
+    // const { data, error } = await supabase
+    //   .from('passports')
+    //   .select('*')
+    //   .eq('bulk_upload_id', uploadId)
+    //   .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
+    // if (error) throw error;
+    // return data || [];
+    return []; // Return empty until backend endpoint is ready
   } catch (error) {
     console.error('Error fetching upload passports:', error);
     throw error;
