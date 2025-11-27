@@ -65,17 +65,28 @@ const LoginRoute = () => {
   return isAuthenticated ? <Navigate to="/" /> : <Login />;
 };
 
-// Special route for /scan that redirects agents directly to scan page
+// Special route for /scan - restricted to Counter_Agent and Finance_Manager only
 const ScanRoute = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
   const location = useLocation();
+
+  // Wait for auth to finish loading
+  if (loading) {
+    return <PageLoader />;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If user is authenticated, show the scan page directly
-  // This allows direct access to /scan after login
+  const userRole = user?.role || 'Flex_Admin';
+
+  // Only Counter_Agent and Finance_Manager can access scan page
+  if (!['Counter_Agent', 'Finance_Manager'].includes(userRole)) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Authorized: Show scan page
   return <ScanAndValidate />;
 };
 
