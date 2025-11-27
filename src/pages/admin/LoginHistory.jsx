@@ -177,13 +177,13 @@ const LoginHistory = () => {
           <table className="w-full text-sm text-left text-slate-600">
             <thead className="text-xs text-slate-700 uppercase bg-slate-50">
               <tr>
-                <th scope="col" className="px-6 py-3">Date & Time</th>
+                <th scope="col" className="px-6 py-3">#</th>
+                <th scope="col" className="px-6 py-3">Login Time</th>
+                <th scope="col" className="px-6 py-3">Logout Time</th>
                 <th scope="col" className="px-6 py-3">User</th>
-                <th scope="col" className="px-6 py-3">Email</th>
-                <th scope="col" className="px-6 py-3">Role</th>
-                <th scope="col" className="px-6 py-3">Status</th>
                 <th scope="col" className="px-6 py-3">IP Address</th>
-                <th scope="col" className="px-6 py-3">Device</th>
+                <th scope="col" className="px-6 py-3">Browser Agent</th>
+                <th scope="col" className="px-6 py-3">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -194,18 +194,41 @@ const LoginHistory = () => {
                   </td>
                 </tr>
               ) : (
-                filteredEvents.slice(0, entriesPerPage).map((event) => (
+                filteredEvents.slice(0, entriesPerPage).map((event, index) => (
                   <tr key={event.id} className="bg-white border-b hover:bg-slate-50">
+                    <td className="px-6 py-4 text-slate-500">
+                      {index + 1}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span>{formatDate(event.login_time)}</span>
+                      <span className="text-green-600 font-medium">
+                        <span className="mr-1">▶</span>
+                        {formatDate(event.login_time)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {event.logout_time ? (
+                        <span className="text-red-600 font-medium">
+                          <span className="mr-1">◀</span>
+                          {formatDate(event.logout_time)}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="font-medium">{event.user_name || 'N/A'}</span>
+                      <div>
+                        <div className="font-medium text-slate-900">{event.user_name || 'N/A'}</div>
+                        <div className="text-xs text-slate-500">{event.user_email || event.email}</div>
+                      </div>
                     </td>
-                    <td className="px-6 py-4">{event.user_email || event.email}</td>
                     <td className="px-6 py-4">
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-slate-100">
-                        {event.role || 'N/A'}
+                      <span className="text-xs font-mono bg-slate-100 px-2 py-1 rounded">
+                        {event.ip_address || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs text-slate-600 max-w-md block truncate" title={event.user_agent}>
+                        {event.user_agent || 'N/A'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -214,21 +237,8 @@ const LoginHistory = () => {
                           ? 'text-white bg-green-600'
                           : 'text-white bg-red-600'
                       }`}>
-                        {event.status === 'success' ? 'Success' : `Failed${event.failure_reason ? ': ' + event.failure_reason : ''}`}
+                        {event.status === 'success' ? 'Completed' : 'Failed'}
                       </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs font-mono">{event.ip_address || 'N/A'}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs text-slate-500 truncate max-w-xs" title={event.user_agent}>
-                          {event.user_agent ? (
-                            event.user_agent.includes('Mobile') ? 'Mobile' :
-                            event.user_agent.includes('Chrome') ? 'Chrome' :
-                            event.user_agent.includes('Firefox') ? 'Firefox' :
-                            event.user_agent.includes('Safari') ? 'Safari' : 'Browser'
-                          ) : 'N/A'}
-                        </span>
                     </td>
                   </tr>
                 ))
