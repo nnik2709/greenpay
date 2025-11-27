@@ -29,25 +29,29 @@ export const createQuotation = async (quotationData, userId) => {
     const discountAmount = quotationData.discountAmount || 0;
     const amountAfterDiscount = quotationData.amountAfterDiscount || totalAmount;
 
+    // Calculate GST (10% for PNG)
+    const subtotal = amountAfterDiscount;
+    const gstRate = 10.00;
+    const gstAmount = parseFloat((subtotal * (gstRate / 100)).toFixed(2));
+    const totalWithGst = subtotal + gstAmount;
+
     const { data, error } = await supabase
       .from('quotations')
       .insert([{
         quotation_number: quotationNumber,
-        company_name: quotationData.companyName,
-        contact_person: quotationData.contactPerson,
-        contact_email: quotationData.contactEmail,
-        contact_phone: quotationData.contactPhone,
-        number_of_passports: quotationData.numberOfPassports,
-        amount_per_passport: quotationData.amountPerPassport,
-        price_per_passport: quotationData.amountPerPassport,
-        total_amount: totalAmount,
-        discount: quotationData.discount || 0,
-        discount_amount: discountAmount,
-        amount_after_discount: amountAfterDiscount,
+        customer_name: quotationData.companyName,
+        customer_email: quotationData.contactEmail,
+        description: `Quotation for ${quotationData.numberOfPassports} passport(s) - Contact: ${quotationData.contactPerson}${quotationData.contactPhone ? ', Phone: ' + quotationData.contactPhone : ''}${quotationData.notes ? '\nNotes: ' + quotationData.notes : ''}`,
+        subtotal: subtotal,
+        tax_percentage: gstRate,
+        tax_amount: gstAmount,
+        total_amount: totalWithGst,
+        status: 'draft',
         valid_until: quotationData.validUntil,
-        notes: quotationData.notes,
-        status: 'pending',
         created_by: userId,
+        gst_rate: gstRate,
+        gst_amount: gstAmount,
+        payment_terms: 'Net 30 days',
       }])
       .select()
       .single();
