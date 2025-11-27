@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const db = require('../config/database');
 const { auth, checkRole } = require('../middleware/auth');
 
 // Generate invoice number in format INV-YYYYMM-XXXX
