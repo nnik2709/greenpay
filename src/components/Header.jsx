@@ -64,13 +64,18 @@ const navItemsByRole = {
     icon: <CreditCard className="h-4 w-4" />,
     label: 'Payments'
   }, {
-    to: '/quotations',
+    title: 'Quotations & Invoices',
     icon: <FileSignature className="h-4 w-4" />,
-    label: 'Quotations'
-  }, {
-    to: '/invoices',
-    icon: <FileText className="h-4 w-4" />,
-    label: 'Invoices'
+    base_path: '/quotations',
+    subItems: [{
+      to: '/quotations',
+      icon: <FileSignature className="h-4 w-4" />,
+      label: 'Quotations'
+    }, {
+      to: '/invoices',
+      icon: <FileText className="h-4 w-4" />,
+      label: 'Tax Invoices'
+    }]
   }, {
     title: 'Reports',
     icon: <BarChart2 className="h-4 w-4" />,
@@ -116,13 +121,18 @@ const navItemsByRole = {
       label: 'Scan & Validate'
     }]
   }, {
-    to: '/quotations',
+    title: 'Quotations & Invoices',
     icon: <FileSignature className="h-4 w-4" />,
-    label: 'Quotations'
-  }, {
-    to: '/invoices',
-    icon: <FileText className="h-4 w-4" />,
-    label: 'Invoices'
+    base_path: '/quotations',
+    subItems: [{
+      to: '/quotations',
+      icon: <FileSignature className="h-4 w-4" />,
+      label: 'Quotations'
+    }, {
+      to: '/invoices',
+      icon: <FileText className="h-4 w-4" />,
+      label: 'Tax Invoices'
+    }]
   }, {
     title: 'Reports',
     icon: <BarChart2 className="h-4 w-4" />,
