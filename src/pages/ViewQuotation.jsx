@@ -71,6 +71,11 @@ const ViewQuotation = () => {
     );
   }
 
+  const numberOfVouchers = quotation.number_of_vouchers || 1;
+  const unitPrice = parseFloat(quotation.unit_price || 50);
+  const lineTotal = parseFloat(quotation.line_total || 0);
+  const discountPercentage = parseFloat(quotation.discount_percentage || 0);
+  const discountAmount = parseFloat(quotation.discount_amount || 0);
   const subtotal = parseFloat(quotation.subtotal || 0);
   const gstAmount = parseFloat(quotation.gst_amount || 0);
   const totalAmount = parseFloat(quotation.total_amount || 0);
@@ -181,15 +186,25 @@ const ViewQuotation = () => {
                     <div className="text-sm text-slate-600">Papua New Guinea Exit Pass / Passport Processing</div>
                   </td>
                   <td className="py-4 px-4 text-right text-slate-800">
-                    PGK {quotation.number_of_vouchers ? (subtotal / quotation.number_of_vouchers).toFixed(2) : subtotal.toFixed(2)}
+                    PGK {unitPrice.toFixed(2)}
                   </td>
                   <td className="py-4 px-4 text-center text-slate-800 font-medium">
-                    {quotation.number_of_vouchers || 1}
+                    {numberOfVouchers}
                   </td>
                   <td className="py-4 px-4 text-right font-semibold text-slate-900">
-                    PGK {subtotal.toFixed(2)}
+                    PGK {lineTotal.toFixed(2)}
                   </td>
                 </tr>
+                {discountAmount > 0 && (
+                  <tr className="border-b border-slate-200 bg-amber-50">
+                    <td className="py-3 px-4 text-slate-800" colSpan="3">
+                      <div className="font-medium text-amber-800">Discount ({discountPercentage}%)</div>
+                    </td>
+                    <td className="py-3 px-4 text-right font-semibold text-amber-800">
+                      - PGK {discountAmount.toFixed(2)}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

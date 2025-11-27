@@ -20,9 +20,12 @@ export const getQuotations = async () => {
 export const createQuotation = async (quotationData, userId) => {
   try {
     const quotationNumber = generateQuotationNumber();
-    const totalAmount = quotationData.numberOfPassports * quotationData.amountPerPassport;
+    const unitPrice = quotationData.amountPerPassport || 50; // Default PGK 50 per voucher
+    const quantity = quotationData.numberOfPassports || 1;
+    const totalAmount = quantity * unitPrice;
+    const discountPercentage = quotationData.discount || 0;
     const discountAmount = quotationData.discountAmount || 0;
-    const amountAfterDiscount = quotationData.amountAfterDiscount || totalAmount;
+    const amountAfterDiscount = quotationData.amountAfterDiscount || (totalAmount - discountAmount);
 
     // Calculate GST (10% for PNG)
     const subtotal = amountAfterDiscount;
@@ -36,6 +39,11 @@ export const createQuotation = async (quotationData, userId) => {
       contact_person: quotationData.contactPerson,
       contact_email: quotationData.contactEmail,
       contact_phone: quotationData.contactPhone || '',
+      number_of_vouchers: quantity,
+      unit_price: unitPrice,
+      line_total: totalAmount,
+      discount_percentage: discountPercentage,
+      discount_amount: discountAmount,
       amount: subtotal,
       tax_amount: gstAmount,
       total_amount: totalWithGst,
