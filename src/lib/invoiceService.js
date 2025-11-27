@@ -14,7 +14,7 @@ export const getInvoices = async (filters = {}) => {
     if (filters.from_date) params.append('from_date', filters.from_date);
     if (filters.to_date) params.append('to_date', filters.to_date);
 
-    const response = await api.get(`/invoices-gst?${params.toString()}`);
+    const response = await api.get(`/invoices?${params.toString()}`);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching invoices:', error);
@@ -29,7 +29,7 @@ export const getInvoices = async (filters = {}) => {
  */
 export const getInvoice = async (id) => {
   try {
-    const response = await api.get(`/invoices-gst/${id}`);
+    const response = await api.get(`/invoices/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching invoice:', error);
@@ -44,7 +44,7 @@ export const getInvoice = async (id) => {
  */
 export const convertQuotationToInvoice = async (data) => {
   try {
-    const response = await api.post('/invoices-gst/from-quotation', data);
+    const response = await api.post('/invoices/from-quotation', data);
     return response.data;
   } catch (error) {
     console.error('Error converting quotation to invoice:', error);
@@ -60,7 +60,7 @@ export const convertQuotationToInvoice = async (data) => {
  */
 export const recordPayment = async (invoiceId, paymentData) => {
   try {
-    const response = await api.post(`/invoices-gst/${invoiceId}/payments`, paymentData);
+    const response = await api.post(`/invoices/${invoiceId}/payments`, paymentData);
     return response.data;
   } catch (error) {
     console.error('Error recording payment:', error);
@@ -75,7 +75,7 @@ export const recordPayment = async (invoiceId, paymentData) => {
  */
 export const getPaymentHistory = async (invoiceId) => {
   try {
-    const response = await api.get(`/invoices-gst/${invoiceId}/payments`);
+    const response = await api.get(`/invoices/${invoiceId}/payments`);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching payment history:', error);
@@ -90,7 +90,7 @@ export const getPaymentHistory = async (invoiceId) => {
  */
 export const generateVouchers = async (invoiceId) => {
   try {
-    const response = await api.post(`/invoices-gst/${invoiceId}/generate-vouchers`);
+    const response = await api.post(`/invoices/${invoiceId}/generate-vouchers`);
     return response.data;
   } catch (error) {
     console.error('Error generating vouchers:', error);
@@ -104,7 +104,7 @@ export const generateVouchers = async (invoiceId) => {
  */
 export const getInvoiceStatistics = async () => {
   try {
-    const response = await api.get('/invoices-gst/stats');
+    const response = await api.get('/invoices/stats');
     return response.data;
   } catch (error) {
     console.error('Error fetching invoice statistics:', error);

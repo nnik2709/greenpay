@@ -28,8 +28,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const passportRoutes = require('./routes/passports');
 const individualPurchasesRoutes = require('./routes/individual-purchases');
-const invoiceRoutes = require('./routes/invoices');
-const invoicesGstRoutes = require('./routes/invoices-gst');
+const invoiceRoutes = require('./routes/invoices-gst'); // PNG GST-compliant invoice system
 const quotationRoutes = require('./routes/quotations');
 const ticketRoutes = require('./routes/tickets');
 const paymentModeRoutes = require('./routes/payment-modes');
@@ -41,8 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/passports', passportRoutes);
 app.use('/api/individual-purchases', individualPurchasesRoutes);
-app.use('/api/invoices', invoiceRoutes);
-app.use('/api/invoices-gst', invoicesGstRoutes);
+app.use('/api/invoices', invoiceRoutes); // PNG GST-compliant invoices
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/payment-modes', paymentModeRoutes);
