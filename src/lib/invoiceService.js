@@ -174,3 +174,24 @@ export const downloadInvoicePDF = async (invoiceId, invoiceNumber) => {
     throw error;
   }
 };
+
+/**
+ * Email invoice to customer
+ * @param {number} invoiceId - Invoice ID
+ * @param {string} email - Optional email override
+ * @returns {Promise<Object>} Email send result
+ */
+export const emailInvoice = async (invoiceId, email = null) => {
+  try {
+    const payload = {};
+    if (email) {
+      payload.email = email;
+    }
+
+    const response = await api.post(`/invoices/${invoiceId}/email`, payload);
+    return response.data;
+  } catch (error) {
+    console.error('Error emailing invoice:', error);
+    throw error;
+  }
+};

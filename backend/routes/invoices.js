@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/database');
 const { auth, checkRole } = require('../middleware/auth');
 const { generateInvoicePDF } = require('../utils/pdfGenerator');
+const { sendInvoiceEmail } = require('../utils/emailService');
 
 // Generate invoice number in format INV-YYYYMM-XXXX
 const generateInvoiceNumber = async () => {
@@ -393,6 +394,109 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
     res.status(500).json({ error: 'Failed to generate vouchers' });
   } finally {
     client.release();
+  }
+});
+
+// POST /api/invoices/:id/email - Email invoice to customer
+router.post('/:id/email', auth, checkRole('Flex_Admin', 'Finance_Manager'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email, cc } = req.body;
+
+    // Get invoice
+    const invoiceResult = await db.query('SELECT * FROM invoices WHERE id = $1', [id]);
+    if (invoiceResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+
+    const invoice = invoiceResult.rows[0];
+
+    // Determine recipient email
+    const recipientEmail = email || invoice.customer_email;
+    if (!recipientEmail) {
+      return res.status(400).json({
+        error: 'No email address available. Please provide an email address or update the customer record.'
+      });
+    }
+
+    // Get customer details if customer_id exists
+    let customer = {
+      name: invoice.customer_name,
+      email: invoice.customer_email,
+      phone: invoice.customer_phone,
+      address_line1: invoice.customer_address,
+      tin: invoice.customer_tin
+    };
+
+    if (invoice.customer_id) {
+      const customerResult = await db.query('SELECT * FROM customers WHERE id = $1', [invoice.customer_id]);
+      if (customerResult.rows.length > 0) {
+        customer = customerResult.rows[0];
+      }
+    }
+
+    // Get supplier details from settings
+    const settingsResult = await db.query(
+      "SELECT key, value FROM settings WHERE key IN ('company_name', 'company_address_line1', 'company_address_line2', 'company_city', 'company_province', 'company_postal_code', 'company_country', 'company_tin', 'company_phone', 'company_email')"
+    );
+
+    const supplier = {
+      name: 'PNG Green Fees System',
+      address_line1: '',
+      address_line2: '',
+      city: '',
+      province: '',
+      postal_code: '',
+      country: 'Papua New Guinea',
+      tin: '',
+      phone: '',
+      email: ''
+    };
+
+    // Map settings to supplier object
+    settingsResult.rows.forEach(setting => {
+      const key = setting.key.replace('company_', '');
+      if (key === 'name') {
+        supplier.name = setting.value || supplier.name;
+      } else {
+        supplier[key] = setting.value || '';
+      }
+    });
+
+    // Generate PDF
+    const pdfBuffer = await generateInvoicePDF(invoice, customer, supplier);
+
+    // Send email
+    await sendInvoiceEmail({
+      to: recipientEmail,
+      customerName: customer.name || invoice.customer_name,
+      invoiceNumber: invoice.invoice_number,
+      totalAmount: invoice.total_amount,
+      dueDate: invoice.due_date,
+      pdfBuffer: pdfBuffer
+    });
+
+    // Log email sent (optional: you could create an email_log table)
+    console.log(`📧 Invoice ${invoice.invoice_number} emailed to ${recipientEmail}`);
+
+    res.json({
+      success: true,
+      message: `Invoice emailed successfully to ${recipientEmail}`
+    });
+  } catch (error) {
+    console.error('Error emailing invoice:', error);
+
+    // Provide more specific error messages
+    if (error.message.includes('Email service is not configured')) {
+      return res.status(503).json({
+        error: 'Email service is not configured. Please contact system administrator.'
+      });
+    }
+
+    res.status(500).json({
+      error: 'Failed to send email',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

@@ -11,7 +11,8 @@ import {
   generateVouchers,
   canRecordPayment,
   canGenerateVouchers,
-  downloadInvoicePDF
+  downloadInvoicePDF,
+  emailInvoice
 } from '@/lib/invoiceService';
 import {
   formatPGK,
@@ -65,6 +66,11 @@ const Invoices = () => {
   // Voucher Generation Modal
   const [voucherModalOpen, setVoucherModalOpen] = useState(false);
   const [generatingVouchers, setGeneratingVouchers] = useState(false);
+
+  // Email Modal
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailAddress, setEmailAddress] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     loadInvoices();
@@ -200,6 +206,57 @@ const Invoices = () => {
         title: 'Error',
         description: 'Failed to download PDF'
       });
+    }
+  };
+
+  const openEmailModal = (invoice) => {
+    setSelectedInvoice(invoice);
+    setEmailAddress(invoice.customer_email || '');
+    setEmailModalOpen(true);
+  };
+
+  const handleEmailInvoice = async () => {
+    if (!emailAddress) {
+      toast({
+        variant: 'destructive',
+        title: 'Email Required',
+        description: 'Please enter an email address'
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailAddress)) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Email',
+        description: 'Please enter a valid email address'
+      });
+      return;
+    }
+
+    try {
+      setSendingEmail(true);
+
+      await emailInvoice(selectedInvoice.id, emailAddress);
+
+      toast({
+        title: 'Email Sent',
+        description: `Invoice ${selectedInvoice.invoice_number} has been sent to ${emailAddress}`
+      });
+
+      setEmailModalOpen(false);
+      setEmailAddress('');
+      setSelectedInvoice(null);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.response?.data?.error || 'Failed to send email'
+      });
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -403,6 +460,15 @@ const Invoices = () => {
                               📄 Download PDF
                             </Button>
 
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openEmailModal(invoice)}
+                              className="border-purple-300 text-purple-600 hover:bg-purple-50"
+                            >
+                              ✉️ Email Invoice
+                            </Button>
+
                             {canRecordPayment(invoice) && (
                               <Button
                                 size="sm"
@@ -593,6 +659,80 @@ const Invoices = () => {
                 className="bg-emerald-600 hover:bg-emerald-700"
               >
                 {generatingVouchers ? 'Generating...' : 'Generate Vouchers'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Email Invoice Modal */}
+        <Dialog open={emailModalOpen} onOpenChange={setEmailModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Email Invoice</DialogTitle>
+              <DialogDescription>
+                Send invoice {selectedInvoice?.invoice_number} to customer via email
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedInvoice && (
+              <div className="space-y-4">
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <p className="text-sm text-purple-800">
+                    The invoice will be sent as a PNG GST-compliant PDF attachment.
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600">Customer:</span>
+                    <span className="text-sm font-semibold">{selectedInvoice.customer_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600">Invoice Amount:</span>
+                    <span className="text-sm font-semibold">{formatPGK(selectedInvoice.total_amount)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600">Due Date:</span>
+                    <span className="text-sm font-semibold">
+                      {new Date(selectedInvoice.due_date).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Email Address</Label>
+                  <Input
+                    type="email"
+                    value={emailAddress}
+                    onChange={(e) => setEmailAddress(e.target.value)}
+                    placeholder="customer@example.com"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Enter or confirm the customer's email address
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEmailModalOpen(false);
+                  setEmailAddress('');
+                  setSelectedInvoice(null);
+                }}
+                disabled={sendingEmail}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleEmailInvoice}
+                disabled={sendingEmail}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                {sendingEmail ? 'Sending...' : '✉️ Send Email'}
               </Button>
             </DialogFooter>
           </DialogContent>
