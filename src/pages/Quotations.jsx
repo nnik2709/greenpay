@@ -187,7 +187,7 @@ const Quotations = () => {
                     </td>
                     <td className="px-6 py-4">{quotation.notes || '-'}</td>
                     <td className="px-6 py-4 text-right">{quotation.number_of_passports}</td>
-                    <td className="px-6 py-4 text-right">PGK {quotation.total_amount?.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-right">PGK {parseFloat(quotation.total_amount || 0).toFixed(2)}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                         quotation.status === 'draft' ? 'bg-gray-100 text-gray-700' :
