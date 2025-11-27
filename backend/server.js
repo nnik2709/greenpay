@@ -30,6 +30,7 @@ const passportRoutes = require('./routes/passports');
 const individualPurchasesRoutes = require('./routes/individual-purchases');
 const invoiceRoutes = require('./routes/invoices-gst'); // PNG GST-compliant invoice system
 const quotationRoutes = require('./routes/quotations');
+const customerRoutes = require('./routes/customers'); // Customer management for PNG invoices
 const ticketRoutes = require('./routes/tickets');
 const paymentModeRoutes = require('./routes/payment-modes');
 const transactionRoutes = require('./routes/transactions');
@@ -42,6 +43,7 @@ app.use('/api/passports', passportRoutes);
 app.use('/api/individual-purchases', individualPurchasesRoutes);
 app.use('/api/invoices', invoiceRoutes); // PNG GST-compliant invoices
 app.use('/api/quotations', quotationRoutes);
+app.use('/api/customers', customerRoutes); // Customer management
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/payment-modes', paymentModeRoutes);
 app.use('/api/transactions', transactionRoutes);

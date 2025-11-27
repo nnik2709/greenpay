@@ -86,6 +86,10 @@ const navItemsByRole = {
     icon: <Settings className="h-4 w-4" />,
     base_path: '/admin',
     subItems: [{
+      to: '/admin/customers',
+      icon: <Building className="h-4 w-4" />,
+      label: 'Customers'
+    }, {
       to: '/admin/settings',
       icon: <Settings className="h-4 w-4" />,
       label: 'System Settings'

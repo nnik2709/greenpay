@@ -36,6 +36,7 @@ const PassportReports = lazy(() => import('@/pages/reports/PassportReports'));
 const PaymentModes = lazy(() => import('@/pages/admin/PaymentModes'));
 const PaymentGatewaySettings = lazy(() => import('@/pages/admin/PaymentGatewaySettings'));
 const EmailTemplates = lazy(() => import('@/pages/admin/EmailTemplates'));
+const Customers = lazy(() => import('@/pages/admin/Customers'));
 const Settings = lazy(() => import('@/pages/admin/SettingsRPC'));
 const ProfileSettings = lazy(() => import('@/pages/ProfileSettings'));
 const LoginHistory = lazy(() => import('@/pages/admin/LoginHistory'));
@@ -245,6 +246,11 @@ const AppRoutes = () => {
           <Route path="reports/cash-reconciliation" element={
             <PrivateRoute roles={['Flex_Admin', 'Finance_Manager', 'Counter_Agent']}>
               <CashReconciliation />
+            </PrivateRoute>
+          } />
+          <Route path="admin/customers" element={
+            <PrivateRoute roles={['Flex_Admin', 'Finance_Manager']}>
+              <Customers />
             </PrivateRoute>
           } />
           <Route path="admin/payment-modes" element={
