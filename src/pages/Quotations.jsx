@@ -93,9 +93,9 @@ const Quotations = () => {
   ];
 
   const summaryStats = statistics ? [
-    { title: 'Total Value', value: `PGK ${(statistics.total_value || 0).toFixed(2)}` },
-    { title: 'Converted Value', value: `PGK ${(statistics.converted_value || 0).toFixed(2)}` },
-    { title: 'Conversion Rate', value: `${(statistics.conversion_rate || 0).toFixed(1)}%` },
+    { title: 'Total Value', value: `PGK ${parseFloat(statistics.total_value || 0).toFixed(2)}` },
+    { title: 'Converted Value', value: `PGK ${parseFloat(statistics.converted_value || 0).toFixed(2)}` },
+    { title: 'Conversion Rate', value: `${parseFloat(statistics.conversion_rate || 0).toFixed(1)}%` },
   ] : [
     { title: 'Total Value', value: 'PGK 0.00' },
     { title: 'Total Vouchers', value: '0' },
