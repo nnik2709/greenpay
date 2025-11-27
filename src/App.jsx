@@ -23,6 +23,7 @@ const Reports = lazy(() => import('@/pages/Reports'));
 const Users = lazy(() => import('@/pages/Users'));
 const Tickets = lazy(() => import('@/pages/Tickets'));
 const Quotations = lazy(() => import('@/pages/Quotations'));
+const ViewQuotation = lazy(() => import('@/pages/ViewQuotation'));
 const IndividualPurchase = lazy(() => import('@/pages/IndividualPurchase'));
 const PaymentCallback = lazy(() => import('@/pages/PaymentCallback'));
 const BulkPassportUpload = lazy(() => import('@/pages/BulkPassportUpload'));
@@ -189,6 +190,11 @@ const AppRoutes = () => {
           <Route path="quotations/create" element={
             <PrivateRoute roles={['Flex_Admin', 'Finance_Manager']}>
               <CreateQuotation />
+            </PrivateRoute>
+          } />
+          <Route path="quotations/:id" element={
+            <PrivateRoute roles={['Flex_Admin', 'Finance_Manager']}>
+              <ViewQuotation />
             </PrivateRoute>
           } />
           <Route path="invoices" element={

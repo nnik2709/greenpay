@@ -182,11 +182,11 @@ const Quotations = () => {
                   <tr key={quotation.id} className="bg-white border-b hover:bg-slate-50">
                     <td className="px-6 py-4 font-medium text-slate-900">{quotation.quotation_number}</td>
                     <td className="px-6 py-4">
-                      <div>{quotation.company_name}</div>
-                      <div className="text-xs text-slate-500">{quotation.contact_email}</div>
+                      <div>{quotation.customer_name}</div>
+                      <div className="text-xs text-slate-500">{quotation.customer_email}</div>
                     </td>
-                    <td className="px-6 py-4">{quotation.notes || '-'}</td>
-                    <td className="px-6 py-4 text-right">{quotation.number_of_passports}</td>
+                    <td className="px-6 py-4">{quotation.description || '-'}</td>
+                    <td className="px-6 py-4 text-right">{quotation.number_of_vouchers || '-'}</td>
                     <td className="px-6 py-4 text-right">PGK {parseFloat(quotation.total_amount || 0).toFixed(2)}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
@@ -289,9 +289,7 @@ const Quotations = () => {
                           size="sm"
                           variant="ghost"
                           data-testid={`quotation-view-${quotation.id}`}
-                          onClick={() => {
-                            toast({ title: 'View quotation', description: 'Quotation details view coming soon' });
-                          }}
+                          onClick={() => navigate(`/quotations/${quotation.id}`)}
                         >
                           View
                         </Button>
@@ -314,7 +312,7 @@ const Quotations = () => {
           <DialogHeader>
             <DialogTitle>Convert Quotation to Voucher Batch</DialogTitle>
             <DialogDescription>
-              Convert approved quotation to corporate voucher batch. This will generate {selectedQuotation?.number_of_passports} vouchers.
+              Convert approved quotation to corporate voucher batch. This will generate {selectedQuotation?.number_of_vouchers || 0} vouchers.
             </DialogDescription>
           </DialogHeader>
 
@@ -323,11 +321,11 @@ const Quotations = () => {
               <div className="bg-slate-50 p-4 rounded-lg space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">Company:</span>
-                  <span className="text-sm font-semibold">{selectedQuotation.company_name}</span>
+                  <span className="text-sm font-semibold">{selectedQuotation.customer_name}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">Vouchers:</span>
-                  <span className="text-sm font-semibold">{selectedQuotation.number_of_passports}</span>
+                  <span className="text-sm font-semibold">{selectedQuotation.number_of_vouchers || '-'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">Total Amount:</span>
@@ -455,11 +453,11 @@ const Quotations = () => {
               <div className="bg-slate-50 p-4 rounded-lg space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">Company:</span>
-                  <span className="text-sm font-semibold">{selectedQuotation.company_name}</span>
+                  <span className="text-sm font-semibold">{selectedQuotation.customer_name}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">Passports:</span>
-                  <span className="text-sm font-semibold">{selectedQuotation.number_of_passports}</span>
+                  <span className="text-sm font-semibold">{selectedQuotation.number_of_vouchers || '-'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">Subtotal:</span>
