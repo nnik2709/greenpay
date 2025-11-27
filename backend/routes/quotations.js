@@ -104,26 +104,34 @@ router.post('/',
         items
       } = req.body;
 
+      // Calculate GST fields
+      const subtotal = amount;
+      const gst_rate = 10.00;
+      const gst_amount = tax_amount || parseFloat((subtotal * (gst_rate / 100)).toFixed(2));
+      const final_total = total_amount || (subtotal + gst_amount);
+
       const result = await db.query(
         `INSERT INTO quotations (
-          quotation_number, company_name, contact_person, contact_email, contact_phone,
-          amount, tax_amount, total_amount, status, valid_until, notes,
-          items, created_by, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+          quotation_number, customer_name, customer_email, description,
+          subtotal, tax_percentage, tax_amount, total_amount,
+          status, valid_until, gst_rate, gst_amount, payment_terms,
+          created_by, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
         RETURNING *`,
         [
           quotation_number,
           company_name,
-          contact_person,
-          contact_email,
-          contact_phone,
-          amount,
-          tax_amount || 0,
-          total_amount || amount,
+          contact_email || '',
+          notes || `Contact: ${contact_person || ''}, Phone: ${contact_phone || ''}`,
+          subtotal,
+          gst_rate,
+          gst_amount,
+          final_total,
           status || 'draft',
           valid_until,
-          notes,
-          JSON.stringify(items || []),
+          gst_rate,
+          gst_amount,
+          'Net 30 days',
           req.userId
         ]
       );
