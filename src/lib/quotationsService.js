@@ -32,19 +32,17 @@ export const createQuotation = async (quotationData, userId) => {
 
     const insertData = {
       quotation_number: quotationNumber,
-      customer_name: quotationData.companyName,
-      customer_email: quotationData.contactEmail,
-      description: `Quotation for ${quotationData.numberOfPassports} passport(s) - Contact: ${quotationData.contactPerson}${quotationData.contactPhone ? ', Phone: ' + quotationData.contactPhone : ''}${quotationData.notes ? '\nNotes: ' + quotationData.notes : ''}`,
-      subtotal: subtotal,
-      tax_percentage: gstRate,
+      company_name: quotationData.companyName,
+      contact_person: quotationData.contactPerson,
+      contact_email: quotationData.contactEmail,
+      contact_phone: quotationData.contactPhone || '',
+      amount: subtotal,
       tax_amount: gstAmount,
       total_amount: totalWithGst,
       status: 'draft',
       valid_until: quotationData.validUntil,
+      notes: quotationData.notes || '',
       created_by: userId,
-      gst_rate: gstRate,
-      gst_amount: gstAmount,
-      payment_terms: 'Net 30 days',
     };
 
     console.log('Creating quotation via API:', insertData);
