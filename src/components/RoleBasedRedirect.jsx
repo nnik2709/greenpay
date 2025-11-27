@@ -20,8 +20,8 @@ const RoleBasedRedirect = () => {
   // Redirect to appropriate route based on user role
   switch (user?.role) {
     case 'Counter_Agent':
-      // Redirect to agent landing page
-      return <Navigate to="/agent" replace />;
+      // Redirect Counter_Agent directly to passport creation page
+      return <Navigate to="/passports/create" replace />;
     case 'Flex_Admin':
     case 'Finance_Manager':
     case 'IT_Support':

@@ -115,7 +115,7 @@ const AppRoutes = () => {
             <MainLayout />
           </PrivateRoute>
         }>
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route index element={<RoleBasedRedirect />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="agent" element={
             <PrivateRoute roles={['Counter_Agent']}>
