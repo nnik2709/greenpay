@@ -48,6 +48,7 @@ const RefundedReport = lazy(() => import('@/pages/reports/RefundedReport'));
 const ScanAndValidate = lazy(() => import('@/pages/ScanAndValidate'));
 const AgentLanding = lazy(() => import('@/pages/AgentLanding'));
 const CashReconciliation = lazy(() => import('@/pages/CashReconciliation'));
+const Invoices = lazy(() => import('@/pages/Invoices'));
 
 // Loading component for suspense fallback
 const PageLoader = () => (
@@ -188,6 +189,11 @@ const AppRoutes = () => {
           <Route path="quotations/create" element={
             <PrivateRoute roles={['Flex_Admin', 'Finance_Manager']}>
               <CreateQuotation />
+            </PrivateRoute>
+          } />
+          <Route path="invoices" element={
+            <PrivateRoute roles={['Flex_Admin', 'Finance_Manager', 'IT_Support']}>
+              <Invoices />
             </PrivateRoute>
           } />
           <Route path="reports" element={

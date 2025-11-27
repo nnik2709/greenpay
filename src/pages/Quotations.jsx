@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,17 +11,14 @@ import { supabase } from '@/lib/supabaseClient';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getQuotations } from '@/lib/quotationsService';
 import { getQuotationStatistics, markQuotationAsSent, approveQuotation, convertQuotationToVoucherBatch, canConvertQuotation, canApproveQuotation } from '@/lib/quotationWorkflowService';
+import { convertQuotationToInvoice } from '@/lib/invoiceService';
+import { formatPGK, calculateTotals } from '@/lib/gstUtils';
 
-const StatCard = ({ title, value, color, bgColor }) => {
+const StatCard = ({ title, value }) => {
   return (
-    <div className={`bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-emerald-100 flex items-center gap-4`}>
-      <div className={`p-3 rounded-full ${bgColor}`}>
-        <div className={`w-6 h-6 ${color}`} />
-      </div>
-      <div>
-        <p className="text-sm text-slate-500">{title}</p>
-        <p className="text-2xl font-bold text-slate-800">{value}</p>
-      </div>
+    <div className="bg-white rounded-lg p-4 shadow border border-slate-200">
+      <p className="text-sm text-slate-600 mb-1">{title}</p>
+      <p className="text-2xl font-bold text-slate-900">{value}</p>
     </div>
   );
 };
@@ -35,6 +33,7 @@ const Quotations = () => {
   const [loading, setLoading] = useState(true);
   const [sendOpen, setSendOpen] = useState(false);
   const [convertOpen, setConvertOpen] = useState(false);
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState(null);
   const [quotationId, setQuotationId] = useState('');
   const [recipient, setRecipient] = useState('');
@@ -42,6 +41,8 @@ const Quotations = () => {
   const [converting, setConverting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [collectedAmount, setCollectedAmount] = useState('');
+  const [dueDays, setDueDays] = useState(30);
+  const [convertingToInvoice, setConvertingToInvoice] = useState(false);
 
   // Load quotations and statistics on mount
   useEffect(() => {
@@ -76,29 +77,29 @@ const Quotations = () => {
   };
 
   const stats = statistics ? [
-    { title: 'Total', value: statistics.total_count || '0', color: 'text-blue-600', bgColor: 'bg-blue-100' },
-    { title: 'Draft', value: statistics.draft_count || '0', color: 'text-gray-600', bgColor: 'bg-gray-100' },
-    { title: 'Sent', value: statistics.sent_count || '0', color: 'text-purple-600', bgColor: 'bg-purple-100' },
-    { title: 'Approved', value: statistics.approved_count || '0', color: 'text-green-600', bgColor: 'bg-green-100' },
-    { title: 'Converted', value: statistics.converted_count || '0', color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
-    { title: 'Expired', value: statistics.expired_count || '0', color: 'text-red-600', bgColor: 'bg-red-100' },
+    { title: 'Total', value: statistics.total_count || '0' },
+    { title: 'Draft', value: statistics.draft_count || '0' },
+    { title: 'Sent', value: statistics.sent_count || '0' },
+    { title: 'Approved', value: statistics.approved_count || '0' },
+    { title: 'Converted', value: statistics.converted_count || '0' },
+    { title: 'Expired', value: statistics.expired_count || '0' },
   ] : [
-    { title: 'Total', value: '0', color: 'text-blue-600', bgColor: 'bg-blue-100' },
-    { title: 'Draft', value: '0', color: 'text-gray-600', bgColor: 'bg-gray-100' },
-    { title: 'Sent', value: '0', color: 'text-purple-600', bgColor: 'bg-purple-100' },
-    { title: 'Approved', value: '0', color: 'text-green-600', bgColor: 'bg-green-100' },
-    { title: 'Converted', value: '0', color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
-    { title: 'Expired', value: '0', color: 'text-red-600', bgColor: 'bg-red-100' },
+    { title: 'Total', value: '0' },
+    { title: 'Draft', value: '0' },
+    { title: 'Sent', value: '0' },
+    { title: 'Approved', value: '0' },
+    { title: 'Converted', value: '0' },
+    { title: 'Expired', value: '0' },
   ];
 
   const summaryStats = statistics ? [
-    { title: 'Total Value', value: `PGK ${(statistics.total_value || 0).toFixed(2)}`, color: 'text-emerald-600', bgColor: 'bg-emerald-100' },
-    { title: 'Converted Value', value: `PGK ${(statistics.converted_value || 0).toFixed(2)}`, color: 'text-indigo-600', bgColor: 'bg-indigo-100' },
-    { title: 'Conversion Rate', value: `${(statistics.conversion_rate || 0).toFixed(1)}%`, color: 'text-pink-600', bgColor: 'bg-pink-100' },
+    { title: 'Total Value', value: `PGK ${(statistics.total_value || 0).toFixed(2)}` },
+    { title: 'Converted Value', value: `PGK ${(statistics.converted_value || 0).toFixed(2)}` },
+    { title: 'Conversion Rate', value: `${(statistics.conversion_rate || 0).toFixed(1)}%` },
   ] : [
-    { title: 'Total Value', value: 'PGK 0.00', color: 'text-emerald-600', bgColor: 'bg-emerald-100' },
-    { title: 'Total Vouchers', value: '0', color: 'text-indigo-600', bgColor: 'bg-indigo-100' },
-    { title: 'This Month', value: '0', color: 'text-pink-600', bgColor: 'bg-pink-100' },
+    { title: 'Total Value', value: 'PGK 0.00' },
+    { title: 'Total Vouchers', value: '0' },
+    { title: 'This Month', value: '0' },
   ];
 
   return (
@@ -247,8 +248,22 @@ const Quotations = () => {
                           </Button>
                         )}
 
-                        {/* Convert button */}
-                        {canConvertQuotation(quotation) && (
+                        {/* Convert to Invoice button */}
+                        {(quotation.status === 'approved' || quotation.status === 'sent') && !quotation.converted_to_invoice && (
+                          <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700"
+                            onClick={() => {
+                              setSelectedQuotation(quotation);
+                              setInvoiceModalOpen(true);
+                            }}
+                          >
+                            Convert to Invoice
+                          </Button>
+                        )}
+
+                        {/* Convert to Vouchers button (direct conversion) */}
+                        {canConvertQuotation(quotation) && !quotation.converted_to_invoice && (
                           <Button
                             size="sm"
                             className="bg-emerald-600 hover:bg-emerald-700"
@@ -258,8 +273,15 @@ const Quotations = () => {
                               setConvertOpen(true);
                             }}
                           >
-                            Convert
+                            Convert to Vouchers
                           </Button>
+                        )}
+
+                        {/* Show if already converted */}
+                        {quotation.converted_to_invoice && (
+                          <span className="text-xs text-blue-600 font-semibold px-2 py-1 bg-blue-50 rounded">
+                            ✓ Converted to Invoice
+                          </span>
                         )}
 
                         {/* View/Edit button */}
@@ -404,6 +426,128 @@ const Quotations = () => {
               data-testid="conversion-confirm-button"
             >
               {converting ? 'Converting...' : 'Convert to Vouchers'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert to Invoice Dialog */}
+      <Dialog open={invoiceModalOpen} onOpenChange={setInvoiceModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convert to PNG Tax Invoice</DialogTitle>
+            <DialogDescription>
+              Create a PNG GST-compliant tax invoice from this quotation
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedQuotation && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-800 mb-2">
+                  This will create a formal tax invoice with PNG GST compliance (10% GST).
+                </p>
+                <p className="text-xs text-blue-700">
+                  The invoice will require payment before vouchers (green passes) can be generated.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-600">Company:</span>
+                  <span className="text-sm font-semibold">{selectedQuotation.company_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-600">Passports:</span>
+                  <span className="text-sm font-semibold">{selectedQuotation.number_of_passports}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-600">Subtotal:</span>
+                  <span className="text-sm font-semibold">
+                    {formatPGK(selectedQuotation.subtotal || (selectedQuotation.total_amount / 1.10))}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-600">GST (10%):</span>
+                  <span className="text-sm font-semibold">
+                    {formatPGK(selectedQuotation.gst_amount || (selectedQuotation.total_amount - selectedQuotation.total_amount / 1.10))}
+                  </span>
+                </div>
+                <div className="flex justify-between border-t pt-2">
+                  <span className="text-sm font-bold">Total Amount:</span>
+                  <span className="text-sm font-bold text-emerald-600">
+                    {formatPGK(selectedQuotation.total_amount)}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <Label>Payment Terms</Label>
+                <select
+                  value={dueDays}
+                  onChange={(e) => setDueDays(Number(e.target.value))}
+                  className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-md"
+                >
+                  <option value={0}>Due on receipt</option>
+                  <option value={7}>Net 7 days</option>
+                  <option value={14}>Net 14 days</option>
+                  <option value={30}>Net 30 days</option>
+                  <option value={60}>Net 60 days</option>
+                  <option value={90}>Net 90 days</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setInvoiceModalOpen(false);
+                setSelectedQuotation(null);
+                setDueDays(30);
+              }}
+              disabled={convertingToInvoice}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                try {
+                  setConvertingToInvoice(true);
+
+                  const result = await convertQuotationToInvoice({
+                    quotation_id: selectedQuotation.id,
+                    due_days: dueDays
+                  });
+
+                  toast({
+                    title: 'Invoice Created!',
+                    description: `Invoice ${result.invoice?.invoice_number} created successfully`
+                  });
+
+                  setInvoiceModalOpen(false);
+                  setSelectedQuotation(null);
+                  setDueDays(30);
+                  loadQuotations();
+                  loadStatistics();
+
+                  // Navigate to invoices page
+                  navigate('/invoices');
+                } catch (error) {
+                  toast({
+                    variant: 'destructive',
+                    title: 'Conversion Failed',
+                    description: error.response?.data?.error || 'Failed to create invoice'
+                  });
+                } finally {
+                  setConvertingToInvoice(false);
+                }
+              }}
+              disabled={convertingToInvoice}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {convertingToInvoice ? 'Creating Invoice...' : 'Create Invoice'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -68,6 +68,10 @@ const navItemsByRole = {
     icon: <FileSignature className="h-4 w-4" />,
     label: 'Quotations'
   }, {
+    to: '/invoices',
+    icon: <FileText className="h-4 w-4" />,
+    label: 'Invoices'
+  }, {
     title: 'Reports',
     icon: <BarChart2 className="h-4 w-4" />,
     base_path: '/reports',
@@ -115,6 +119,10 @@ const navItemsByRole = {
     to: '/quotations',
     icon: <FileSignature className="h-4 w-4" />,
     label: 'Quotations'
+  }, {
+    to: '/invoices',
+    icon: <FileText className="h-4 w-4" />,
+    label: 'Invoices'
   }, {
     title: 'Reports',
     icon: <BarChart2 className="h-4 w-4" />,
@@ -184,6 +192,10 @@ const navItemsByRole = {
       icon: <ScanSearch className="h-4 w-4" />,
       label: 'Voucher Scanner'
     }]
+  }, {
+    to: '/invoices',
+    icon: <FileText className="h-4 w-4" />,
+    label: 'Invoices'
   }, {
     title: 'Reports',
     icon: <BarChart2 className="h-4 w-4" />,
