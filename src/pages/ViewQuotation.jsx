@@ -161,10 +161,44 @@ const ViewQuotation = () => {
           </div>
         )}
 
+        {/* Line Items Table */}
+        <div className="mb-8">
+          <h3 className="text-sm font-semibold text-slate-600 uppercase mb-4">Items</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-slate-100 border-b-2 border-slate-300">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Item</th>
+                  <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Unit Price</th>
+                  <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Qty</th>
+                  <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Total Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-slate-200">
+                  <td className="py-4 px-4 text-slate-800">
+                    <div className="font-medium">Green Pass Vouchers</div>
+                    <div className="text-sm text-slate-600">Papua New Guinea Exit Pass / Passport Processing</div>
+                  </td>
+                  <td className="py-4 px-4 text-right text-slate-800">
+                    PGK {quotation.number_of_vouchers ? (subtotal / quotation.number_of_vouchers).toFixed(2) : subtotal.toFixed(2)}
+                  </td>
+                  <td className="py-4 px-4 text-center text-slate-800 font-medium">
+                    {quotation.number_of_vouchers || 1}
+                  </td>
+                  <td className="py-4 px-4 text-right font-semibold text-slate-900">
+                    PGK {subtotal.toFixed(2)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {/* Amount Breakdown */}
         <div className="mb-8">
           <div className="bg-slate-50 rounded-lg p-6">
-            <h3 className="text-sm font-semibold text-slate-600 uppercase mb-4">Amount Breakdown</h3>
+            <h3 className="text-sm font-semibold text-slate-600 uppercase mb-4">Amount Summary</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-slate-700">Subtotal:</span>
