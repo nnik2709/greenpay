@@ -17,11 +17,20 @@ COMMENT ON COLUMN quotations.discount_amount IS 'Discount amount in PGK';
 
 -- Update existing records to calculate missing values from subtotal
 -- Assuming default unit price of PGK 50
+-- For existing quotations, calculate the number of vouchers based on the subtotal
 UPDATE quotations
 SET
-  number_of_vouchers = GREATEST(1, ROUND(subtotal / 50.00)::INTEGER),
   unit_price = 50.00,
-  line_total = subtotal,
-  discount_percentage = 0,
-  discount_amount = 0
-WHERE number_of_vouchers IS NULL;
+  number_of_vouchers = GREATEST(1, ROUND(subtotal / 50.00)::INTEGER),
+  line_total = GREATEST(1, ROUND(subtotal / 50.00)::INTEGER) * 50.00,
+  discount_percentage = CASE
+    WHEN ROUND(subtotal / 50.00)::INTEGER * 50.00 > subtotal
+    THEN ROUND(((ROUND(subtotal / 50.00)::INTEGER * 50.00 - subtotal) / (ROUND(subtotal / 50.00)::INTEGER * 50.00) * 100)::NUMERIC, 2)
+    ELSE 0
+  END,
+  discount_amount = CASE
+    WHEN ROUND(subtotal / 50.00)::INTEGER * 50.00 > subtotal
+    THEN ROUND(subtotal / 50.00)::INTEGER * 50.00 - subtotal
+    ELSE 0
+  END
+WHERE number_of_vouchers IS NULL OR number_of_vouchers = 1;
