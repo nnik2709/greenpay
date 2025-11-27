@@ -274,6 +274,95 @@ router.delete('/:id',
   }
 );
 
+// Mark quotation as sent
+router.patch('/:id/mark-sent',
+  auth,
+  checkRole('Flex_Admin', 'Finance_Manager', 'Counter_Agent'),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const result = await db.query(
+        `UPDATE quotations
+         SET status = 'sent', sent_at = NOW()
+         WHERE id = $1
+         RETURNING *`,
+        [id]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Quotation not found' });
+      }
+
+      res.json({ data: result.rows[0] });
+    } catch (error) {
+      console.error('Mark quotation as sent error:', error);
+      res.status(500).json({ error: 'Failed to mark quotation as sent' });
+    }
+  }
+);
+
+// Approve quotation
+router.patch('/:id/approve',
+  auth,
+  checkRole('Flex_Admin', 'Finance_Manager'),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const result = await db.query(
+        `UPDATE quotations
+         SET status = 'approved', approved_by = $1, approved_at = NOW()
+         WHERE id = $2
+         RETURNING *`,
+        [req.userId, id]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Quotation not found' });
+      }
+
+      res.json({ data: result.rows[0] });
+    } catch (error) {
+      console.error('Approve quotation error:', error);
+      res.status(500).json({ error: 'Failed to approve quotation' });
+    }
+  }
+);
+
+// Get quotation statistics
+router.get('/stats/summary',
+  auth,
+  checkRole('Flex_Admin', 'Finance_Manager', 'Counter_Agent'),
+  async (req, res) => {
+    try {
+      const result = await db.query(`
+        SELECT
+          COUNT(*) as total_count,
+          COUNT(*) FILTER (WHERE status = 'draft') as draft_count,
+          COUNT(*) FILTER (WHERE status = 'sent') as sent_count,
+          COUNT(*) FILTER (WHERE status = 'approved') as approved_count,
+          COUNT(*) FILTER (WHERE status = 'converted') as converted_count,
+          COUNT(*) FILTER (WHERE status = 'expired') as expired_count,
+          COUNT(*) FILTER (WHERE status = 'rejected') as rejected_count,
+          COALESCE(SUM(total_amount), 0) as total_value,
+          COALESCE(SUM(total_amount) FILTER (WHERE status = 'converted'), 0) as converted_value,
+          CASE
+            WHEN COUNT(*) > 0 THEN
+              (COUNT(*) FILTER (WHERE status = 'converted')::float / COUNT(*)::float * 100)
+            ELSE 0
+          END as conversion_rate
+        FROM quotations
+      `);
+
+      res.json({ data: result.rows[0] });
+    } catch (error) {
+      console.error('Get quotation statistics error:', error);
+      res.status(500).json({ error: 'Failed to fetch quotation statistics' });
+    }
+  }
+);
+
 // Convert quotation to invoice
 router.post('/:id/convert-to-invoice',
   auth,
