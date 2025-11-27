@@ -10,7 +10,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import api from '@/lib/api/client';
 import { useScannerInput } from '@/hooks/useScannerInput';
 import { parseMrz as parseMrzUtil } from '@/lib/mrzParser';
-import CameraOCRScanner from '@/components/CameraOCRScanner';
+import LiveMRZScanner from '@/components/LiveMRZScanner';
 
 const ScanAndValidate = () => {
   const { toast } = useToast();
@@ -425,9 +425,9 @@ const ScanAndValidate = () => {
                        window.location.protocol !== 'https:'}
             >
               <div className="text-center">
-                <span className="block text-3xl mb-1">🛂</span>
-                <span className="block text-base">Scan Passport MRZ</span>
-                <span className="block text-xs opacity-80">OCR text scanning</span>
+                <span className="block text-3xl mb-1">📹</span>
+                <span className="block text-base">Live Passport Scanner</span>
+                <span className="block text-xs opacity-80">Auto-detect & capture MRZ</span>
               </div>
             </Button>
           </div>
@@ -489,15 +489,15 @@ const ScanAndValidate = () => {
         <ResultCard result={validationResult} />
       </AnimatePresence>
 
-      {/* MRZ OCR Scanner Dialog */}
+      {/* Live MRZ Scanner Dialog */}
       <Dialog open={showMRZScanner} onOpenChange={setShowMRZScanner}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
-              <span>🛂</span> Passport MRZ Scanner
+              <span>📹</span> Live Passport Scanner - Auto-Detect
             </DialogTitle>
           </DialogHeader>
-          <CameraOCRScanner
+          <LiveMRZScanner
             onScanSuccess={(data) => {
               const mrzResult = {
                 type: 'passport',
@@ -543,8 +543,8 @@ const ScanAndValidate = () => {
             <p className="text-sm">Click 'Scan QR/Barcode' for voucher codes. Position the code within the frame for automatic scanning. <em>Requires HTTPS in production.</em></p>
           </div>
           <div>
-            <p className="font-bold mb-1">🛂 Passport MRZ Scanner (OCR):</p>
-            <p className="text-sm">Click 'Scan Passport MRZ' to use camera OCR. Take a clear photo of the passport's bottom section (MRZ lines). The system extracts text using OCR technology. Works with camera or uploaded photos.</p>
+            <p className="font-bold mb-1">📹 Live Passport Scanner (Real-time OCR):</p>
+            <p className="text-sm">Click 'Live Passport Scanner' for real-time MRZ detection. Position passport in camera view - system automatically detects and captures MRZ when recognized. Provides live feedback to adjust position. Also supports photo upload.</p>
           </div>
           <div>
             <p className="font-bold mb-1">⌨️ Manual Entry:</p>

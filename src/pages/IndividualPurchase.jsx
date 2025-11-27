@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import VoucherPrint from '@/components/VoucherPrint';
 import { processOnlinePayment, isGatewayActive, GATEWAY_NAMES } from '@/lib/paymentGatewayService';
 import { useScannerInput } from '@/hooks/useScannerInput';
-import CameraOCRScanner from '@/components/CameraOCRScanner';
+import LiveMRZScanner from '@/components/LiveMRZScanner';
 import { Camera } from 'lucide-react';
 
 const StepIndicator = ({ currentStep }) => {
@@ -301,21 +301,21 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
           >
             <Camera className="w-6 h-6 mr-3 text-indigo-600" />
             <div className="text-left">
-              <div className="font-bold text-indigo-900">Scan Passport with Camera (OCR)</div>
-              <div className="text-xs text-indigo-600">Backup option - Take photo or upload image</div>
+              <div className="font-bold text-indigo-900">📹 Live Camera Scanner (Auto-Detect MRZ)</div>
+              <div className="text-xs text-indigo-600">Backup option - Real-time OCR with auto-capture</div>
             </div>
           </Button>
 
-          {/* OCR Scanner Dialog */}
+          {/* Live MRZ Scanner Dialog */}
           <Dialog open={showOCRScanner} onOpenChange={setShowOCRScanner}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-xl">
                   <Camera className="w-6 h-6" />
-                  Camera OCR Scanner - Backup Method
+                  Live MRZ Scanner - Auto-Detect & Capture
                 </DialogTitle>
               </DialogHeader>
-              <CameraOCRScanner
+              <LiveMRZScanner
                 onScanSuccess={async (data) => {
                   // Same logic as hardware scanner
                   const passportData = {
