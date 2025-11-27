@@ -9,7 +9,7 @@ const generateQuotationNumber = () => {
 
 export const getQuotations = async () => {
   try {
-    const response = await api.get('/quotations');
+    const response = await api.quotations.getAll();
     return response.data || [];
   } catch (error) {
     console.error('Error loading quotations:', error);
@@ -49,10 +49,10 @@ export const createQuotation = async (quotationData, userId) => {
 
     console.log('Creating quotation via API:', insertData);
 
-    const response = await api.post('/quotations', insertData);
+    const response = await api.quotations.create(insertData);
     console.log('API response:', response);
 
-    return response.data;
+    return response.data || response;
   } catch (error) {
     console.error('Error creating quotation:', error);
     throw error;
@@ -61,8 +61,10 @@ export const createQuotation = async (quotationData, userId) => {
 
 export const updateQuotationStatus = async (id, status) => {
   try {
-    const response = await api.patch(`/quotations/${id}`, { status });
-    return response.data;
+    const response = await api.get(`/quotations/${id}/status`, {
+      params: { status }
+    });
+    return response.data || response;
   } catch (error) {
     console.error('Error updating quotation status:', error);
     throw error;
@@ -71,7 +73,7 @@ export const updateQuotationStatus = async (id, status) => {
 
 export const deleteQuotation = async (id) => {
   try {
-    await api.delete(`/quotations/${id}`);
+    await api.get(`/quotations/${id}/delete`);
   } catch (error) {
     console.error('Error deleting quotation:', error);
     throw error;
@@ -80,8 +82,8 @@ export const deleteQuotation = async (id) => {
 
 export const sendQuotationEmail = async (id) => {
   try {
-    const response = await api.post(`/quotations/${id}/send`);
-    return response.data;
+    const response = await api.get(`/quotations/${id}/send`);
+    return response.data || response;
   } catch (error) {
     console.error('Error sending quotation email:', error);
     throw error;
