@@ -1,20 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  UserPlus, 
-  CreditCard, 
-  Printer, 
-  CheckCircle, 
-  ArrowRight,
-  FileText,
-  DollarSign,
-  QrCode
-} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogOut, User } from 'lucide-react';
 
 const AgentLanding = () => {
   const navigate = useNavigate();
@@ -30,7 +19,7 @@ const AgentLanding = () => {
       number: 1,
       title: "Add Passport",
       description: "Create new passport entries or search existing ones",
-      icon: UserPlus,
+      emoji: "👤",
       color: "from-blue-500 to-blue-600",
       bgColor: "bg-blue-50",
       borderColor: "border-blue-200",
@@ -45,7 +34,7 @@ const AgentLanding = () => {
       number: 2,
       title: "Receive Payment",
       description: "Process payments and record transactions",
-      icon: CreditCard,
+      emoji: "💳",
       color: "from-green-500 to-green-600",
       bgColor: "bg-green-50",
       borderColor: "border-green-200",
@@ -59,7 +48,7 @@ const AgentLanding = () => {
       number: 3,
       title: "Print & Validate",
       description: "Generate vouchers and validate transactions",
-      icon: Printer,
+      emoji: "🖨️",
       color: "from-purple-500 to-purple-600",
       bgColor: "bg-purple-50",
       borderColor: "border-purple-200",
@@ -75,21 +64,21 @@ const AgentLanding = () => {
     {
       title: "Quick Passport Search",
       description: "Find existing passport records",
-      icon: FileText,
+      emoji: "📄",
       path: "/passports",
       color: "bg-blue-500"
     },
     {
       title: "Process Payment",
       description: "Record a new payment transaction",
-      icon: DollarSign,
+      emoji: "💰",
       path: "/payments",
       color: "bg-green-500"
     },
     {
       title: "Scan QR Code",
       description: "Validate existing vouchers",
-      icon: QrCode,
+      emoji: "📱",
       path: "/scan",
       color: "bg-purple-500"
     }
@@ -118,8 +107,8 @@ const AgentLanding = () => {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center">
-                <User className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center text-white text-xl">
+                👤
               </div>
               <div>
                 <h1 className="text-xl font-bold text-slate-800">PNG Green Fees</h1>
@@ -134,9 +123,7 @@ const AgentLanding = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleLogout}
-                className="flex items-center gap-2"
               >
-                <LogOut className="w-4 h-4" />
                 Logout
               </Button>
             </div>
@@ -178,8 +165,8 @@ const AgentLanding = () => {
             >
               <Card className={`${step.bgColor} ${step.borderColor} border-2 h-full`}>
                 <CardHeader className="text-center pb-4">
-                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full ${step.bgColor} ${step.borderColor} border-2 flex items-center justify-center`}>
-                    <step.icon className={`w-8 h-8 ${step.textColor}`} />
+                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full ${step.bgColor} ${step.borderColor} border-2 flex items-center justify-center text-4xl`}>
+                    {step.emoji}
                   </div>
                   <CardTitle className={`text-2xl font-bold ${step.textColor}`}>
                     Step {step.number}
@@ -199,17 +186,16 @@ const AgentLanding = () => {
                       className={`w-full ${step.borderColor} ${step.textColor} hover:${step.bgColor} border-2`}
                       onClick={() => navigate(action.path)}
                     >
-                      {action.label}
-                      <ArrowRight className="w-4 h-4 ml-2" />
+                      {action.label} →
                     </Button>
                   ))}
                 </CardContent>
               </Card>
-              
+
               {/* Arrow between steps */}
               {index < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-1/2 -right-4 transform -translate-y-1/2">
-                  <ArrowRight className="w-8 h-8 text-slate-400" />
+                <div className="hidden lg:block absolute top-1/2 -right-4 transform -translate-y-1/2 text-slate-400 text-3xl">
+                  →
                 </div>
               )}
             </motion.div>
@@ -230,13 +216,13 @@ const AgentLanding = () => {
               whileHover={{ scale: 1.03, y: -4 }}
               whileTap={{ scale: 0.98 }}
             >
-              <Card 
+              <Card
                 className="cursor-pointer h-full hover:shadow-xl transition-all duration-300 border-2 border-slate-200 hover:border-slate-300"
                 onClick={() => navigate(action.path)}
               >
                 <CardContent className="p-6 text-center">
-                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full ${action.color} flex items-center justify-center`}>
-                    <action.icon className="w-8 h-8 text-white" />
+                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full ${action.color} flex items-center justify-center text-3xl`}>
+                    {action.emoji}
                   </div>
                   <h3 className="text-xl font-semibold text-slate-800 mb-2">
                     {action.title}
@@ -256,7 +242,7 @@ const AgentLanding = () => {
         <Card className="bg-gradient-to-r from-slate-50 to-slate-100 border-slate-200">
           <CardContent className="p-8 text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <CheckCircle className="w-6 h-6 text-green-600" />
+              <span className="text-3xl">✓</span>
               <h3 className="text-xl font-semibold text-slate-800">
                 System Ready
               </h3>
@@ -265,13 +251,13 @@ const AgentLanding = () => {
               All systems are operational. You can start processing transactions immediately.
             </p>
             <div className="flex justify-center gap-4">
-              <Button 
+              <Button
                 onClick={() => navigate('/passports')}
                 className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-8 py-3"
               >
                 Start with Passports
               </Button>
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => navigate('/payments')}
                 className="px-8 py-3"

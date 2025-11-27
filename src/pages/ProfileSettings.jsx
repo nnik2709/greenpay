@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
-import { User, Save, RefreshCw, Shield } from 'lucide-react';
 
 const ProfileSettings = () => {
   const { user } = useAuth();
@@ -101,7 +100,7 @@ const ProfileSettings = () => {
       className="space-y-6"
     >
       <div className="flex items-center gap-3">
-        <User className="w-8 h-8 text-emerald-600" />
+        <div className="text-4xl">👤</div>
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Profile Settings</h1>
           <p className="text-gray-500">Manage your personal information and preferences</p>
@@ -141,18 +140,14 @@ const ProfileSettings = () => {
             <Button onClick={handleSave} disabled={saving}>
               {saving ? (
                 <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Saving...
                 </>
               ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Profile
-                </>
+                'Save Profile'
               )}
             </Button>
             <Button variant="outline" onClick={fetchProfile}>
-              <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
           </div>
@@ -162,7 +157,7 @@ const ProfileSettings = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5" />
+            <span>🛡️</span>
             Account Information
           </CardTitle>
         </CardHeader>

@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
-import { PlusCircle, FileEdit as Edit } from 'lucide-react';
 
 const PaymentModes = () => {
   const [paymentModes, setPaymentModes] = useState([]);
@@ -156,8 +155,7 @@ const PaymentModes = () => {
               />
             </div>
             <Button onClick={handleAddMode} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Add Payment Mode
+              + Add Payment Mode
             </Button>
           </div>
         </div>

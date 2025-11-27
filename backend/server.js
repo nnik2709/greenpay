@@ -32,6 +32,9 @@ const invoiceRoutes = require('./routes/invoices');
 const quotationRoutes = require('./routes/quotations');
 const ticketRoutes = require('./routes/tickets');
 const paymentModeRoutes = require('./routes/payment-modes');
+const transactionRoutes = require('./routes/transactions');
+const loginEventsRoutes = require('./routes/login-events');
+const settingsRoutes = require('./routes/settings');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -41,6 +44,9 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/payment-modes', paymentModeRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/login-events', loginEventsRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // 404 handler
 app.use((req, res) => {

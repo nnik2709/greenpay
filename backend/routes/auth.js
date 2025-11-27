@@ -7,6 +7,23 @@ const db = require('../config/database');
 const validate = require('../middleware/validator');
 const { auth } = require('../middleware/auth');
 
+// Helper function to record login event
+async function recordLoginEvent(userId, email, status, req, failureReason = null) {
+  try {
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+
+    await db.query(
+      `INSERT INTO login_events (user_id, email, login_time, ip_address, user_agent, status, failure_reason)
+       VALUES ($1, $2, NOW(), $3, $4, $5, $6)`,
+      [userId, email, ipAddress, userAgent, status, failureReason]
+    );
+  } catch (error) {
+    // Don't fail the login if event recording fails
+    console.error('Failed to record login event:', error);
+  }
+}
+
 // Login
 router.post('/login',
   [
@@ -28,20 +45,29 @@ router.post('/login',
       );
 
       if (result.rows.length === 0) {
+        // Record failed login attempt (user not found)
+        await recordLoginEvent(null, email, 'failed', req, 'User not found');
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
       const user = result.rows[0];
 
       if (!user.isActive) {
+        // Record failed login attempt (account inactive)
+        await recordLoginEvent(user.id, email, 'failed', req, 'Account inactive');
         return res.status(401).json({ error: 'Account is inactive' });
       }
 
       // Verify password
       const isValidPassword = await bcrypt.compare(password, user.passwordHash);
       if (!isValidPassword) {
+        // Record failed login attempt (wrong password)
+        await recordLoginEvent(user.id, email, 'failed', req, 'Invalid password');
         return res.status(401).json({ error: 'Invalid credentials' });
       }
+
+      // Record successful login
+      await recordLoginEvent(user.id, email, 'success', req);
 
       // Generate JWT token
       const token = jwt.sign(

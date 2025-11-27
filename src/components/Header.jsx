@@ -17,6 +17,8 @@ const reportSubItems = [
     { to: '/reports/revenue-generated', icon: <CreditCard className="h-4 w-4" />, label: 'Revenue Generated' },
     { to: '/reports/bulk-passport-uploads', icon: <UploadCloud className="h-4 w-4" />, label: 'Bulk Uploads' },
     { to: '/reports/quotations', icon: <FileSignature className="h-4 w-4" />, label: 'Quotations' },
+    { to: '/reports/refunded', icon: <FileText className="h-4 w-4" />, label: 'Refunded' },
+    { to: '/reports/cash-reconciliation', icon: <CreditCard className="h-4 w-4" />, label: 'Cash Reconciliation' },
 ];
 
 const navItemsByRole = {
@@ -45,11 +47,11 @@ const navItemsByRole = {
       icon: <UploadCloud className="h-4 w-4" />,
       label: 'Bulk Upload'
     }, {
-      to: '/purchases/corporate-exit-pass',
+      to: '/payments/corporate-exit-pass',
       icon: <Building className="h-4 w-4" />,
       label: 'Corporate Exit Pass'
     }, {
-      to: '/purchases/corporate-batch-history',
+      to: '/payments/corporate-batch-history',
       icon: <Package className="h-4 w-4" />,
       label: 'Batch History'
     }, {
@@ -58,9 +60,9 @@ const navItemsByRole = {
       label: 'Scan & Validate'
     }]
   }, {
-    to: '/purchases',
+    to: '/payments',
     icon: <CreditCard className="h-4 w-4" />,
-    label: 'Purchases'
+    label: 'Payments'
   }, {
     to: '/quotations',
     icon: <FileSignature className="h-4 w-4" />,
@@ -140,11 +142,11 @@ const navItemsByRole = {
       icon: <UploadCloud className="h-4 w-4" />,
       label: 'Bulk Upload'
     }, {
-      to: '/purchases/corporate-exit-pass',
+      to: '/payments/corporate-exit-pass',
       icon: <Building className="h-4 w-4" />,
       label: 'Corporate Exit Pass'
     }, {
-      to: '/purchases/corporate-batch-history',
+      to: '/payments/corporate-batch-history',
       icon: <Package className="h-4 w-4" />,
       label: 'Batch History'
     }, {
@@ -153,9 +155,9 @@ const navItemsByRole = {
       label: 'Scan & Validate'
     }]
   }, {
-    to: '/purchases',
+    to: '/payments',
     icon: <CreditCard className="h-4 w-4" />,
-    label: 'Purchases'
+    label: 'Payments'
   }],
   IT_Support: [{
     to: '/',

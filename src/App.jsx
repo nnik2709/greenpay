@@ -18,7 +18,7 @@ import ScannerTest from '@/pages/ScannerTest';
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Passports = lazy(() => import('@/pages/Passports'));
 const EditPassport = lazy(() => import('@/pages/EditPassport'));
-const Purchases = lazy(() => import('@/pages/Purchases'));
+const PaymentsList = lazy(() => import('@/pages/PaymentsList'));
 const Reports = lazy(() => import('@/pages/Reports'));
 const Users = lazy(() => import('@/pages/Users'));
 const Tickets = lazy(() => import('@/pages/Tickets'));
@@ -37,13 +37,14 @@ const PaymentGatewaySettings = lazy(() => import('@/pages/admin/PaymentGatewaySe
 const EmailTemplates = lazy(() => import('@/pages/admin/EmailTemplates'));
 const Settings = lazy(() => import('@/pages/admin/SettingsRPC'));
 const ProfileSettings = lazy(() => import('@/pages/ProfileSettings'));
-const LoginHistory = lazy(() => import('@/pages/admin/LoginHistoryRPC'));
+const LoginHistory = lazy(() => import('@/pages/admin/LoginHistory'));
 const SMSSettings = lazy(() => import('@/pages/admin/SMSSettings'));
 const IndividualPurchaseReports = lazy(() => import('@/pages/reports/IndividualPurchaseReports'));
 const CorporateVoucherReports = lazy(() => import('@/pages/reports/CorporateVoucherReports'));
 const RevenueGeneratedReports = lazy(() => import('@/pages/reports/RevenueGeneratedReports'));
 const BulkPassportUploadReports = lazy(() => import('@/pages/reports/BulkPassportUploadReports'));
 const QuotationsReports = lazy(() => import('@/pages/reports/QuotationsReports'));
+const RefundedReport = lazy(() => import('@/pages/reports/RefundedReport'));
 const ScanAndValidate = lazy(() => import('@/pages/ScanAndValidate'));
 const AgentLanding = lazy(() => import('@/pages/AgentLanding'));
 const CashReconciliation = lazy(() => import('@/pages/CashReconciliation'));
@@ -149,29 +150,29 @@ const AppRoutes = () => {
               <ScannerTest />
             </PrivateRoute>
           } />
-          <Route path="purchases/corporate-exit-pass" element={
+          <Route path="payments/corporate-exit-pass" element={
             <PrivateRoute roles={['Flex_Admin', 'Counter_Agent', 'Finance_Manager']}>
               <CorporateExitPass />
             </PrivateRoute>
           } />
-          <Route path="purchases/corporate-batch-history" element={
+          <Route path="payments/corporate-batch-history" element={
             <PrivateRoute roles={['Flex_Admin', 'Finance_Manager', 'IT_Support']}>
               <CorporateBatchHistory />
             </PrivateRoute>
           } />
-          <Route path="purchases/offline-template" element={
+          <Route path="payments/offline-template" element={
             <PrivateRoute roles={['Flex_Admin', 'Counter_Agent']}>
               <OfflineTemplate />
             </PrivateRoute>
           } />
-          <Route path="purchases/offline-upload" element={
+          <Route path="payments/offline-upload" element={
             <PrivateRoute roles={['Flex_Admin', 'Counter_Agent']}>
               <OfflineUpload />
             </PrivateRoute>
           } />
-          <Route path="purchases" element={
-            <PrivateRoute roles={['Flex_Admin', 'Counter_Agent']}>
-              <Purchases />
+          <Route path="payments" element={
+            <PrivateRoute roles={['Flex_Admin', 'Finance_Manager']}>
+              <PaymentsList />
             </PrivateRoute>
           } />
           <Route path="cash-reconciliation" element={
@@ -222,6 +223,16 @@ const AppRoutes = () => {
           <Route path="reports/quotations" element={
             <PrivateRoute roles={['Flex_Admin', 'Finance_Manager', 'IT_Support']}>
               <QuotationsReports />
+            </PrivateRoute>
+          } />
+          <Route path="reports/refunded" element={
+            <PrivateRoute roles={['Flex_Admin', 'Finance_Manager', 'IT_Support']}>
+              <RefundedReport />
+            </PrivateRoute>
+          } />
+          <Route path="reports/cash-reconciliation" element={
+            <PrivateRoute roles={['Flex_Admin', 'Finance_Manager', 'Counter_Agent']}>
+              <CashReconciliation />
             </PrivateRoute>
           } />
           <Route path="admin/payment-modes" element={

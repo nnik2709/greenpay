@@ -255,6 +255,13 @@ export const api = {
       method: 'POST',
     }),
   },
+
+  // Generic GET method for custom endpoints
+  get: (endpoint, options = {}) => {
+    const { params, ...fetchOptions } = options;
+    const queryString = params ? `?${new URLSearchParams(params)}` : '';
+    return fetchAPI(`${endpoint}${queryString}`, fetchOptions);
+  },
 };
 
 // Auth helpers

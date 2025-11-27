@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Save, Loader2, CreditCard, Shield, Globe, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +22,6 @@ const PaymentGatewaySettings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
 
   // Kina Bank Configuration
   const [kinaBankConfig, setKinaBankConfig] = useState({
@@ -181,7 +179,7 @@ const PaymentGatewaySettings = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
       </div>
     );
   }
@@ -193,12 +191,9 @@ const PaymentGatewaySettings = () => {
       transition={{ duration: 0.3 }}
       className="max-w-6xl mx-auto p-6 space-y-6"
     >
-      <div className="flex items-center gap-3 mb-6">
-        <CreditCard className="w-8 h-8 text-emerald-600" />
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Payment Gateway Settings</h1>
-          <p className="text-gray-600">Configure online payment integrations</p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Payment Gateway Settings</h1>
+        <p className="text-gray-600">Configure online payment integrations</p>
       </div>
 
       {/* Transaction Statistics */}
@@ -248,8 +243,7 @@ const PaymentGatewaySettings = () => {
         <TabsContent value="kinabank">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-emerald-600" />
+              <CardTitle>
                 Kina Bank Internet Payment Gateway
               </CardTitle>
               <CardDescription>
@@ -259,8 +253,7 @@ const PaymentGatewaySettings = () => {
             <CardContent className="space-y-6">
               {/* Important Notice */}
               <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Important Setup Instructions</AlertTitle>
+                <AlertTitle>⚠️ Important Setup Instructions</AlertTitle>
                 <AlertDescription>
                   Before enabling this gateway, you must:
                   <ol className="list-decimal ml-4 mt-2 space-y-1">
@@ -341,27 +334,18 @@ const PaymentGatewaySettings = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="kina-api-key">API Key (Encrypted)</Label>
-                  <div className="relative">
-                    <Input
-                      id="kina-api-key"
-                      type={showApiKey ? 'text' : 'password'}
-                      placeholder="Enter your API key"
-                      value={kinaBankConfig.config?.apiKey || ''}
-                      onChange={(e) =>
-                        setKinaBankConfig({
-                          ...kinaBankConfig,
-                          config: { ...kinaBankConfig.config, apiKey: e.target.value }
-                        })
-                      }
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2"
-                    >
-                      {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
+                  <Input
+                    id="kina-api-key"
+                    type="password"
+                    placeholder="Enter your API key"
+                    value={kinaBankConfig.config?.apiKey || ''}
+                    onChange={(e) =>
+                      setKinaBankConfig({
+                        ...kinaBankConfig,
+                        config: { ...kinaBankConfig.config, apiKey: e.target.value }
+                      })
+                    }
+                  />
                   <p className="text-xs text-gray-500">
                     Your API key will be encrypted and stored securely
                   </p>
@@ -415,17 +399,7 @@ const PaymentGatewaySettings = () => {
                   disabled={saving}
                   className="bg-emerald-600 hover:bg-emerald-700"
                 >
-                  {saving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Configuration
-                    </>
-                  )}
+                  {saving ? 'Saving...' : 'Save Configuration'}
                 </Button>
               </div>
             </CardContent>
@@ -436,8 +410,7 @@ const PaymentGatewaySettings = () => {
         <TabsContent value="bsp">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="w-5 h-5 text-blue-600" />
+              <CardTitle>
                 Bank South Pacific Internet Payment Gateway
               </CardTitle>
               <CardDescription>
@@ -446,7 +419,6 @@ const PaymentGatewaySettings = () => {
             </CardHeader>
             <CardContent>
               <Alert>
-                <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Coming Soon</AlertTitle>
                 <AlertDescription>
                   BSP Internet Payment Gateway integration is planned for a future release.

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Monitor, User, Search, Filter, Download, ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -174,8 +173,7 @@ const LoginHistoryRPC = () => {
             onClick={() => navigate('/users')}
             className="text-slate-600 hover:text-slate-800"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Users
+            ← Back to Users
           </Button>
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
@@ -206,45 +204,33 @@ const LoginHistoryRPC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-emerald-600" />
-              <div>
-                <p className="text-sm text-slate-500">Total Logins</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
-              </div>
+            <div>
+              <p className="text-sm text-slate-500">Total Logins</p>
+              <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-blue-600" />
-              <div>
-                <p className="text-sm text-slate-500">Today</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.today}</p>
-              </div>
+            <div>
+              <p className="text-sm text-slate-500">Today</p>
+              <p className="text-2xl font-bold text-slate-800">{stats.today}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-purple-600" />
-              <div>
-                <p className="text-sm text-slate-500">This Week</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.thisWeek}</p>
-              </div>
+            <div>
+              <p className="text-sm text-slate-500">This Week</p>
+              <p className="text-2xl font-bold text-slate-800">{stats.thisWeek}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Monitor className="w-5 h-5 text-orange-600" />
-              <div>
-                <p className="text-sm text-slate-500">Unique Users</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.uniqueUsers}</p>
-              </div>
+            <div>
+              <p className="text-sm text-slate-500">Unique Users</p>
+              <p className="text-2xl font-bold text-slate-800">{stats.uniqueUsers}</p>
             </div>
           </CardContent>
         </Card>
@@ -256,15 +242,11 @@ const LoginHistoryRPC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Search</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input
-                  placeholder="Search by email, IP, or browser..."
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+              <Input
+                placeholder="Search by email, IP, or browser..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">User</label>
@@ -317,8 +299,8 @@ const LoginHistoryRPC = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
-                          <User className="w-4 h-4 text-emerald-600" />
+                        <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-semibold">
+                          U
                         </div>
                         <div>
                           <h3 className="font-semibold text-slate-800">
@@ -330,16 +312,13 @@ const LoginHistoryRPC = () => {
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-slate-400" />
+                        <div>
                           <span>{new Date(event.login_time).toLocaleString()}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-slate-400" />
+                        <div>
                           <span>{getLocationFromIP(event.ip_address)}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Monitor className="w-4 h-4 text-slate-400" />
+                        <div>
                           <span>{getBrowserInfo(event.user_agent)} on {getDeviceInfo(event.user_agent)}</span>
                         </div>
                       </div>

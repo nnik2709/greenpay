@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, ListOrdered, Bold, Highlighter, Trash2 } from 'lucide-react';
 import { createQuotation } from '@/lib/quotationsService';
 import { useAuth } from '@/contexts/AuthContext';
 

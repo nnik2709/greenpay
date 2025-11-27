@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -79,42 +78,36 @@ const Login = () => {
           <form onSubmit={handleSubmit} className="space-y-7">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-slate-700">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="e.g., admin@example.com"
-                  className="pl-12 h-14 text-base border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-              </div>
+              <Input
+                id="email"
+                type="email"
+                placeholder="e.g., admin@example.com"
+                className="h-14 text-base border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium text-slate-700">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  className="pl-12 h-14 text-base border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-              </div>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                className="h-14 text-base border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+              />
             </div>
 
             <motion.div whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }}>
               <Button
                 type="submit"
                 size="lg"
-                className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 text-white shadow-lg hover:shadow-2xl transition-all flex items-center justify-center gap-3"
+                className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 text-white shadow-lg hover:shadow-2xl transition-all"
                 disabled={loading}
               >
                 {loading ? (
@@ -123,10 +116,7 @@ const Login = () => {
                     Signing In...
                   </div>
                 ) : (
-                  <>
-                    <LogIn className="w-5 h-5" />
-                    Sign In
-                  </>
+                  'Sign In'
                 )}
               </Button>
             </motion.div>

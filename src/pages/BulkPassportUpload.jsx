@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UploadCloud, FileText, CreditCard, QrCode, Check, Download, ChevronsRight, History, FileSpreadsheet, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -12,9 +11,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 
 const steps = [
-  { id: 1, name: 'Upload File', icon: UploadCloud },
-  { id: 2, name: 'Payment', icon: CreditCard },
-  { id: 3, name: 'View Vouchers', icon: QrCode },
+  { id: 1, name: 'Upload File' },
+  { id: 2, name: 'Payment' },
+  { id: 3, name: 'View Vouchers' },
 ];
 
 const DEFAULT_FIELDS = [
@@ -233,7 +232,7 @@ const BulkPassportUpload = () => {
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <div className="text-center p-10 border-2 border-dashed border-emerald-300 rounded-xl bg-emerald-50/50">
-              <UploadCloud className="mx-auto h-12 w-12 text-emerald-500" />
+              <div className="text-6xl mb-4">📤</div>
               <h3 className="mt-2 text-lg font-medium text-slate-800">Drag & drop your file here</h3>
               <p className="mt-1 text-sm text-slate-500">or</p>
               <label htmlFor="file-upload" className={`relative rounded-md font-semibold text-emerald-600 hover:text-emerald-500 ${loading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
@@ -242,9 +241,8 @@ const BulkPassportUpload = () => {
               </label>
               {uploadedFile && (
                 <div className="mt-4 text-sm text-slate-700 flex flex-col items-center justify-center gap-2">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-emerald-600" />
-                    <span>{uploadedFile.name} ({passportCount} passports processed)</span>
+                  <div>
+                    {uploadedFile.name} ({passportCount} passports processed)
                   </div>
                   {uploadResult && uploadResult.errorCount > 0 && (
                     <div className="text-xs text-orange-600">
@@ -257,16 +255,14 @@ const BulkPassportUpload = () => {
             <div className="flex justify-between items-center">
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setShowFieldsConfig(true)}>
-                  <Settings className="w-4 h-4 mr-2" />
                   Configure Template
                 </Button>
                 <Button variant="outline" onClick={handleDownloadTemplate}>
-                  <Download className="w-4 h-4 mr-2" />
                   Download Template ({templateFields.filter(f => f.enabled).length} fields)
                 </Button>
               </div>
               <Button onClick={handleProceedToPayment} size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white" disabled={loading}>
-                {loading ? 'Processing...' : 'Proceed to Payment'} <ChevronsRight className="w-5 h-5 ml-2" />
+                {loading ? 'Processing...' : 'Proceed to Payment →'}
               </Button>
             </div>
           </motion.div>
@@ -276,8 +272,8 @@ const BulkPassportUpload = () => {
       case 3:
         return (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-6 p-8 bg-white/80 rounded-xl">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                    <Check className="w-12 h-12 text-green-600" />
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto text-4xl">
+                    ✓
                 </div>
                 <h2 className="text-2xl font-bold text-slate-800">Upload & Payment Successful!</h2>
                 <p className="text-slate-600">
@@ -285,7 +281,6 @@ const BulkPassportUpload = () => {
                 </p>
                 <div className="flex justify-center gap-4">
                     <Button size="lg" className="bg-slate-700 hover:bg-slate-800 text-white">
-                        <FileSpreadsheet className="w-5 h-5 mr-2" />
                         Download Vouchers (CSV)
                     </Button>
                     <Button size="lg" variant="outline" onClick={handleStartOver}>
@@ -318,8 +313,8 @@ const BulkPassportUpload = () => {
               {steps.map((step, stepIdx) => (
                 <li key={step.name} className={`flex-1 ${stepIdx !== steps.length - 1 ? 'pr-8 sm:pr-20' : ''} relative`}>
                   <div className="flex items-center">
-                    <span className={`flex h-10 w-10 items-center justify-center rounded-full ${currentStep > step.id ? 'bg-emerald-600' : currentStep === step.id ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                      {currentStep > step.id ? <Check className="h-6 w-6 text-white" /> : <step.icon className="h-6 w-6 text-white" />}
+                    <span className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${currentStep > step.id ? 'bg-emerald-600' : currentStep === step.id ? 'bg-emerald-500' : 'bg-slate-300'} text-white`}>
+                      {currentStep > step.id ? '✓' : step.id}
                     </span>
                     <span className={`ml-4 text-sm font-medium ${currentStep >= step.id ? 'text-emerald-700' : 'text-slate-500'}`}>{step.name}</span>
                   </div>
@@ -341,8 +336,7 @@ const BulkPassportUpload = () => {
         
         <div className="lg:col-span-1">
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100 h-full">
-                <h3 className="text-lg font-semibold text-slate-800 flex items-center mb-4">
-                    <History className="w-5 h-5 mr-2 text-emerald-600" />
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">
                     Recent Uploads
                 </h3>
                 {recentUploads.length === 0 ? (

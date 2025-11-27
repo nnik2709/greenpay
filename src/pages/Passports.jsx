@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, UserPlus, ScanLine, FileText, User, Calendar, Hash, Globe, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -27,8 +26,7 @@ const PassportCard = ({ passport, index, selectedIds, setSelectedIds, openSendEm
     >
       <Card className={`overflow-hidden card-hover border-slate-200 ${selectedIds.includes(passport.id) ? 'ring-2 ring-emerald-300' : ''}`}>
         <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100">
-          <CardTitle className="flex items-center gap-3 text-lg font-semibold text-slate-800">
-            <FileText className="text-emerald-600 w-5 h-5" />
+          <CardTitle className="text-lg font-semibold text-slate-800">
             {passport.given_name || passport.givenName} {passport.surname}
           </CardTitle>
         </CardHeader>
@@ -44,24 +42,19 @@ const PassportCard = ({ passport, index, selectedIds, setSelectedIds, openSendEm
             />
             <span className="text-slate-600">Select</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Hash className="w-4 h-4 text-slate-500" />
+          <div>
             <strong>Passport No:</strong> {passport.passport_number || passport.passportNumber}
           </div>
-          <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4 text-slate-500" />
+          <div>
             <strong>Nationality:</strong> {passport.nationality}
           </div>
-          <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-slate-500" />
+          <div>
             <strong>Sex:</strong> {passport.sex}
           </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-slate-500" />
+          <div>
             <strong>DOB:</strong> {passport.date_of_birth ? new Date(passport.date_of_birth).toLocaleDateString() : passport.dob}
           </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-slate-500" />
+          <div>
             <strong>Expiry:</strong> {passport.date_of_expiry ? new Date(passport.date_of_expiry).toLocaleDateString() : passport.dateOfExpiry}
           </div>
           <div className="pt-2">
@@ -231,16 +224,13 @@ const Passports = () => {
               Search for a Passport
             </label>
             <div className="flex gap-4">
-              <div className="relative flex-grow">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-6 h-6" />
-                <Input
-                  id="passport-search"
-                  placeholder="Enter Passport Number or Name..."
-                  className="pl-14 h-16 text-lg border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all rounded-xl"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+              <Input
+                id="passport-search"
+                placeholder="Enter Passport Number or Name..."
+                className="flex-grow h-16 text-lg border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all rounded-xl"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button
                   type="submit"
@@ -264,9 +254,8 @@ const Passports = () => {
               <Button
                 onClick={handleCreateNew}
                 variant="outline"
-                className="w-full h-28 text-lg font-semibold flex items-center justify-center gap-3 border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-400 rounded-2xl transition-all shadow-md hover:shadow-xl"
+                className="w-full h-28 text-lg font-semibold border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-400 rounded-2xl transition-all shadow-md hover:shadow-xl"
               >
-                <UserPlus className="w-7 h-7" />
                 Create New Passport
               </Button>
             </motion.div>
@@ -274,9 +263,8 @@ const Passports = () => {
               <Button
                 onClick={() => setIsScanModalOpen(true)}
                 variant="outline"
-                className="w-full h-28 text-lg font-semibold flex items-center justify-center gap-3 border-2 border-teal-300 text-teal-700 hover:bg-teal-50 hover:text-teal-800 hover:border-teal-400 rounded-2xl transition-all shadow-md hover:shadow-xl"
+                className="w-full h-28 text-lg font-semibold border-2 border-teal-300 text-teal-700 hover:bg-teal-50 hover:text-teal-800 hover:border-teal-400 rounded-2xl transition-all shadow-md hover:shadow-xl"
               >
-                <ScanLine className="w-7 h-7" />
                 Scan with Camera
               </Button>
             </motion.div>
@@ -337,7 +325,7 @@ const Passports = () => {
             <CardContent>
               {isLoading ? (
                 <div className="flex items-center justify-center py-16">
-                  <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
                 </div>
               ) : allPassports.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

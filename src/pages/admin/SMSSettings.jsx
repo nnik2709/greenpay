@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquare, Send, Settings, TestTube, Save, Phone, Globe, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -184,17 +183,15 @@ const SMSSettings = () => {
           <p className="text-slate-600 mt-1">Configure SMS notifications and messaging</p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            onClick={testSMS} 
-            variant="outline" 
+          <Button
+            onClick={testSMS}
+            variant="outline"
             disabled={testing || !settings.enabled}
             className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
           >
-            <TestTube className="w-4 h-4 mr-2" />
             {testing ? 'Testing...' : 'Test SMS'}
           </Button>
           <Button onClick={saveSettings} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700">
-            <Save className="w-4 h-4 mr-2" />
             {saving ? 'Saving...' : 'Save Settings'}
           </Button>
         </div>
@@ -203,8 +200,7 @@ const SMSSettings = () => {
       {/* General Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
+          <CardTitle>
             General Settings
           </CardTitle>
         </CardHeader>
@@ -236,16 +232,13 @@ const SMSSettings = () => {
             </div>
             <div>
               <Label htmlFor="fromNumber">From Number</Label>
-              <div className="relative mt-1">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input
-                  id="fromNumber"
-                  placeholder="+1234567890"
-                  className="pl-10"
-                  value={settings.fromNumber}
-                  onChange={(e) => handleInputChange('fromNumber', e.target.value)}
-                />
-              </div>
+              <Input
+                id="fromNumber"
+                placeholder="+1234567890"
+                className="mt-1"
+                value={settings.fromNumber}
+                onChange={(e) => handleInputChange('fromNumber', e.target.value)}
+              />
             </div>
           </div>
         </CardContent>
@@ -254,8 +247,7 @@ const SMSSettings = () => {
       {/* API Configuration */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Key className="w-5 h-5" />
+          <CardTitle>
             API Configuration
           </CardTitle>
         </CardHeader>
@@ -284,16 +276,13 @@ const SMSSettings = () => {
           </div>
           <div>
             <Label htmlFor="webhookUrl">Webhook URL (Optional)</Label>
-            <div className="relative mt-1">
-              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <Input
-                id="webhookUrl"
-                placeholder="https://your-webhook-url.com/sms"
-                className="pl-10"
-                value={settings.webhookUrl}
-                onChange={(e) => handleInputChange('webhookUrl', e.target.value)}
-              />
-            </div>
+            <Input
+              id="webhookUrl"
+              placeholder="https://your-webhook-url.com/sms"
+              className="mt-1"
+              value={settings.webhookUrl}
+              onChange={(e) => handleInputChange('webhookUrl', e.target.value)}
+            />
           </div>
         </CardContent>
       </Card>
@@ -301,24 +290,20 @@ const SMSSettings = () => {
       {/* Test Configuration */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TestTube className="w-5 h-5" />
+          <CardTitle>
             Test Configuration
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
             <Label htmlFor="testPhone">Test Phone Number</Label>
-            <div className="relative mt-1">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <Input
-                id="testPhone"
-                placeholder="+1234567890"
-                className="pl-10"
-                value={settings.testPhoneNumber}
-                onChange={(e) => handleInputChange('testPhoneNumber', e.target.value)}
-              />
-            </div>
+            <Input
+              id="testPhone"
+              placeholder="+1234567890"
+              className="mt-1"
+              value={settings.testPhoneNumber}
+              onChange={(e) => handleInputChange('testPhoneNumber', e.target.value)}
+            />
           </div>
           <div>
             <Label htmlFor="testMessage">Test Message</Label>
@@ -336,8 +321,7 @@ const SMSSettings = () => {
       {/* SMS Templates */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
+          <CardTitle>
             SMS Templates
           </CardTitle>
         </CardHeader>
@@ -403,8 +387,7 @@ const SMSSettings = () => {
       {/* Usage Statistics */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Send className="w-5 h-5" />
+          <CardTitle>
             Usage Statistics
           </CardTitle>
         </CardHeader>

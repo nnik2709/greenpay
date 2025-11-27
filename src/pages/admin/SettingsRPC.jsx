@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { api } from '@/lib/api/client';
-import { Settings as SettingsIcon, Save, RefreshCw } from 'lucide-react';
 
 const SettingsRPC = () => {
   const { toast } = useToast();
@@ -95,12 +94,9 @@ const SettingsRPC = () => {
       transition={{ duration: 0.5 }}
       className="space-y-6"
     >
-      <div className="flex items-center gap-3">
-        <SettingsIcon className="w-8 h-8 text-emerald-600" />
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">System Settings</h1>
-          <p className="text-gray-500">Configure system-wide settings and preferences</p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-800">System Settings</h1>
+        <p className="text-gray-500">Configure system-wide settings and preferences</p>
       </div>
 
       <Card>
@@ -144,20 +140,9 @@ const SettingsRPC = () => {
 
           <div className="flex gap-3 pt-4">
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Settings
-                </>
-              )}
+              {saving ? 'Saving...' : 'Save Settings'}
             </Button>
             <Button variant="outline" onClick={fetchSettings}>
-              <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
           </div>

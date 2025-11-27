@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, Loader2, AlertCircle, ArrowLeft, Home } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -130,7 +129,7 @@ const PaymentCallback = () => {
       case 'verifying':
         return (
           <div className="text-center py-12">
-            <Loader2 className="w-16 h-16 text-blue-500 animate-spin mx-auto mb-4" />
+            <div className="w-16 h-16 mx-auto mb-4 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Verifying Payment...</h2>
             <p className="text-gray-600">Please wait while we confirm your payment with the bank.</p>
             <p className="text-sm text-gray-500 mt-2">This usually takes a few seconds.</p>
@@ -144,8 +143,9 @@ const PaymentCallback = () => {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', duration: 0.5 }}
+              className="text-8xl mb-4"
             >
-              <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-4" />
+              ✓
             </motion.div>
             <h2 className="text-2xl font-bold text-green-700 mb-2">Payment Successful!</h2>
             <p className="text-gray-600 mb-6">Your payment has been processed successfully.</p>
@@ -199,7 +199,6 @@ const PaymentCallback = () => {
                 Continue
               </Button>
               <Button onClick={() => navigate('/')} variant="outline" size="lg">
-                <Home className="w-4 h-4 mr-2" />
                 Go to Dashboard
               </Button>
             </div>
@@ -213,8 +212,9 @@ const PaymentCallback = () => {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', duration: 0.5 }}
+              className="text-8xl mb-4"
             >
-              <XCircle className="w-20 h-20 text-red-500 mx-auto mb-4" />
+              ✗
             </motion.div>
             <h2 className="text-2xl font-bold text-red-700 mb-2">Payment Failed</h2>
             <p className="text-gray-600 mb-4">We couldn't process your payment.</p>
@@ -242,8 +242,7 @@ const PaymentCallback = () => {
 
             <div className="flex gap-4 justify-center">
               <Button onClick={handleRetry} size="lg" className="bg-blue-600 hover:bg-blue-700">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Try Again
+                ← Try Again
               </Button>
               <Button onClick={() => navigate('/')} variant="outline" size="lg">
                 Cancel
@@ -264,8 +263,9 @@ const PaymentCallback = () => {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', duration: 0.5 }}
+              className="text-8xl mb-4"
             >
-              <AlertCircle className="w-20 h-20 text-orange-500 mx-auto mb-4" />
+              ⚠️
             </motion.div>
             <h2 className="text-2xl font-bold text-orange-700 mb-2">Verification Error</h2>
             <p className="text-gray-600 mb-4">We encountered an error while verifying your payment.</p>
@@ -287,7 +287,6 @@ const PaymentCallback = () => {
                 Retry Verification
               </Button>
               <Button onClick={() => navigate('/')} size="lg">
-                <Home className="w-4 h-4 mr-2" />
                 Go to Dashboard
               </Button>
             </div>

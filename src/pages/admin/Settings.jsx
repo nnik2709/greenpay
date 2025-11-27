@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, RefreshCw, AlertCircle, CheckCircle, Database, Mail, CreditCard, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -114,7 +113,7 @@ const Settings = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin text-emerald-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
         <span className="ml-2 text-slate-600">Loading settings...</span>
       </div>
     );
@@ -131,11 +130,9 @@ const Settings = () => {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleReset}>
-            <RefreshCw className="w-4 h-4 mr-2" />
             Reset to Defaults
           </Button>
           <Button onClick={handleSave} disabled={isSaving} className="bg-emerald-600 hover:bg-emerald-700">
-            <Save className="w-4 h-4 mr-2" />
             {isSaving ? 'Saving...' : 'Save Settings'}
           </Button>
         </div>
@@ -145,8 +142,7 @@ const Settings = () => {
         {/* System Configuration */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <SettingsIcon className="w-5 h-5 text-emerald-600" />
+            <CardTitle>
               System Configuration
             </CardTitle>
           </CardHeader>
@@ -188,8 +184,7 @@ const Settings = () => {
         {/* Voucher Settings */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-emerald-600" />
+            <CardTitle>
               Voucher Settings
             </CardTitle>
           </CardHeader>
@@ -223,8 +218,7 @@ const Settings = () => {
         {/* Upload Settings */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-emerald-600" />
+            <CardTitle>
               Upload Settings
             </CardTitle>
           </CardHeader>
@@ -258,60 +252,38 @@ const Settings = () => {
         {/* System Status */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-emerald-600" />
+            <CardTitle className="flex items-center">
               System Status
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={checkSystemStatus}
                 className="ml-auto"
               >
-                <RefreshCw className="w-4 h-4" />
+                Refresh
               </Button>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Database</span>
-              <div className="flex items-center gap-2">
-                {systemStatus.database === 'connected' ? (
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 text-red-500" />
-                )}
-                <span className={`text-sm ${systemStatus.database === 'connected' ? 'text-green-600' : 'text-red-600'}`}>
-                  {systemStatus.database === 'connected' ? 'Connected' : 'Error'}
-                </span>
-              </div>
+              <span className={`text-sm ${systemStatus.database === 'connected' ? 'text-green-600' : 'text-red-600'}`}>
+                {systemStatus.database === 'connected' ? '✓ Connected' : '✗ Error'}
+              </span>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Storage</span>
-              <div className="flex items-center gap-2">
-                {systemStatus.storage === 'available' ? (
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 text-red-500" />
-                )}
-                <span className={`text-sm ${systemStatus.storage === 'available' ? 'text-green-600' : 'text-red-600'}`}>
-                  {systemStatus.storage === 'available' ? 'Available' : 'Error'}
-                </span>
-              </div>
+              <span className={`text-sm ${systemStatus.storage === 'available' ? 'text-green-600' : 'text-red-600'}`}>
+                {systemStatus.storage === 'available' ? '✓ Available' : '✗ Error'}
+              </span>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Edge Functions</span>
-              <div className="flex items-center gap-2">
-                {systemStatus.functions === 'available' ? (
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 text-red-500" />
-                )}
-                <span className={`text-sm ${systemStatus.functions === 'available' ? 'text-green-600' : 'text-red-600'}`}>
-                  {systemStatus.functions === 'available' ? 'Available' : 'Error'}
-                </span>
-              </div>
+              <span className={`text-sm ${systemStatus.functions === 'available' ? 'text-green-600' : 'text-red-600'}`}>
+                {systemStatus.functions === 'available' ? '✓ Available' : '✗ Error'}
+              </span>
             </div>
             
             <div className="pt-2 border-t">

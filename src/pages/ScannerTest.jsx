@@ -14,7 +14,6 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { TestTube, CheckCircle, XCircle, Clock, Zap, Hash, FileText, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -75,8 +74,7 @@ const ScannerTest = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Scanner Configuration
+            ⚙️ Scanner Configuration
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -174,8 +172,7 @@ const ScannerTest = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TestTube className="w-5 h-5" />
-            Test Scanner Input
+            🧪 Test Scanner Input
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -214,8 +211,7 @@ const ScannerTest = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Scan History
+              📄 Scan History
             </CardTitle>
             <Button variant="outline" size="sm" onClick={clearHistory}>
               Clear History
@@ -237,9 +233,9 @@ const ScannerTest = () => {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
                       {scan.type === 'mrz' ? (
-                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        <span className="text-xl text-green-600">✓</span>
                       ) : (
-                        <Hash className="w-5 h-5 text-blue-600" />
+                        <span className="text-xl text-blue-600">#</span>
                       )}
                       <span className="font-semibold">
                         {scan.type === 'mrz' ? 'MRZ Passport Scan' : scan.type === 'manual' ? 'Manual Entry' : 'Simple Scan'}
@@ -291,18 +287,18 @@ const ScannerTest = () => {
                   {/* Performance Metrics */}
                   <div className="flex items-center gap-4 text-xs text-slate-600 border-t pt-2">
                     <div className="flex items-center gap-1">
-                      <Hash className="w-3 h-3" />
+                      <span className="text-slate-500">#</span>
                       Length: {scan.length} chars
                     </div>
                     {scan.scanDuration && (
                       <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                        <span className="text-slate-500">⏱️</span>
                         Duration: {scan.scanDuration}ms
                       </div>
                     )}
                     {scan.charsPerSecond && (
                       <div className="flex items-center gap-1">
-                        <Zap className="w-3 h-3" />
+                        <span className="text-slate-500">⚡</span>
                         Speed: {scan.charsPerSecond} chars/sec
                       </div>
                     )}

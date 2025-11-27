@@ -33,18 +33,6 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Mail, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  Send, 
-  Save, 
-  X,
-  AlertCircle,
-  CheckCircle
-} from 'lucide-react';
 
 const EmailTemplates = () => {
   const { toast } = useToast();
@@ -231,16 +219,14 @@ const EmailTemplates = () => {
             Manage email templates for automated communications
           </p>
         </div>
-        <Button onClick={handleCreate} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          New Template
+        <Button onClick={handleCreate}>
+          + New Template
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="w-5 h-5" />
+          <CardTitle>
             Templates ({templates.length})
           </CardTitle>
           <CardDescription>
@@ -250,7 +236,6 @@ const EmailTemplates = () => {
         <CardContent>
           {templates.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <Mail className="w-12 h-12 mx-auto mb-4 text-slate-300" />
               <p>No email templates found</p>
               <Button onClick={handleCreate} className="mt-4">
                 Create Your First Template
@@ -300,21 +285,21 @@ const EmailTemplates = () => {
                           size="sm"
                           onClick={() => handlePreview(template)}
                         >
-                          <Eye className="w-4 h-4" />
+                          Preview
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleTest(template)}
                         >
-                          <Send className="w-4 h-4" />
+                          Test
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleEdit(template)}
                         >
-                          <Edit className="w-4 h-4" />
+                          Edit
                         </Button>
                         <Button
                           variant="outline"
@@ -322,7 +307,7 @@ const EmailTemplates = () => {
                           onClick={() => handleDelete(template)}
                           className="text-red-600 hover:text-red-700"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          Delete
                         </Button>
                       </div>
                     </TableCell>
@@ -397,8 +382,7 @@ const EmailTemplates = () => {
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} className="flex items-center gap-2">
-              <Save className="w-4 h-4" />
+            <Button onClick={handleSave}>
               Save Template
             </Button>
           </DialogFooter>
@@ -460,8 +444,7 @@ const EmailTemplates = () => {
             
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <div className="flex items-center gap-2 text-yellow-800">
-                <AlertCircle className="w-4 h-4" />
-                <span className="font-medium">Test Email</span>
+                <span className="font-medium">⚠️ Test Email</span>
               </div>
               <p className="text-sm text-yellow-700 mt-1">
                 A test email will be sent with sample data to verify the template works correctly.
@@ -473,12 +456,10 @@ const EmailTemplates = () => {
             <Button variant="outline" onClick={() => setShowTestDialog(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={sendTestEmail} 
+            <Button
+              onClick={sendTestEmail}
               disabled={!testEmail}
-              className="flex items-center gap-2"
             >
-              <Send className="w-4 h-4" />
               Send Test Email
             </Button>
           </DialogFooter>

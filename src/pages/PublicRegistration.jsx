@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Check, Upload, AlertCircle, Loader2, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -250,7 +249,7 @@ const PublicRegistration = () => {
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center">
-            <Loader2 className="w-12 h-12 mx-auto text-emerald-600 animate-spin" />
+            <div className="w-12 h-12 mx-auto border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
             <p className="mt-4 text-slate-600">Validating voucher...</p>
           </CardContent>
         </Card>
@@ -264,7 +263,7 @@ const PublicRegistration = () => {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-600">
-              <AlertCircle className="w-6 h-6" />
+              <span className="text-3xl">⚠️</span>
               Voucher Validation Failed
             </CardTitle>
           </CardHeader>
@@ -315,7 +314,7 @@ const PublicRegistration = () => {
             {/* Scanner Status Indicator */}
             {isScannerActive && (
               <Alert className="mb-6 bg-emerald-50 border-emerald-300">
-                <ScanLine className="w-5 h-5 text-emerald-600 animate-pulse" />
+                <span className="text-2xl">📱</span>
                 <AlertDescription className="text-emerald-900 font-medium">
                   Scanning passport MRZ... Please scan the 2 lines at the bottom of your passport.
                 </AlertDescription>
@@ -323,7 +322,7 @@ const PublicRegistration = () => {
             )}
             {!isScannerActive && (
               <Alert className="mb-6 bg-blue-50 border-blue-300">
-                <ScanLine className="w-5 h-5 text-blue-600" />
+                <span className="text-2xl">💡</span>
                 <AlertDescription className="text-blue-900">
                   <strong>Tip:</strong> Use a hardware scanner to scan your passport MRZ for automatic form filling, or enter details manually below.
                 </AlertDescription>
@@ -444,7 +443,7 @@ const PublicRegistration = () => {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        <Upload className="w-12 h-12 mx-auto text-emerald-500" />
+                        <div className="text-5xl">📤</div>
                         <div>
                           <p className="text-slate-700 font-medium">
                             Click to upload passport photo
@@ -461,7 +460,7 @@ const PublicRegistration = () => {
 
               {/* Voucher Info Display */}
               <Alert className="bg-emerald-50 border-emerald-200">
-                <Check className="h-4 w-4 text-emerald-600" />
+                <span className="text-xl">✓</span>
                 <AlertDescription className="text-emerald-800">
                   <strong>Voucher Details:</strong>
                   <ul className="mt-2 space-y-1 text-sm">
@@ -481,14 +480,11 @@ const PublicRegistration = () => {
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
                     Submitting...
                   </>
                 ) : (
-                  <>
-                    <Check className="w-5 h-5 mr-2" />
-                    Complete Registration
-                  </>
+                  '✓ Complete Registration'
                 )}
               </Button>
 

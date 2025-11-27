@@ -1,0 +1,116 @@
+========================================
+GREENPAY FRONTEND DEPLOYMENT COMMANDS
+========================================
+
+After you SSH into the server with:
+  ssh -i ~/.ssh/nikolay root@72.61.208.79
+
+Run these commands on the server:
+
+========================================
+STEP 1: Navigate to deployment directory
+========================================
+
+cd /home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud
+
+
+========================================
+STEP 2: Create backup (optional but recommended)
+========================================
+
+mkdir -p backups
+tar -czf backups/frontend-backup-$(date +%Y%m%d-%H%M%S).tar.gz assets index.html 2>/dev/null || echo "No previous files to backup"
+
+
+========================================
+STEP 3: Remove old frontend files
+========================================
+
+rm -rf assets
+rm -f index.html
+
+# Verify backend folder is still there (should see 'backend' in list)
+ls -la
+
+
+========================================
+STEP 4: Transfer new build files
+========================================
+
+You have two options:
+
+Option A - Upload package and extract on server:
+-------------------------------------------------
+# From your Mac terminal (in a new tab/window):
+scp -i ~/.ssh/nikolay /Users/nikolay/github/greenpay/greenpay-frontend-20251125-195934.tar.gz root@72.61.208.79:/tmp/
+
+# Then on server:
+cd /home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud
+tar -xzf /tmp/greenpay-frontend-20251125-195934.tar.gz
+rm /tmp/greenpay-frontend-20251125-195934.tar.gz
+
+
+Option B - Use rsync (if available):
+-------------------------------------
+# From your Mac terminal:
+rsync -avz -e "ssh -i ~/.ssh/nikolay" /Users/nikolay/github/greenpay/dist/ root@72.61.208.79:/home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/
+
+
+========================================
+STEP 5: Set proper permissions
+========================================
+
+cd /home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud
+chown -R eywademo-greenpay:eywademo-greenpay assets index.html
+chmod -R 755 assets
+chmod 644 index.html
+
+
+========================================
+STEP 6: Verify deployment
+========================================
+
+# Check files exist
+ls -la
+
+# Count files (should be ~80 files)
+find assets -type f | wc -l
+
+# Check index.html exists
+test -f index.html && echo "✅ index.html found" || echo "❌ index.html missing"
+
+# Check permissions
+ls -ld assets index.html
+
+
+========================================
+STEP 7: Test in browser
+========================================
+
+Open: https://greenpay.eywademo.cloud
+
+Expected result: Application loads without errors
+
+
+========================================
+TROUBLESHOOTING
+========================================
+
+If files don't appear:
+- Check nginx is running: systemctl status nginx
+- Check file permissions are correct
+- Check nginx error log: tail -f /var/log/nginx/error.log
+
+If you see old cached version:
+- Hard refresh browser: Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows)
+- Clear browser cache
+- Try incognito/private window
+
+========================================
+ROLLBACK (if needed)
+========================================
+
+cd /home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backups
+ls -lt
+tar -xzf frontend-backup-YYYYMMDD-HHMMSS.tar.gz -C ../
+

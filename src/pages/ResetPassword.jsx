@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
-import { Eye, EyeOff, Lock, CheckCircle, AlertCircle } from 'lucide-react';
 
 const ResetPassword = () => {
   const [password, setPassword] = useState('');
@@ -146,7 +145,7 @@ const ResetPassword = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <div className="text-7xl mb-4">⚠️</div>
             <h2 className="text-2xl font-bold text-slate-800 mb-2">Invalid Reset Link</h2>
             <p className="text-slate-600 mb-6">
               This password reset link is invalid or has expired. Please request a new one.
@@ -173,8 +172,8 @@ const ResetPassword = () => {
       >
         <Card className="glass-effect border-slate-200 shadow-xl">
           <CardHeader className="text-center pb-4">
-            <div className="w-16 h-16 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-3xl">
+              🔒
             </div>
             <CardTitle className="text-2xl font-bold text-slate-800">Reset Your Password</CardTitle>
             <p className="text-slate-600">Enter your new password below</p>
@@ -200,11 +199,7 @@ const ResetPassword = () => {
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? '👁' : '👁'}
                   </Button>
                 </div>
                 {errors.password && (
@@ -230,11 +225,7 @@ const ResetPassword = () => {
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showConfirmPassword ? '👁' : '👁'}
                   </Button>
                 </div>
                 {errors.confirmPassword && (
@@ -253,10 +244,7 @@ const ResetPassword = () => {
                     Updating Password...
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4" />
-                    Update Password
-                  </div>
+                  'Update Password'
                 )}
               </Button>
             </form>

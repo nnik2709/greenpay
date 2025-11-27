@@ -2,7 +2,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Download, FileSpreadsheet, CheckCircle, List } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -75,7 +74,7 @@ const OfflineTemplate = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
-          <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center"><CheckCircle className="w-6 h-6 mr-2 text-emerald-500" />Template Features</h2>
+          <h2 className="text-xl font-bold text-slate-800 mb-4">✓ Template Features</h2>
           <ul className="space-y-2 text-slate-600 list-disc list-inside">
             <li>Pre-filled headers and sample data</li>
             <li>All required fields marked with *</li>
@@ -86,7 +85,7 @@ const OfflineTemplate = () => {
           </ul>
         </div>
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
-          <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center"><List className="w-6 h-6 mr-2 text-emerald-500" />Instructions</h2>
+          <h2 className="text-xl font-bold text-slate-800 mb-4">📋 Instructions</h2>
           <ul className="space-y-2 text-slate-600 list-decimal list-inside">
             <li>Download the template</li>
             <li>Fill in passport details</li>
@@ -99,13 +98,12 @@ const OfflineTemplate = () => {
 
       <div className="text-center">
         <Button onClick={handleDownload} size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white">
-          <Download className="w-5 h-5 mr-2" />
           Download Excel Template
         </Button>
       </div>
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
-        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center"><FileSpreadsheet className="w-6 h-6 mr-2 text-emerald-500" />Template Structure</h2>
+        <h2 className="text-xl font-bold text-slate-800 mb-4">📊 Template Structure</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50">

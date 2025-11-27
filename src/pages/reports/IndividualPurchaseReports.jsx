@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { QrCode, Edit, DollarSign } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
 import VoucherPrint from '@/components/VoucherPrint';
@@ -161,7 +160,7 @@ const IndividualPurchaseReports = () => {
             disabled={row.used_at !== null || row.refunded}
             title={row.used_at ? 'Cannot print used voucher' : row.refunded ? 'Cannot print refunded voucher' : 'Print voucher'}
           >
-            <QrCode className="w-4 h-4" />
+            Print
           </Button>
           <Button
             size="sm"
@@ -170,7 +169,7 @@ const IndividualPurchaseReports = () => {
             disabled={row.refunded}
             title={row.refunded ? 'Cannot edit refunded payment' : 'Edit payment'}
           >
-            <Edit className="w-4 h-4" />
+            Edit
           </Button>
           <Button
             size="sm"
@@ -180,11 +179,11 @@ const IndividualPurchaseReports = () => {
             title={row.refunded ? 'Already refunded' : 'Refund payment'}
             className="text-red-600 hover:text-red-700"
           >
-            <DollarSign className="w-4 h-4" />
+            Refund
           </Button>
         </div>
       ),
-      width: '180px'
+      width: '210px'
     }
   ];
 

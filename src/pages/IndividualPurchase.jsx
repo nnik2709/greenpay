@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ScanLine, User, Globe, Calendar, VenetianMask, Hash, Upload, ArrowRight, ArrowLeft, Check, DollarSign, Ticket, CreditCard, Shield, QrCode, Printer, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -20,9 +19,9 @@ import { useScannerInput } from '@/hooks/useScannerInput';
 
 const StepIndicator = ({ currentStep }) => {
   const steps = [
-    { name: 'Passport Details', icon: <User /> },
-    { name: 'Payment', icon: <DollarSign /> },
-    { name: 'Voucher', icon: <Ticket /> },
+    { name: 'Passport Details' },
+    { name: 'Payment' },
+    { name: 'Voucher' },
   ];
 
   return (
@@ -37,9 +36,9 @@ const StepIndicator = ({ currentStep }) => {
                 color: currentStep >= index ? '#ffffff' : '#64748b',
               }}
               transition={{ duration: 0.3 }}
-              className="w-12 h-12 rounded-full flex items-center justify-center text-2xl"
+              className="w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold"
             >
-              {currentStep > index ? <Check /> : step.icon}
+              {currentStep > index ? '✓' : index + 1}
             </motion.div>
             <p className={`mt-2 text-sm font-medium ${currentStep >= index ? 'text-emerald-600' : 'text-slate-500'}`}>
               {step.name}
@@ -239,15 +238,12 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
             <div>
               <label className="font-semibold text-slate-700">Search Passport</label>
-              <div className="relative mt-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <Input
-                  placeholder="Enter Passport Number"
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+              <Input
+                placeholder="Enter Passport Number"
+                className="mt-1"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             <Button onClick={handleSearch} className="w-full md:w-auto">Search</Button>
           </div>
@@ -262,14 +258,11 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
           {isScannerActive && (
             <Card className="bg-emerald-50 border-emerald-300">
               <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <ScanLine className="w-6 h-6 text-emerald-600 animate-pulse" />
-                  <div>
-                    <h3 className="font-bold text-emerald-900">Scanning...</h3>
-                    <p className="text-emerald-700 text-sm">
-                      Please scan passport MRZ (2 lines at bottom) or passport number barcode.
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="font-bold text-emerald-900">Scanning...</h3>
+                  <p className="text-emerald-700 text-sm">
+                    Please scan passport MRZ (2 lines at bottom) or passport number barcode.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -277,14 +270,11 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
           {!isScannerActive && (
             <Card className="bg-blue-50 border-blue-300">
               <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <ScanLine className="w-6 h-6 text-blue-600" />
-                  <div>
-                    <h3 className="font-bold text-blue-900">Ready for Hardware Scanner</h3>
-                    <p className="text-blue-700 text-sm">
-                      Use your USB/Bluetooth scanner to scan passport MRZ or barcode. The system will auto-detect and fill the form.
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="font-bold text-blue-900">Ready for Hardware Scanner</h3>
+                  <p className="text-blue-700 text-sm">
+                    Use your USB/Bluetooth scanner to scan passport MRZ or barcode. The system will auto-detect and fill the form.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -300,38 +290,23 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
           <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="passportNumber">Passport Number</label>
-              <div className="relative mt-1">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input id="passportNumber" name="passportNumber" placeholder="e.g., P1234567" className="pl-9" value={passportInfo.passportNumber || ''} onChange={handleInputChange} />
-              </div>
+              <Input id="passportNumber" name="passportNumber" placeholder="e.g., P1234567" className="mt-1" value={passportInfo.passportNumber || ''} onChange={handleInputChange} />
             </div>
             <div>
               <label htmlFor="nationality">Nationality</label>
-              <div className="relative mt-1">
-                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input id="nationality" name="nationality" placeholder="e.g., Australian" className="pl-9" value={passportInfo.nationality || ''} onChange={handleInputChange} />
-              </div>
+              <Input id="nationality" name="nationality" placeholder="e.g., Australian" className="mt-1" value={passportInfo.nationality || ''} onChange={handleInputChange} />
             </div>
             <div>
               <label htmlFor="surname">Surname</label>
-              <div className="relative mt-1">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input id="surname" name="surname" placeholder="e.g., Smith" className="pl-9" value={passportInfo.surname || ''} onChange={handleInputChange} />
-              </div>
+              <Input id="surname" name="surname" placeholder="e.g., Smith" className="mt-1" value={passportInfo.surname || ''} onChange={handleInputChange} />
             </div>
             <div>
               <label htmlFor="givenName">Given Name</label>
-              <div className="relative mt-1">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input id="givenName" name="givenName" placeholder="e.g., John" className="pl-9" value={passportInfo.givenName || ''} onChange={handleInputChange} />
-              </div>
+              <Input id="givenName" name="givenName" placeholder="e.g., John" className="mt-1" value={passportInfo.givenName || ''} onChange={handleInputChange} />
             </div>
             <div>
               <label htmlFor="dob">Date of Birth</label>
-              <div className="relative mt-1">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input id="dob" name="dob" type="date" placeholder="dd/mm/yyyy" className="pl-9" value={passportInfo.dob || ''} onChange={handleInputChange} />
-              </div>
+              <Input id="dob" name="dob" type="date" placeholder="dd/mm/yyyy" className="mt-1" value={passportInfo.dob || ''} onChange={handleInputChange} />
             </div>
             <div>
               <label htmlFor="sex">Sex</label>
@@ -348,16 +323,13 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
             </div>
             <div>
               <label htmlFor="dateOfExpiry">Passport Expiry Date</label>
-              <div className="relative mt-1">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input id="dateOfExpiry" name="dateOfExpiry" type="date" placeholder="dd/mm/yyyy" className="pl-9" value={passportInfo.dateOfExpiry || ''} onChange={handleInputChange} />
-              </div>
+              <Input id="dateOfExpiry" name="dateOfExpiry" type="date" placeholder="dd/mm/yyyy" className="mt-1" value={passportInfo.dateOfExpiry || ''} onChange={handleInputChange} />
             </div>
             <div>
               <label>Passport Photo</label>
               <div className="mt-1 flex items-center gap-3 rounded-lg border p-3">
                 <Button type="button" variant="outline" onClick={() => document.getElementById('passportPhoto').click()}>
-                  <Upload className="w-4 h-4 mr-2" /> Choose file
+                  Choose file
                 </Button>
                 <Input id="passportPhoto" name="passportPhoto" type="file" className="hidden" onChange={handleFileChange} />
                 <span className="text-sm text-slate-500">{passportInfo.passportPhoto || 'No file chosen'}</span>
@@ -367,7 +339,7 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
               <label>Signature Image</label>
               <div className="mt-1 flex items-center gap-3 rounded-lg border p-3">
                 <Button type="button" variant="outline" onClick={() => document.getElementById('signatureImage').click()}>
-                  <Upload className="w-4 h-4 mr-2" /> Choose file
+                  Choose file
                 </Button>
                 <Input id="signatureImage" name="signatureImage" type="file" className="hidden" onChange={handleFileChange} />
                 <span className="text-sm text-slate-500">{passportInfo.signatureImage || 'No file chosen'}</span>
@@ -378,7 +350,7 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
       </Card>
       <div className="flex justify-end mt-8">
         <Button onClick={onNext} size="lg">
-          Proceed to Payment <ArrowRight className="ml-2 w-5 h-5" />
+          Proceed to Payment →
         </Button>
       </div>
     </motion.div>
@@ -556,8 +528,7 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
     <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="w-6 h-6" />
+          <CardTitle>
             Payment Details
           </CardTitle>
         </CardHeader>
@@ -663,10 +634,10 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
       </Card>
       <div className="flex justify-between mt-8">
         <Button onClick={onBack} variant="outline" size="lg" disabled={isProcessing}>
-          <ArrowLeft className="mr-2 w-5 h-5" /> Back
+          ← Back
         </Button>
         <Button onClick={handleProceed} size="lg" disabled={isProcessing} className="bg-gradient-to-r from-emerald-500 to-teal-600">
-          {isProcessing ? 'Processing...' : 'Process Payment'} <ArrowRight className="ml-2 w-5 h-5" />
+          {isProcessing ? 'Processing...' : 'Process Payment →'}
         </Button>
       </div>
     </motion.div>
@@ -692,9 +663,8 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
     <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}>
       <Card className="border-green-200">
         <CardHeader className="bg-green-50">
-          <CardTitle className="flex items-center gap-2 text-green-700">
-            <Check className="w-6 h-6" />
-            Voucher Generated Successfully!
+          <CardTitle className="text-green-700">
+            ✓ Voucher Generated Successfully!
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
@@ -751,11 +721,9 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 pt-4 border-t">
             <Button onClick={() => setShowPrintDialog(true)} className="flex-1 bg-emerald-600 hover:bg-emerald-700">
-              <Printer className="w-4 h-4 mr-2" />
               Print Voucher
             </Button>
             <Button variant="outline" className="flex-1">
-              <QrCode className="w-4 h-4 mr-2" />
               Show QR Code
             </Button>
           </div>
@@ -764,10 +732,10 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
 
       <div className="flex justify-between mt-8">
         <Button onClick={onBack} variant="outline" size="lg">
-          <ArrowLeft className="mr-2 w-5 h-5" /> Create Another
+          ← Create Another
         </Button>
         <Button onClick={() => window.location.href = '/'} size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-600">
-          <Check className="mr-2 w-5 h-5" /> Done
+          Done ✓
         </Button>
       </div>
 

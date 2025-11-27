@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Hash, Globe, Calendar, VenetianMask, Upload, Save, ScanLine } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -87,14 +86,11 @@ const CreatePassport = ({ onSave }) => {
         {isScannerActive && (
           <Card className="mb-6 bg-emerald-50 border-emerald-300">
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <ScanLine className="w-6 h-6 text-emerald-600 animate-pulse" />
-                <div>
-                  <h3 className="font-bold text-emerald-900">Scanning Passport MRZ...</h3>
-                  <p className="text-emerald-700 text-sm">
-                    Scan the 2 lines at the bottom of the passport for automatic data entry.
-                  </p>
-                </div>
+              <div>
+                <h3 className="font-bold text-emerald-900">Scanning Passport MRZ...</h3>
+                <p className="text-emerald-700 text-sm">
+                  Scan the 2 lines at the bottom of the passport for automatic data entry.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -102,14 +98,11 @@ const CreatePassport = ({ onSave }) => {
         {!isScannerActive && (
           <Card className="mb-6 bg-blue-50 border-blue-300">
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <ScanLine className="w-6 h-6 text-blue-600" />
-                <div>
-                  <h3 className="font-bold text-blue-900">Hardware Scanner Ready</h3>
-                  <p className="text-blue-700 text-sm">
-                    Use your scanner to scan passport MRZ for automatic form filling, or enter details manually below.
-                  </p>
-                </div>
+              <div>
+                <h3 className="font-bold text-blue-900">Hardware Scanner Ready</h3>
+                <p className="text-blue-700 text-sm">
+                  Use your scanner to scan passport MRZ for automatic form filling, or enter details manually below.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -118,78 +111,58 @@ const CreatePassport = ({ onSave }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="passport_no">Passport Number</Label>
-              <div className="relative">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <Input
-                  name="passport_no"
-                  id="passport_no"
-                  placeholder="e.g., P1234567"
-                  className="pl-10"
-                  value={formData.passport_no}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+              <Input
+                name="passport_no"
+                id="passport_no"
+                placeholder="e.g., P1234567"
+                value={formData.passport_no}
+                onChange={handleInputChange}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="nationality">Nationality</Label>
-              <div className="relative">
-                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <Input
-                  name="nationality"
-                  id="nationality"
-                  placeholder="e.g., Australian"
-                  className="pl-10"
-                  value={formData.nationality}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+              <Input
+                name="nationality"
+                id="nationality"
+                placeholder="e.g., Australian"
+                value={formData.nationality}
+                onChange={handleInputChange}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="surname">Surname</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <Input
-                  name="surname"
-                  id="surname"
-                  placeholder="e.g., Smith"
-                  className="pl-10"
-                  value={formData.surname}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+              <Input
+                name="surname"
+                id="surname"
+                placeholder="e.g., Smith"
+                value={formData.surname}
+                onChange={handleInputChange}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="given_name">Given Name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <Input
-                  name="given_name"
-                  id="given_name"
-                  placeholder="e.g., John"
-                  className="pl-10"
-                  value={formData.given_name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+              <Input
+                name="given_name"
+                id="given_name"
+                placeholder="e.g., John"
+                value={formData.given_name}
+                onChange={handleInputChange}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="dob">Date of Birth</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <Input
-                  name="dob"
-                  id="dob"
-                  type="date"
-                  className="pl-10"
-                  value={formData.dob}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+              <Input
+                name="dob"
+                id="dob"
+                type="date"
+                value={formData.dob}
+                onChange={handleInputChange}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="sex">Sex</Label>
@@ -200,8 +173,7 @@ const CreatePassport = ({ onSave }) => {
                 required
               >
                 <SelectTrigger id="sex">
-                  <VenetianMask className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                  <SelectValue placeholder="Select sex" className="pl-10" />
+                  <SelectValue placeholder="Select sex" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="M">Male</SelectItem>
@@ -215,17 +187,11 @@ const CreatePassport = ({ onSave }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="photo">Passport Photo</Label>
-              <div className="relative">
-                <Upload className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <Input name="photo" id="photo" type="file" className="pl-10 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
-              </div>
+              <Input name="photo" id="photo" type="file" className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="signature">Signature Image</Label>
-              <div className="relative">
-                <Upload className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <Input name="signature" id="signature" type="file" className="pl-10 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
-              </div>
+              <Input name="signature" id="signature" type="file" className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
             </div>
           </div>
 
@@ -235,7 +201,6 @@ const CreatePassport = ({ onSave }) => {
               size="lg"
               className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg hover:shadow-xl transition-all"
             >
-              <Save className="w-5 h-5 mr-2" />
               Save and Proceed to Payment
             </Button>
           </div>

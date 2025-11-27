@@ -159,24 +159,16 @@ const Dashboard = () => {
       transition={{ duration: 0.5 }}
       className="space-y-6"
     >
-      <div className="flex flex-wrap items-center justify-between gap-6 mb-2">
-        <div>
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-2">
-            Dashboard
-          </h1>
-          <p className="text-slate-600 text-lg">Monitor your green fees performance</p>
+      <div className="flex flex-wrap items-center justify-end gap-4 mb-4">
+        <div className="grid gap-2">
+          <Label htmlFor="from-date" className="text-sm font-medium text-slate-700">From Date</Label>
+          <Input id="from-date" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="bg-white border-slate-200 h-11" />
         </div>
-        <div className="flex flex-wrap items-end gap-4 glass-effect p-5 rounded-xl">
-          <div className="grid gap-2">
-            <Label htmlFor="from-date" className="text-sm font-medium text-slate-700">From Date</Label>
-            <Input id="from-date" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="bg-white border-slate-200 h-11" />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="to-date" className="text-sm font-medium text-slate-700">To Date</Label>
-            <Input id="to-date" type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="bg-white border-slate-200 h-11" />
-          </div>
-          <Button onClick={handleFilter} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white h-11 px-6 shadow-md hover:shadow-lg transition-all">Filter</Button>
+        <div className="grid gap-2">
+          <Label htmlFor="to-date" className="text-sm font-medium text-slate-700">To Date</Label>
+          <Input id="to-date" type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="bg-white border-slate-200 h-11" />
         </div>
+        <Button onClick={handleFilter} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white h-11 px-6 shadow-md hover:shadow-lg transition-all mt-6">Filter</Button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">

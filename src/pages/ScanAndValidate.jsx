@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { QrCode, Keyboard, Camera, XCircle, CheckCircle, AlertCircle, Loader2, FileText, User, Calendar, Hash, ScanLine } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -319,7 +318,7 @@ const ScanAndValidate = () => {
     if (!result) return null;
 
     const isSuccess = result.status === 'success';
-    const Icon = isSuccess ? CheckCircle : XCircle;
+    const icon = isSuccess ? '✓' : '✗';
     const color = isSuccess ? 'green' : 'red';
 
     return (
@@ -327,27 +326,27 @@ const ScanAndValidate = () => {
         <Card className={`border-${color}-500`}>
           <CardHeader className={`bg-${color}-50`}>
             <CardTitle className={`flex items-center gap-2 text-${color}-700`}>
-              <Icon /> {isSuccess ? 'Validation Successful' : 'Validation Failed'}
+              <span className="text-2xl">{icon}</span> {isSuccess ? 'Validation Successful' : 'Validation Failed'}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4">
             <p className="font-semibold mb-3">{result.message}</p>
             {result.type === 'passport' && result.data && (
               <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2"><Hash className="w-4 h-4 text-slate-500" /><strong>Passport No:</strong> {result.data.passportNumber}</div>
-                <div className="flex items-center gap-2"><User className="w-4 h-4 text-slate-500" /><strong>Name:</strong> {result.data.givenName} {result.data.surname}</div>
-                <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-slate-500" /><strong>Expiry:</strong> {result.data.dateOfExpiry}</div>
+                <div className="flex items-center gap-2"><span className="text-slate-500">#</span><strong>Passport No:</strong> {result.data.passportNumber}</div>
+                <div className="flex items-center gap-2"><span className="text-slate-500">👤</span><strong>Name:</strong> {result.data.givenName} {result.data.surname}</div>
+                <div className="flex items-center gap-2"><span className="text-slate-500">📅</span><strong>Expiry:</strong> {result.data.dateOfExpiry}</div>
               </div>
             )}
             {result.type === 'voucher' && result.data && (
               <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-slate-500" /><strong>Type:</strong> {result.data.voucherType} Voucher</div>
-                <div className="flex items-center gap-2"><Hash className="w-4 h-4 text-slate-500" /><strong>Voucher Code:</strong> {result.data.voucher_code}</div>
-                <div className="flex items-center gap-2"><User className="w-4 h-4 text-slate-500" /><strong>Passport:</strong> {result.data.passport_number}</div>
+                <div className="flex items-center gap-2"><span className="text-slate-500">📄</span><strong>Type:</strong> {result.data.voucherType} Voucher</div>
+                <div className="flex items-center gap-2"><span className="text-slate-500">#</span><strong>Voucher Code:</strong> {result.data.voucher_code}</div>
+                <div className="flex items-center gap-2"><span className="text-slate-500">👤</span><strong>Passport:</strong> {result.data.passport_number}</div>
                 {result.data.company_name && (
-                  <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-slate-500" /><strong>Company:</strong> {result.data.company_name}</div>
+                  <div className="flex items-center gap-2"><span className="text-slate-500">📄</span><strong>Company:</strong> {result.data.company_name}</div>
                 )}
-                <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-slate-500" /><strong>Valid Until:</strong> {new Date(result.data.valid_until).toLocaleDateString()}</div>
+                <div className="flex items-center gap-2"><span className="text-slate-500">📅</span><strong>Valid Until:</strong> {new Date(result.data.valid_until).toLocaleDateString()}</div>
               </div>
             )}
           </CardContent>
@@ -404,7 +403,7 @@ const ScanAndValidate = () => {
                      window.location.hostname !== '127.0.0.1' &&
                      window.location.protocol !== 'https:'}
           >
-            <Camera className="mr-3 w-8 h-8" />
+            <span className="mr-3 text-3xl">📷</span>
             {showCameraScanner ? 'Close Camera' : 'Scan with Camera'}
             {!window.isSecureContext &&
              window.location.hostname !== 'localhost' &&
@@ -415,7 +414,7 @@ const ScanAndValidate = () => {
 
           {/* Secondary Manual Input Button */}
           <Button variant="outline" className="w-full h-14 text-base" onClick={() => document.getElementById('manual-input').focus()}>
-            <Keyboard className="mr-2" /> Manual Input (Optional)
+            ⌨️ Manual Input (Optional)
           </Button>
           <AnimatePresence>
             {showCameraScanner && (
@@ -424,7 +423,7 @@ const ScanAndValidate = () => {
                 <Card className="mb-4 bg-emerald-50 border-emerald-300">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <Camera className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-1" />
+                      <span className="text-2xl text-emerald-600 flex-shrink-0">📷</span>
                       <div>
                         <h3 className="font-bold text-emerald-900 mb-1 text-lg">Allow Camera Access</h3>
                         <p className="text-emerald-800 text-sm mb-2">
@@ -445,9 +444,9 @@ const ScanAndValidate = () => {
           </AnimatePresence>
           <div className="relative">
             {isScannerActive ? (
-              <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600 animate-pulse" />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600 text-xl animate-pulse">📱</span>
             ) : (
-              <QrCode className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">🔲</span>
             )}
             <Input
               id="manual-input"
@@ -458,7 +457,9 @@ const ScanAndValidate = () => {
               onKeyDown={(e) => e.key === 'Enter' && handleValidation(inputValue)}
               disabled={isProcessing || isScannerActive}
             />
-            {isProcessing && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 animate-spin" />}
+            {isProcessing && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin rounded-full h-5 w-5 border-2 border-slate-400 border-t-transparent"></div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -469,7 +470,9 @@ const ScanAndValidate = () => {
 
       <Card className="mt-8 bg-blue-50 border-blue-200">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-800"><AlertCircle /> How to Use</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-blue-800">
+            <span className="text-xl">ℹ️</span> How to Use
+          </CardTitle>
         </CardHeader>
         <CardContent className="text-blue-700 space-y-2">
           <p><strong>USB/Bluetooth Scanner (Recommended):</strong> Simply scan a QR code, barcode, or passport MRZ. The system automatically detects and processes the scan. Visual feedback shows scanning status.</p>

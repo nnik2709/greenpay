@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Download, Mail, Eye, Calendar, DollarSign, Users, Search, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -235,7 +234,6 @@ const CorporateBatchHistory = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Package className="w-5 h-5 text-emerald-600" />
               <div>
                 <p className="text-sm text-slate-500">Total Batches</p>
                 <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
@@ -246,7 +244,6 @@ const CorporateBatchHistory = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-600" />
               <div>
                 <p className="text-sm text-slate-500">Total Vouchers</p>
                 <p className="text-2xl font-bold text-slate-800">{stats.totalVouchers}</p>
@@ -257,7 +254,6 @@ const CorporateBatchHistory = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-purple-600" />
               <div>
                 <p className="text-sm text-slate-500">Total Amount</p>
                 <p className="text-2xl font-bold text-slate-800">PGK {stats.totalAmount.toFixed(2)}</p>
@@ -268,7 +264,6 @@ const CorporateBatchHistory = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-orange-600" />
               <div>
                 <p className="text-sm text-slate-500">Used Vouchers</p>
                 <p className="text-2xl font-bold text-slate-800">{stats.usedVouchers}</p>
@@ -284,15 +279,11 @@ const CorporateBatchHistory = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Search</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input
-                  placeholder="Search by company, email, or batch ID..."
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+              <Input
+                placeholder="Search by company, email, or batch ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
@@ -344,7 +335,6 @@ const CorporateBatchHistory = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
-                          <Package className="w-4 h-4 text-emerald-600" />
                         </div>
                         <div>
                           <h3 className="font-semibold text-slate-800">
@@ -357,19 +347,15 @@ const CorporateBatchHistory = () => {
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-slate-400" />
                           <span>{new Date(batch.createdAt).toLocaleDateString()}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-slate-400" />
                           <span>{batch.voucherCount} vouchers</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-slate-400" />
                           <span>PGK {batch.totalAmount.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Filter className="w-4 h-4 text-slate-400" />
                           <span>{batch.usageRate}% used</span>
                         </div>
                       </div>
@@ -383,7 +369,6 @@ const CorporateBatchHistory = () => {
                           setShowBatchDetails(true);
                         }}
                       >
-                        <Eye className="w-4 h-4 mr-1" />
                         Details
                       </Button>
                       <Button
@@ -391,7 +376,6 @@ const CorporateBatchHistory = () => {
                         variant="outline"
                         onClick={() => downloadBatchZip(batch.batchId)}
                       >
-                        <Download className="w-4 h-4 mr-1" />
                         Download
                       </Button>
                       <Button
@@ -399,7 +383,6 @@ const CorporateBatchHistory = () => {
                         variant="outline"
                         onClick={() => emailBatch(batch.batchId, batch.contactEmail)}
                       >
-                        <Mail className="w-4 h-4 mr-1" />
                         Email
                       </Button>
                     </div>

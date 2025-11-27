@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { QrCode } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
 import VoucherPrint from '@/components/VoucherPrint';
@@ -83,7 +82,7 @@ const CorporateVoucherReports = () => {
           disabled={row.used_at !== null}
           title={row.used_at ? 'Cannot print used voucher' : 'Print voucher'}
         >
-          <QrCode className="w-4 h-4" />
+          Print
         </Button>
       ),
       width: '100px'

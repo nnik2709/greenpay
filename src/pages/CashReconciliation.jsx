@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, Calendar, User, FileText, CheckCircle, XCircle, AlertCircle, Calculator, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -185,7 +184,6 @@ const CashReconciliation = () => {
           Cash Reconciliation
         </h1>
         <Button variant="outline" onClick={() => { loadReconciliations(); setShowHistory(true); }}>
-          <FileText className="w-4 h-4 mr-2" />
           View History
         </Button>
       </div>
@@ -193,8 +191,7 @@ const CashReconciliation = () => {
       {/* Date Selection */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-emerald-600" />
+          <CardTitle>
             Select Reconciliation Date
           </CardTitle>
         </CardHeader>
@@ -230,8 +227,7 @@ const CashReconciliation = () => {
           {/* Transaction Summary */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-emerald-600" />
+              <CardTitle>
                 Transaction Summary for {new Date(selectedDate).toLocaleDateString()}
               </CardTitle>
             </CardHeader>
@@ -266,8 +262,7 @@ const CashReconciliation = () => {
           {/* Cash Count */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Coins className="w-5 h-5 text-emerald-600" />
+              <CardTitle>
                 Cash Denomination Count
               </CardTitle>
             </CardHeader>
@@ -307,8 +302,7 @@ const CashReconciliation = () => {
           {/* Reconciliation Summary */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="w-5 h-5 text-emerald-600" />
+              <CardTitle>
                 Reconciliation Summary
               </CardTitle>
             </CardHeader>
@@ -338,15 +332,12 @@ const CashReconciliation = () => {
                 </div>
 
                 {variance !== 0 && (
-                  <div className="flex items-start gap-2 p-3 bg-blue-50 rounded text-sm text-blue-800">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                    <div>
-                      {variance > 0 ? (
-                        <p><strong>Overage:</strong> You have PGK {variance.toFixed(2)} more than expected. Please recount or explain in notes.</p>
-                      ) : (
-                        <p><strong>Shortage:</strong> You are short by PGK {Math.abs(variance).toFixed(2)}. Please recount or explain in notes.</p>
-                      )}
-                    </div>
+                  <div className="p-3 bg-blue-50 rounded text-sm text-blue-800">
+                    {variance > 0 ? (
+                      <p><strong>Overage:</strong> You have PGK {variance.toFixed(2)} more than expected. Please recount or explain in notes.</p>
+                    ) : (
+                      <p><strong>Shortage:</strong> You are short by PGK {Math.abs(variance).toFixed(2)}. Please recount or explain in notes.</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -357,7 +348,6 @@ const CashReconciliation = () => {
                   className="w-full bg-gradient-to-r from-emerald-600 to-teal-600"
                   size="lg"
                 >
-                  <CheckCircle className="w-5 h-5 mr-2" />
                   Submit Reconciliation
                 </Button>
               </div>
@@ -385,7 +375,6 @@ const CashReconciliation = () => {
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-slate-500" />
                           <span className="font-semibold">{new Date(rec.reconciliation_date).toLocaleDateString()}</span>
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                             rec.status === 'approved' ? 'bg-green-100 text-green-800' :

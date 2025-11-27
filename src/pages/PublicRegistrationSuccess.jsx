@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, Download, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -108,7 +107,7 @@ const PublicRegistrationSuccess = () => {
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
           >
-            <CheckCircle className="w-20 h-20 mx-auto text-emerald-600 mb-4" />
+            <div className="text-8xl mb-4">✓</div>
           </motion.div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
             Registration Successful!
@@ -204,16 +203,14 @@ const PublicRegistrationSuccess = () => {
                 className="flex-1"
                 data-testid="public-reg-print"
               >
-                <Printer className="w-4 h-4 mr-2" />
-                Print Voucher
+                🖨️ Print Voucher
               </Button>
               <Button
                 onClick={handleDownload}
                 className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                 data-testid="public-reg-download"
               >
-                <Download className="w-4 h-4 mr-2" />
-                Download
+                📥 Download
               </Button>
             </div>
           </CardContent>

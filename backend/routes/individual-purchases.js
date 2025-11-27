@@ -283,4 +283,163 @@ router.patch('/:id', auth, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/individual-purchases/:id/update-payment-method
+ * Update payment method for a purchase
+ * Only Flex_Admin and Finance_Manager can update
+ */
+router.get('/:id/update-payment-method', auth, checkRole('Flex_Admin', 'Finance_Manager'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { payment_method } = req.query;
+
+    if (!payment_method) {
+      return res.status(400).json({
+        type: 'error',
+        message: 'payment_method is required'
+      });
+    }
+
+    const result = await db.query(
+      `UPDATE individual_purchases
+       SET payment_method = $1
+       WHERE id = $2
+       RETURNING *`,
+      [payment_method, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        type: 'error',
+        message: 'Purchase not found'
+      });
+    }
+
+    res.json({
+      type: 'success',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error updating payment method:', error);
+    res.status(500).json({
+      type: 'error',
+      message: 'Failed to update payment method',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/individual-purchases/:id/refund
+ * Process refund for a purchase
+ * Only Flex_Admin and Finance_Manager can refund
+ */
+router.get('/:id/refund', auth, checkRole('Flex_Admin', 'Finance_Manager'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason, refund_payment_method } = req.query;
+
+    if (!reason) {
+      return res.status(400).json({
+        type: 'error',
+        message: 'Refund reason is required'
+      });
+    }
+
+    if (!refund_payment_method) {
+      return res.status(400).json({
+        type: 'error',
+        message: 'Refund payment method is required'
+      });
+    }
+
+    const result = await db.query(
+      `UPDATE individual_purchases
+       SET status = 'refunded',
+           refund_status = 'pending',
+           refund_reason = $1,
+           refund_payment_method = $2,
+           refunded_at = NOW(),
+           refunded_by = $3
+       WHERE id = $4
+       RETURNING *`,
+      [reason, refund_payment_method, req.user.name || req.user.email, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        type: 'error',
+        message: 'Purchase not found'
+      });
+    }
+
+    res.json({
+      type: 'success',
+      message: 'Refund initiated (status: pending)',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error processing refund:', error);
+    res.status(500).json({
+      type: 'error',
+      message: 'Failed to process refund',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/individual-purchases/:id/update-refund-status
+ * Update refund status (pending -> completed)
+ * Only Flex_Admin and Finance_Manager can update
+ */
+router.get('/:id/update-refund-status', auth, checkRole('Flex_Admin', 'Finance_Manager'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { refund_status } = req.query;
+
+    if (!refund_status) {
+      return res.status(400).json({
+        type: 'error',
+        message: 'refund_status is required'
+      });
+    }
+
+    if (!['pending', 'completed'].includes(refund_status)) {
+      return res.status(400).json({
+        type: 'error',
+        message: 'refund_status must be either "pending" or "completed"'
+      });
+    }
+
+    const result = await db.query(
+      `UPDATE individual_purchases
+       SET refund_status = $1
+       WHERE id = $2
+       RETURNING *`,
+      [refund_status, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        type: 'error',
+        message: 'Purchase not found'
+      });
+    }
+
+    res.json({
+      type: 'success',
+      message: `Refund status updated to ${refund_status}`,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error updating refund status:', error);
+    res.status(500).json({
+      type: 'error',
+      message: 'Failed to update refund status',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

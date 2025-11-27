@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const NotFound = () => {
@@ -13,7 +12,7 @@ const NotFound = () => {
       transition={{ duration: 0.5 }}
       className="flex flex-col items-center justify-center text-center h-[60vh]"
     >
-      <AlertTriangle className="w-24 h-24 text-red-500 mb-6" />
+      <div className="text-8xl mb-6">⚠️</div>
       <h1 className="text-6xl font-bold text-slate-800 mb-3">404</h1>
       <h2 className="text-3xl font-semibold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent mb-4">
         Page Not Found

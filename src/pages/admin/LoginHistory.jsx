@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin, Monitor, User, Search, Filter, Download, ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabaseClient';
-import ExportButton from '@/components/ExportButton';
+import api from '@/lib/api/client';
 
 const LoginHistory = () => {
   const { toast } = useToast();
@@ -18,161 +16,82 @@ const LoginHistory = () => {
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [userFilter, setUserFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('');
-  const [users, setUsers] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [entriesPerPage, setEntriesPerPage] = useState(25);
   const [filteredUserName, setFilteredUserName] = useState('');
 
   useEffect(() => {
     fetchLoginEvents();
-    fetchUsers();
-    
+
     // Check if we came from Users page with a specific user filter
-    if (location.state?.userFilter) {
-      setUserFilter(location.state.userFilter);
-      setFilteredUserName(location.state.userName || '');
-    } else {
-      setUserFilter('all');
+    if (location.state?.userName) {
+      setFilteredUserName(location.state.userName);
     }
   }, [location.state]);
 
   useEffect(() => {
     filterEvents();
-  }, [loginEvents, searchQuery, userFilter, dateFilter]);
+  }, [loginEvents, searchQuery, statusFilter]);
 
   const fetchLoginEvents = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('login_events')
-        .select(`
-          *,
-          profiles!inner(
-            id,
-            full_name,
-            email,
-            role
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(1000);
+      const params = location.state?.userFilter
+        ? { userId: location.state.userFilter, limit: 100 }
+        : { limit: 100 };
 
-      if (error) throw error;
+      const response = await api.get('/login-events', { params });
+      const data = response.loginEvents || response.data || response;
+
       setLoginEvents(data || []);
     } catch (error) {
       console.error('Error fetching login events:', error);
       toast({
+        variant: "destructive",
         title: "Error",
-        description: "Failed to load login history",
-        variant: "destructive"
+        description: "Failed to load login history"
       });
+      setLoginEvents([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchUsers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role')
-        .order('full_name');
-
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
-
   const filterEvents = () => {
-    let filtered = [...loginEvents];
+    let filtered = loginEvents;
 
-    // Search filter
+    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(event => 
-        event.profiles?.full_name?.toLowerCase().includes(query) ||
-        event.profiles?.email?.toLowerCase().includes(query) ||
+      filtered = filtered.filter(event =>
+        event.user_email?.toLowerCase().includes(query) ||
+        event.user_name?.toLowerCase().includes(query) ||
         event.ip_address?.toLowerCase().includes(query)
       );
     }
 
-    // User filter
-    if (userFilter && userFilter !== 'all') {
-      filtered = filtered.filter(event => event.user_id === userFilter);
-    }
-
-    // Date filter
-    if (dateFilter) {
-      const filterDate = new Date(dateFilter);
-      const nextDay = new Date(filterDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      
-      filtered = filtered.filter(event => {
-        const eventDate = new Date(event.created_at);
-        return eventDate >= filterDate && eventDate < nextDay;
-      });
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(event => event.status === statusFilter);
     }
 
     setFilteredEvents(filtered);
   };
 
-  const getLocationFromIP = (ip) => {
-    // Simple IP location detection (in production, use a proper geolocation service)
-    if (ip === '127.0.0.1' || ip === '::1' || ip?.startsWith('192.168.') || ip?.startsWith('10.')) {
-      return 'Local Network';
-    }
-    return ip || 'Unknown';
-  };
-
-  const getBrowserInfo = (userAgent) => {
-    if (!userAgent) return 'Unknown';
-    
-    if (userAgent.includes('Chrome')) return 'Chrome';
-    if (userAgent.includes('Firefox')) return 'Firefox';
-    if (userAgent.includes('Safari')) return 'Safari';
-    if (userAgent.includes('Edge')) return 'Edge';
-    return 'Other';
-  };
-
-  const getDeviceInfo = (userAgent) => {
-    if (!userAgent) return 'Unknown';
-    
-    if (userAgent.includes('Mobile')) return 'Mobile';
-    if (userAgent.includes('Tablet')) return 'Tablet';
-    return 'Desktop';
-  };
-
-  const exportColumns = [
-    { name: 'Date', selector: row => new Date(row.created_at).toLocaleString() },
-    { name: 'User', selector: row => row.profiles?.full_name || 'Unknown' },
-    { name: 'Email', selector: row => row.profiles?.email || 'Unknown' },
-    { name: 'Role', selector: row => row.profiles?.role || 'Unknown' },
-    { name: 'IP Address', selector: row => row.ip_address || 'Unknown' },
-    { name: 'Location', selector: row => getLocationFromIP(row.ip_address) },
-    { name: 'Browser', selector: row => getBrowserInfo(row.user_agent) },
-    { name: 'Device', selector: row => getDeviceInfo(row.user_agent) },
-  ];
-
-  const stats = {
-    total: filteredEvents.length,
-    today: filteredEvents.filter(event => {
-      const today = new Date();
-      const eventDate = new Date(event.created_at);
-      return eventDate.toDateString() === today.toDateString();
-    }).length,
-    thisWeek: filteredEvents.filter(event => {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return new Date(event.created_at) >= weekAgo;
-    }).length,
-    uniqueUsers: new Set(filteredEvents.map(event => event.user_id)).size
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
       </div>
     );
@@ -180,191 +99,153 @@ const LoginHistory = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/users')}
-            className="text-slate-600 hover:text-slate-800"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Users
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-              Login History
-              {filteredUserName && (
-                <span className="text-lg font-normal text-slate-600 ml-2">
-                  for {filteredUserName}
-                </span>
-              )}
-            </h1>
-            <p className="text-slate-600 mt-1">
-              {filteredUserName 
-                ? `Login activity for ${filteredUserName}` 
-                : 'Monitor user login activity and security events'
-              }
-            </p>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+            Login History
+          </h1>
+          {filteredUserName && (
+            <p className="text-slate-600 mt-1">Showing login history for: <span className="font-medium">{filteredUserName}</span></p>
+          )}
         </div>
-        <ExportButton
-          data={filteredEvents}
-          columns={exportColumns}
-          filename={`Login_History_Report${filteredUserName ? `_${filteredUserName}` : ''}`}
-          title="Login History Report"
-        />
+        <div className="flex gap-2">
+          {filteredUserName && (
+            <Button
+              onClick={() => navigate('/users')}
+              variant="outline"
+              className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+            >
+              ← Back to Users
+            </Button>
+          )}
+          <Button
+            onClick={fetchLoginEvents}
+            variant="outline"
+            className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+          >
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-emerald-600" />
-              <div>
-                <p className="text-sm text-slate-500">Total Logins</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-blue-600" />
-              <div>
-                <p className="text-sm text-slate-500">Today</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.today}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-purple-600" />
-              <div>
-                <p className="text-sm text-slate-500">This Week</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.thisWeek}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Monitor className="w-5 h-5 text-orange-600" />
-              <div>
-                <p className="text-sm text-slate-500">Unique Users</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.uniqueUsers}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
+        <div className="flex items-center justify-between mb-4 gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-slate-600">Show</span>
+            <Select value={entriesPerPage.toString()} onValueChange={(val) => setEntriesPerPage(parseInt(val))}>
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-slate-600">entries</span>
+          </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Search</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input
-                  placeholder="Search by name, email, or IP..."
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">User</label>
-              <Select value={userFilter} onValueChange={setUserFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All users" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600">Status:</span>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All users</SelectItem>
-                  {users.map(user => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.full_name} ({user.email})
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="success">Success</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Date</label>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600">Search:</span>
               <Input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
+                placeholder="Email, name, IP..."
+                className="w-64"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Login Events Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Login Events ({filteredEvents.length} records)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredEvents.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
-              No login events found matching your criteria.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredEvents.map((event, index) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
-                          <User className="w-4 h-4 text-emerald-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-slate-800">
-                            {event.profiles?.full_name || 'Unknown User'}
-                          </h3>
-                          <p className="text-sm text-slate-500">
-                            {event.profiles?.email || 'No email'} • {event.profiles?.role || 'No role'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-slate-400" />
-                          <span>{new Date(event.created_at).toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-slate-400" />
-                          <span>{getLocationFromIP(event.ip_address)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Monitor className="w-4 h-4 text-slate-400" />
-                          <span>{getBrowserInfo(event.user_agent)} on {getDeviceInfo(event.user_agent)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left text-slate-600">
+            <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+              <tr>
+                <th scope="col" className="px-6 py-3">Date & Time</th>
+                <th scope="col" className="px-6 py-3">User</th>
+                <th scope="col" className="px-6 py-3">Email</th>
+                <th scope="col" className="px-6 py-3">Role</th>
+                <th scope="col" className="px-6 py-3">Status</th>
+                <th scope="col" className="px-6 py-3">IP Address</th>
+                <th scope="col" className="px-6 py-3">Device</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredEvents.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-8 text-center text-slate-500">
+                    {loginEvents.length === 0 ? 'No login events found.' : 'No events match your filters.'}
+                  </td>
+                </tr>
+              ) : (
+                filteredEvents.slice(0, entriesPerPage).map((event) => (
+                  <tr key={event.id} className="bg-white border-b hover:bg-slate-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span>{formatDate(event.login_time)}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="font-medium">{event.user_name || 'N/A'}</span>
+                    </td>
+                    <td className="px-6 py-4">{event.user_email || event.email}</td>
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-slate-100">
+                        {event.role || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        event.status === 'success'
+                          ? 'text-white bg-green-600'
+                          : 'text-white bg-red-600'
+                      }`}>
+                        {event.status === 'success' ? 'Success' : `Failed${event.failure_reason ? ': ' + event.failure_reason : ''}`}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs font-mono">{event.ip_address || 'N/A'}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs text-slate-500 truncate max-w-xs" title={event.user_agent}>
+                          {event.user_agent ? (
+                            event.user_agent.includes('Mobile') ? 'Mobile' :
+                            event.user_agent.includes('Chrome') ? 'Chrome' :
+                            event.user_agent.includes('Firefox') ? 'Firefox' :
+                            event.user_agent.includes('Safari') ? 'Safari' : 'Browser'
+                          ) : 'N/A'}
+                        </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex items-center justify-between pt-4 text-sm text-slate-600">
+          <div>Showing 1 to {Math.min(entriesPerPage, filteredEvents.length)} of {filteredEvents.length} entries</div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled>Previous</Button>
+            <Button variant="outline" size="sm" className="bg-emerald-100 text-emerald-700">1</Button>
+            <Button variant="outline" size="sm" disabled>Next</Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

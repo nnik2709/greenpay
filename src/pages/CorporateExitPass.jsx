@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Printer, QrCode, Check, Loader2, Building, Calendar, DollarSign, Hash, History } from 'lucide-react';
 import { getPaymentModes } from '@/lib/paymentModesStorage';
 import { createBulkCorporateVouchers } from '@/lib/corporateVouchersService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -156,12 +155,11 @@ const CorporateExitPass = () => {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
           Corporate Exit Pass
         </h1>
-        <Button 
-          onClick={() => navigate('/corporate-batch-history')} 
-          variant="outline" 
+        <Button
+          onClick={() => navigate('/corporate-batch-history')}
+          variant="outline"
           className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
         >
-          <History className="w-4 h-4 mr-2" />
           Batch History
         </Button>
       </div>
@@ -176,8 +174,7 @@ const CorporateExitPass = () => {
           >
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building className="w-6 h-6" />
+                <CardTitle>
                   Bulk Voucher Generation
                 </CardTitle>
               </CardHeader>
@@ -278,17 +275,7 @@ const CorporateExitPass = () => {
                       disabled={isProcessing}
                       className="bg-gradient-to-r from-emerald-500 to-teal-600"
                     >
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-5 h-5 mr-2" />
-                          Generate Vouchers
-                        </>
-                      )}
+                      {isProcessing ? 'Generating...' : 'Generate Vouchers'}
                     </Button>
                   </div>
                 </form>
@@ -308,9 +295,8 @@ const CorporateExitPass = () => {
             {/* Success Summary */}
             <Card className="border-green-200">
               <CardHeader className="bg-green-50">
-                <CardTitle className="flex items-center gap-2 text-green-700">
-                  <Check className="w-6 h-6" />
-                  Vouchers Generated Successfully!
+                <CardTitle className="text-green-700">
+                  ✓ Vouchers Generated Successfully!
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
@@ -356,8 +342,7 @@ const CorporateExitPass = () => {
                     >
                       <Card className="border-emerald-200 hover:shadow-lg transition-shadow">
                         <CardHeader className="pb-3 bg-emerald-50">
-                          <CardTitle className="text-base flex items-center gap-2">
-                            <Hash className="w-4 h-4" />
+                          <CardTitle className="text-base">
                             Voucher #{index + 1}
                           </CardTitle>
                         </CardHeader>
@@ -379,7 +364,6 @@ const CorporateExitPass = () => {
                             onClick={() => handlePrintVoucher(voucher)}
                             className="w-full bg-emerald-600 hover:bg-emerald-700"
                           >
-                            <Printer className="w-4 h-4 mr-2" />
                             Print Voucher
                           </Button>
                         </CardContent>

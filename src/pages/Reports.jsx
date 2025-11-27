@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { BarChart2, FileText, Users, DollarSign, UploadCloud, FileCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -11,12 +10,12 @@ import {
 } from "@/components/ui/card";
 
 const reportItems = [
-  { title: 'Passport Reports', description: 'Analyze all passport data.', icon: Users, link: '/reports/passports' },
-  { title: 'Individual Purchase', description: 'Track single transaction details.', icon: DollarSign, link: '/reports/individual-purchase' },
-  { title: 'Corporate Vouchers', description: 'Monitor bulk corporate sales.', icon: FileCheck, link: '/reports/corporate-vouchers' },
-  { title: 'Revenue Generated', description: 'View combined financial analysis.', icon: BarChart2, link: '/reports/revenue-generated' },
-  { title: 'Bulk Uploads', description: 'Statistics on mass uploads.', icon: UploadCloud, link: '/reports/bulk-passport-uploads' },
-  { title: 'Quotations Reports', description: 'Track business quotation pipeline.', icon: FileText, link: '/reports/quotations' },
+  { title: 'Passport Reports', description: 'Analyze all passport data.', link: '/reports/passports' },
+  { title: 'Individual Purchase', description: 'Track single transaction details.', link: '/reports/individual-purchase' },
+  { title: 'Corporate Vouchers', description: 'Monitor bulk corporate sales.', link: '/reports/corporate-vouchers' },
+  { title: 'Revenue Generated', description: 'View combined financial analysis.', link: '/reports/revenue-generated' },
+  { title: 'Bulk Uploads', description: 'Statistics on mass uploads.', link: '/reports/bulk-passport-uploads' },
+  { title: 'Quotations Reports', description: 'Track business quotation pipeline.', link: '/reports/quotations' },
 ];
 
 const Reports = () => {
@@ -46,13 +45,13 @@ const Reports = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, delay: index * 0.1 }}
           >
-            <Card 
+            <Card
               className="h-full hover:shadow-xl hover:border-emerald-300 transition-all duration-300 cursor-pointer group"
               onClick={() => navigate(item.link)}
             >
               <CardHeader className="flex flex-row items-center gap-4">
                 <div className="bg-emerald-100 p-3 rounded-lg">
-                  <item.icon className="w-6 h-6 text-emerald-600" />
+                  <div className="w-6 h-6 text-emerald-600" />
                 </div>
                 <div>
                   <CardTitle className="text-lg font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">

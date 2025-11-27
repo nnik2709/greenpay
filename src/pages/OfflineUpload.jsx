@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, Download, FileText } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -61,7 +60,7 @@ const OfflineUpload = () => {
           </div>
           {selectedFile && (
             <div className="flex items-center gap-2 text-sm text-slate-600 pt-2">
-              <FileText className="w-4 h-4 text-emerald-600" />
+              <span>📄</span>
               <span>{selectedFile.name}</span>
             </div>
           )}
@@ -69,12 +68,10 @@ const OfflineUpload = () => {
         <p className="text-sm text-slate-500 mt-2">Choose the Excel file with offline transaction data.</p>
         <div className="flex justify-end items-center gap-4 mt-8">
           <Button variant="outline" onClick={() => navigate('/purchases/offline-template')}>
-            <Download className="w-4 h-4 mr-2" />
             Download Template
           </Button>
           <Button onClick={handleUpload} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-            <Upload className="w-4 h-4 mr-2" />
-            Upload & Process
+            📤 Upload & Process
           </Button>
         </div>
       </div>
