@@ -62,9 +62,13 @@ const CreateQuotation = () => {
 
       const result = await createQuotation(quotationData, user?.id);
 
+      if (!result) {
+        throw new Error('No data returned from server');
+      }
+
       toast({
         title: "Quotation Created!",
-        description: `Quotation ${result.quotation_number} has been saved successfully.`,
+        description: `Quotation ${result.quotation_number || 'N/A'} has been saved successfully.`,
       });
 
       // Navigate back to quotations list
