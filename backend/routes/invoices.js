@@ -35,6 +35,31 @@ const calculateGST = (subtotal, gstRate = 10.00) => {
   return parseFloat((subtotal * (gstRate / 100)).toFixed(2));
 };
 
+// GET /api/invoices/stats - Get invoice statistics
+// IMPORTANT: This must come BEFORE /:id route to avoid matching "stats" as an ID
+router.get('/stats', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Support'), async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT
+        COUNT(*) as total_count,
+        COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
+        COUNT(*) FILTER (WHERE status = 'partial') as partial_count,
+        COUNT(*) FILTER (WHERE status = 'paid') as paid_count,
+        COUNT(*) FILTER (WHERE status = 'overdue') as overdue_count,
+        COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled_count,
+        SUM(total_amount) as total_value,
+        SUM(amount_paid) as total_collected,
+        SUM(amount_due) as total_outstanding
+      FROM invoices
+    `);
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching invoice stats:', error);
+    res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+});
+
 // GET /api/invoices - Get all invoices
 router.get('/', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Support'), async (req, res) => {
   try {
@@ -367,30 +392,6 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
     res.status(500).json({ error: 'Failed to generate vouchers' });
   } finally {
     client.release();
-  }
-});
-
-// GET /api/invoices/stats - Get invoice statistics
-router.get('/stats', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Support'), async (req, res) => {
-  try {
-    const result = await db.query(`
-      SELECT
-        COUNT(*) as total_count,
-        COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
-        COUNT(*) FILTER (WHERE status = 'partial') as partial_count,
-        COUNT(*) FILTER (WHERE status = 'paid') as paid_count,
-        COUNT(*) FILTER (WHERE status = 'overdue') as overdue_count,
-        COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled_count,
-        SUM(total_amount) as total_value,
-        SUM(amount_paid) as total_collected,
-        SUM(amount_due) as total_outstanding
-      FROM invoices
-    `);
-
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error fetching invoice stats:', error);
-    res.status(500).json({ error: 'Failed to fetch statistics' });
   }
 });
 
