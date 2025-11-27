@@ -10,7 +10,8 @@ import {
   recordPayment,
   generateVouchers,
   canRecordPayment,
-  canGenerateVouchers
+  canGenerateVouchers,
+  downloadInvoicePDF
 } from '@/lib/invoiceService';
 import {
   formatPGK,
@@ -184,6 +185,22 @@ const Invoices = () => {
     setPaymentReference('');
     setPaymentNotes('');
     setSelectedInvoice(null);
+  };
+
+  const handleDownloadPDF = async (invoice) => {
+    try {
+      await downloadInvoicePDF(invoice.id, invoice.invoice_number);
+      toast({
+        title: 'PDF Downloaded',
+        description: `Invoice ${invoice.invoice_number} has been downloaded`
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to download PDF'
+      });
+    }
   };
 
   const stats = statistics ? [
@@ -377,6 +394,15 @@ const Invoices = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex gap-2 flex-wrap">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDownloadPDF(invoice)}
+                              className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                            >
+                              📄 Download PDF
+                            </Button>
+
                             {canRecordPayment(invoice) && (
                               <Button
                                 size="sm"

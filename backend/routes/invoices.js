@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { auth, checkRole } = require('../middleware/auth');
+const { generateInvoicePDF } = require('../utils/pdfGenerator');
 
 // Generate invoice number in format INV-YYYYMM-XXXX
 const generateInvoiceNumber = async () => {
@@ -392,6 +393,79 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
     res.status(500).json({ error: 'Failed to generate vouchers' });
   } finally {
     client.release();
+  }
+});
+
+// GET /api/invoices/:id/pdf - Generate and download PDF
+router.get('/:id/pdf', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Support'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get invoice
+    const invoiceResult = await db.query('SELECT * FROM invoices WHERE id = $1', [id]);
+    if (invoiceResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+
+    const invoice = invoiceResult.rows[0];
+
+    // Get customer details if customer_id exists
+    let customer = {
+      name: invoice.customer_name,
+      email: invoice.customer_email,
+      phone: invoice.customer_phone,
+      address_line1: invoice.customer_address,
+      tin: invoice.customer_tin
+    };
+
+    if (invoice.customer_id) {
+      const customerResult = await db.query('SELECT * FROM customers WHERE id = $1', [invoice.customer_id]);
+      if (customerResult.rows.length > 0) {
+        customer = customerResult.rows[0];
+      }
+    }
+
+    // Get supplier details from settings
+    const settingsResult = await db.query(
+      "SELECT key, value FROM settings WHERE key IN ('company_name', 'company_address_line1', 'company_address_line2', 'company_city', 'company_province', 'company_postal_code', 'company_country', 'company_tin', 'company_phone', 'company_email')"
+    );
+
+    const supplier = {
+      name: 'PNG Green Fees System',
+      address_line1: '',
+      address_line2: '',
+      city: '',
+      province: '',
+      postal_code: '',
+      country: 'Papua New Guinea',
+      tin: '',
+      phone: '',
+      email: ''
+    };
+
+    // Map settings to supplier object
+    settingsResult.rows.forEach(setting => {
+      const key = setting.key.replace('company_', '');
+      if (key === 'name') {
+        supplier.name = setting.value || supplier.name;
+      } else {
+        supplier[key] = setting.value || '';
+      }
+    });
+
+    // Generate PDF
+    const pdfBuffer = await generateInvoicePDF(invoice, customer, supplier);
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Invoice-${invoice.invoice_number}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+
+    // Send PDF
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
   }
 });
 
