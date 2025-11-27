@@ -5,10 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import api from '@/lib/api/client';
 import { useScannerInput } from '@/hooks/useScannerInput';
 import { parseMrz as parseMrzUtil } from '@/lib/mrzParser';
+import CameraOCRScanner from '@/components/CameraOCRScanner';
 
 const ScanAndValidate = () => {
   const { toast } = useToast();
@@ -16,6 +18,7 @@ const ScanAndValidate = () => {
   const [validationResult, setValidationResult] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [showMRZScanner, setShowMRZScanner] = useState(false);
   const [showSuccessFlash, setShowSuccessFlash] = useState(false);
   const [showErrorFlash, setShowErrorFlash] = useState(false);
   const lastScannedCode = useRef(null);
@@ -393,29 +396,47 @@ const ScanAndValidate = () => {
 
       <Card className="mb-8">
         <CardContent className="p-6 space-y-4">
-          {/* Primary Camera Button - Full width on mobile */}
-          <Button
-            variant={showCameraScanner ? "destructive" : "default"}
-            className="w-full h-20 text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
-            onClick={() => setShowCameraScanner(s => !s)}
-            disabled={!window.isSecureContext &&
-                     window.location.hostname !== 'localhost' &&
-                     window.location.hostname !== '127.0.0.1' &&
-                     window.location.protocol !== 'https:'}
-          >
-            <span className="mr-3 text-3xl">📷</span>
-            {showCameraScanner ? 'Close Camera' : 'Scan with Camera'}
-            {!window.isSecureContext &&
-             window.location.hostname !== 'localhost' &&
-             window.location.hostname !== '127.0.0.1' &&
-             window.location.protocol !== 'https:' &&
-             <span className="text-xs text-orange-200 ml-2">(HTTPS required)</span>}
-          </Button>
+          {/* Scanner Options Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* QR Code / Barcode Scanner */}
+            <Button
+              variant={showCameraScanner ? "destructive" : "default"}
+              className="h-24 text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
+              onClick={() => setShowCameraScanner(s => !s)}
+              disabled={!window.isSecureContext &&
+                       window.location.hostname !== 'localhost' &&
+                       window.location.hostname !== '127.0.0.1' &&
+                       window.location.protocol !== 'https:'}
+            >
+              <div className="text-center">
+                <span className="block text-3xl mb-1">📷</span>
+                <span className="block text-base">{showCameraScanner ? 'Close QR Scanner' : 'Scan QR/Barcode'}</span>
+                <span className="block text-xs opacity-80">Voucher codes</span>
+              </div>
+            </Button>
 
-          {/* Secondary Manual Input Button */}
-          <Button variant="outline" className="w-full h-14 text-base" onClick={() => document.getElementById('manual-input').focus()}>
+            {/* Passport MRZ OCR Scanner */}
+            <Button
+              className="h-24 text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
+              onClick={() => setShowMRZScanner(true)}
+              disabled={!window.isSecureContext &&
+                       window.location.hostname !== 'localhost' &&
+                       window.location.hostname !== '127.0.0.1' &&
+                       window.location.protocol !== 'https:'}
+            >
+              <div className="text-center">
+                <span className="block text-3xl mb-1">🛂</span>
+                <span className="block text-base">Scan Passport MRZ</span>
+                <span className="block text-xs opacity-80">OCR text scanning</span>
+              </div>
+            </Button>
+          </div>
+
+          {/* Manual Input Option */}
+          <Button variant="outline" className="w-full h-12 text-base" onClick={() => document.getElementById('manual-input').focus()}>
             ⌨️ Manual Input (Optional)
           </Button>
+          {/* QR Code Scanner View */}
           <AnimatePresence>
             {showCameraScanner && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
@@ -425,9 +446,9 @@ const ScanAndValidate = () => {
                     <div className="flex items-start gap-3">
                       <span className="text-2xl text-emerald-600 flex-shrink-0">📷</span>
                       <div>
-                        <h3 className="font-bold text-emerald-900 mb-1 text-lg">Allow Camera Access</h3>
+                        <h3 className="font-bold text-emerald-900 mb-1 text-lg">QR/Barcode Scanner</h3>
                         <p className="text-emerald-800 text-sm mb-2">
-                          Your browser will ask for camera permission. Please tap <strong>"Allow"</strong> to scan QR codes.
+                          Scan voucher QR codes or barcodes
                         </p>
                         <ul className="text-emerald-700 text-xs space-y-1 list-disc list-inside">
                           <li>Position the QR code within the scanning frame</li>
@@ -468,17 +489,67 @@ const ScanAndValidate = () => {
         <ResultCard result={validationResult} />
       </AnimatePresence>
 
+      {/* MRZ OCR Scanner Dialog */}
+      <Dialog open={showMRZScanner} onOpenChange={setShowMRZScanner}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <span>🛂</span> Passport MRZ Scanner
+            </DialogTitle>
+          </DialogHeader>
+          <CameraOCRScanner
+            onScanSuccess={(data) => {
+              const mrzResult = {
+                type: 'passport',
+                status: 'success',
+                data: {
+                  passportNumber: data.passportNumber,
+                  surname: data.surname,
+                  givenName: data.givenName,
+                  nationality: data.nationality,
+                  dob: data.dob,
+                  sex: data.sex,
+                  dateOfExpiry: data.dateOfExpiry,
+                },
+                message: 'Passport MRZ scanned successfully via camera OCR'
+              };
+              setValidationResult(mrzResult);
+              setShowMRZScanner(false);
+
+              // Success feedback
+              playSuccessBeep();
+              setShowSuccessFlash(true);
+              setTimeout(() => setShowSuccessFlash(false), 1000);
+              if (navigator.vibrate) navigator.vibrate(200);
+            }}
+            onClose={() => setShowMRZScanner(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
       <Card className="mt-8 bg-blue-50 border-blue-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-blue-800">
             <span className="text-xl">ℹ️</span> How to Use
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-blue-700 space-y-2">
-          <p><strong>USB/Bluetooth Scanner (Recommended):</strong> Simply scan a QR code, barcode, or passport MRZ. The system automatically detects and processes the scan. Visual feedback shows scanning status.</p>
-          <p><strong>Camera:</strong> Click 'Scan with Camera' and grant permission. Position the QR code or barcode within the frame. <em>Requires HTTPS in production.</em></p>
-          <p><strong>Manual Entry:</strong> Type or paste the code into the input field and press Enter.</p>
-          <p><strong>Passport MRZ:</strong> If scanning a passport, scan the 2 lines at the bottom. The system will automatically parse and display passport details.</p>
+        <CardContent className="text-blue-700 space-y-3">
+          <div>
+            <p className="font-bold mb-1">🖥️ USB/Bluetooth Scanner (Recommended):</p>
+            <p className="text-sm">Simply scan a QR code, barcode, or passport MRZ with your hardware scanner. The system automatically detects and processes the scan with visual feedback.</p>
+          </div>
+          <div>
+            <p className="font-bold mb-1">📷 QR/Barcode Scanner:</p>
+            <p className="text-sm">Click 'Scan QR/Barcode' for voucher codes. Position the code within the frame for automatic scanning. <em>Requires HTTPS in production.</em></p>
+          </div>
+          <div>
+            <p className="font-bold mb-1">🛂 Passport MRZ Scanner (OCR):</p>
+            <p className="text-sm">Click 'Scan Passport MRZ' to use camera OCR. Take a clear photo of the passport's bottom section (MRZ lines). The system extracts text using OCR technology. Works with camera or uploaded photos.</p>
+          </div>
+          <div>
+            <p className="font-bold mb-1">⌨️ Manual Entry:</p>
+            <p className="text-sm">Type or paste codes directly into the input field and press Enter.</p>
+          </div>
         </CardContent>
       </Card>
     </motion.div>
