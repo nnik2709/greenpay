@@ -163,8 +163,6 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
           dob: result.dob,
           sex: result.sex,
           dateOfExpiry: result.date_of_expiry,
-          passportPhoto: result.passport_photo,
-          signatureImage: result.signature_image,
         };
         setSearchResult(passportData);
         setPassportInfo(passportData);
@@ -194,8 +192,6 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
           dob: result.dob,
           sex: result.sex,
           dateOfExpiry: result.date_of_expiry,
-          passportPhoto: result.passport_photo,
-          signatureImage: result.signature_image,
         };
         setSearchResult(passportData);
         setPassportInfo(passportData);
@@ -342,8 +338,6 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
                         dob: existingPassport.dob,
                         sex: existingPassport.sex,
                         dateOfExpiry: existingPassport.date_of_expiry,
-                        passportPhoto: existingPassport.passport_photo,
-                        signatureImage: existingPassport.signature_image,
                       };
                       setSearchResult(fullPassportData);
                       setPassportInfo(fullPassportData);
@@ -358,7 +352,7 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
                       setSearchQuery(data.passportNumber);
                       toast({
                         title: "Camera OCR - New Passport",
-                        description: "Passport details extracted. Please verify and add photo if needed."
+                        description: "Passport details extracted. Please verify information."
                       });
                     }
                   } catch (error) {
@@ -419,31 +413,17 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="md:col-span-2">
               <label htmlFor="dateOfExpiry">Passport Expiry Date</label>
               <Input id="dateOfExpiry" name="dateOfExpiry" type="date" placeholder="dd/mm/yyyy" className="mt-1" value={passportInfo.dateOfExpiry || ''} onChange={handleInputChange} />
             </div>
-            <div>
-              <label>Passport Photo</label>
-              <div className="mt-1 flex items-center gap-3 rounded-lg border p-3">
-                <Button type="button" variant="outline" onClick={() => document.getElementById('passportPhoto').click()}>
-                  Choose file
-                </Button>
-                <Input id="passportPhoto" name="passportPhoto" type="file" className="hidden" onChange={handleFileChange} />
-                <span className="text-sm text-slate-500">{passportInfo.passportPhoto || 'No file chosen'}</span>
-              </div>
-            </div>
-            <div>
-              <label>Signature Image</label>
-              <div className="mt-1 flex items-center gap-3 rounded-lg border p-3">
-                <Button type="button" variant="outline" onClick={() => document.getElementById('signatureImage').click()}>
-                  Choose file
-                </Button>
-                <Input id="signatureImage" name="signatureImage" type="file" className="hidden" onChange={handleFileChange} />
-                <span className="text-sm text-slate-500">{passportInfo.signatureImage || 'No file chosen'}</span>
-              </div>
-            </div>
           </form>
+
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> Only passport number, name, nationality, sex, and expiry date are required. Photos are not stored in the system.
+            </p>
+          </div>
         </CardContent>
       </Card>
       <div className="flex justify-end mt-8">
