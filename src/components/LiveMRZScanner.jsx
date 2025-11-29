@@ -42,10 +42,12 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
         console.log('Initializing Tesseract.js worker...');
         setStatusMessage('Loading OCR engine...');
 
-        // Create worker using default paths (bundled with node_modules)
+        // Create worker with fully local paths to avoid CDN issues
         // Note: No logger function - it causes DataCloneError with Web Workers
-        // Using 'eng' language data from official CDN (smaller, cached by browsers)
-        worker = await createWorker('eng');
+        worker = await createWorker('eng', 1, {
+          workerPath: '/tesseract/worker.min.js',
+          corePath: '/tesseract/tesseract-core-lstm.wasm.js',
+        });
 
         if (!isActive) {
           // Component unmounted during initialization
