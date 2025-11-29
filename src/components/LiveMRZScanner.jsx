@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, X, CheckCircle, AlertCircle, Loader2, Upload, Focus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { createWorker } from 'tesseract.js';
+import { recognize } from 'tesseract.js';
 import { parseMrz as parseMrzUtil } from '@/lib/mrzParser';
 
 /**
@@ -37,74 +37,19 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
     let worker = null;
     let isActive = true;
 
-    const initWorker = async () => {
-      try {
-        console.log('Initializing Tesseract.js worker...');
-        setStatusMessage('Loading OCR engine...');
+    // Using synchronous Tesseract.recognize() instead of worker
+    // No initialization needed - ready immediately
+    console.log('✅ OCR scanner ready (synchronous mode)');
+    setOcrWorker(true);
+    setStatusMessage('OCR ready');
 
-        // Create worker using default configuration
-        // Tesseract.js will use bundled files from node_modules
-        // Note: No logger function - it causes DataCloneError with Web Workers
-        worker = await createWorker('eng');
-
-        if (!isActive) {
-          // Component unmounted during initialization
-          await worker.terminate();
-          return;
-        }
-
-        if (!isActive) {
-          // Component unmounted during initialization
-          await worker.terminate();
-          return;
-        }
-
-        console.log('Worker initialized successfully');
-        setStatusMessage('Configuring OCR parameters...');
-
-        console.log('Setting OCR parameters...');
-        await worker.setParameters({
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<',
-          tessedit_pageseg_mode: '6',
-        });
-
-        if (!isActive) {
-          await worker.terminate();
-          return;
-        }
-
-        console.log('✅ OCR worker ready!');
-        setOcrWorker(worker);
-        setStatusMessage('OCR ready');
-
-        toast({
-          title: "✅ OCR Ready",
-          description: "Camera scanner is ready to use!",
-        });
-      } catch (error) {
-        if (!isActive) return;
-
-        console.error('❌ Failed to initialize OCR:', error);
-        console.error('Error details:', error.message, error.stack);
-
-        setStatusMessage('OCR failed to load');
-
-        toast({
-          title: "OCR Initialization Failed",
-          description: "Please use file upload instead or refresh the page.",
-          variant: "destructive"
-        });
-      }
-    };
-
-    initWorker();
+    toast({
+      title: "✅ OCR Ready",
+      description: "Camera scanner ready! Using synchronous mode.",
+    });
 
     return () => {
       isActive = false;
-      if (worker) {
-        console.log('Terminating OCR worker...');
-        worker.terminate();
-      }
     };
   }, [toast]);
 
@@ -259,7 +204,10 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
         setStatusMessage('Analyzing...');
 
         // Perform OCR on MRZ region
-        const { data: { text } } = await ocrWorker.recognize(mrzImage);
+        // Use synchronous recognize() instead of worker
+        const { data: { text } } = await recognize(mrzImage, 'eng', {
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<',
+        });
 
         // Try to extract MRZ
         const lines = text.split('\n').filter(line => line.trim().length > 0);
@@ -368,7 +316,10 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
     setScanResult(null);
 
     try {
-      const { data: { text } } = await ocrWorker.recognize(imageDataUrl);
+      // Use synchronous recognize() instead of worker
+      const { data: { text } } = await recognize(imageDataUrl, 'eng', {
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<',
+      });
 
       const lines = text.split('\n').filter(line => line.trim().length > 0);
       const mrzLines = lines.filter(line =>
