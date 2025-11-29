@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, X, CheckCircle, AlertCircle, Loader2, Upload, Focus } from 'lucide-react';
+import { Camera, X, CheckCircle, AlertCircle, Loader2, Focus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { recognize } from 'tesseract.js';
@@ -30,7 +30,6 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const scanIntervalRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   // Initialize OCR worker once
   useEffect(() => {
@@ -69,7 +68,7 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
       if (!isSecureContext) {
         toast({
           title: "Camera Not Available",
-          description: "Camera requires HTTPS. Please use file upload.",
+          description: "Camera requires HTTPS. Please enter passport details manually.",
           variant: "destructive",
         });
         return;
@@ -86,6 +85,11 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
 
       console.log('Requesting camera permission...');
 
+      // Show camera UI first, then get stream
+      setShowCamera(true);
+      setScanStatus('scanning');
+      setStatusMessage('Starting camera...');
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
@@ -96,36 +100,47 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
 
       console.log('Camera stream obtained:', stream);
 
+      // Wait for video element to be mounted
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
-        setShowCamera(true);
-        setScanStatus('scanning');
         setStatusMessage('Position passport MRZ in the frame');
 
         console.log('Camera started successfully!');
 
-        // Start live scanning after a short delay for camera to stabilize
-        setTimeout(() => {
-          console.log('Starting live scanning loop...');
-          startLiveScanning();
-        }, 1000);
+        // Wait for video to load metadata
+        videoRef.current.onloadedmetadata = () => {
+          console.log('Video metadata loaded, starting scanning...');
+          // Start live scanning after a short delay for camera to stabilize
+          setTimeout(() => {
+            console.log('Starting live scanning loop...');
+            startLiveScanning();
+          }, 1000);
+        };
       } else {
         console.error('Video ref not available');
+        stopCamera();
+        toast({
+          title: "Camera Error",
+          description: "Failed to initialize video element. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Camera error:', error);
       console.error('Error name:', error.name);
       console.error('Error message:', error.message);
 
-      let errorMessage = "Please allow camera access or use file upload.";
+      let errorMessage = "Please allow camera access or enter details manually.";
 
       if (error.name === 'NotAllowedError') {
-        errorMessage = "Camera permission denied. Please allow camera access in your browser settings.";
+        errorMessage = "Camera permission denied. Please allow camera access in your browser settings or enter details manually.";
       } else if (error.name === 'NotFoundError') {
-        errorMessage = "No camera found. Please use file upload instead.";
+        errorMessage = "No camera found. Please enter passport details manually.";
       } else if (error.name === 'NotReadableError') {
-        errorMessage = "Camera is already in use by another application.";
+        errorMessage = "Camera is already in use by another application. Please close other apps or enter details manually.";
       }
 
       toast({
@@ -133,6 +148,9 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
         description: errorMessage,
         variant: "destructive",
       });
+
+      setShowCamera(false);
+      setScanStatus('idle');
     }
   };
 
@@ -228,9 +246,9 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
           if (parseResult.success) {
             // Valid MRZ detected!
             setScanStatus('success');
-            setStatusMessage('✓ Passport detected! Processing...');
+            setStatusMessage('✓ Passport detected! Populating form...');
 
-            // Stop scanning
+            // Stop scanning immediately
             if (scanIntervalRef.current) {
               clearInterval(scanIntervalRef.current);
               scanIntervalRef.current = null;
@@ -251,22 +269,14 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
               dateOfExpiry: parseResult.dateOfExpiry,
             };
 
-            setScanResult({
-              type: 'success',
-              data: passportData,
-              message: 'Passport MRZ scanned successfully!'
-            });
-
             toast({
-              title: "Scan Successful",
-              description: `Passport ${passportData.passportNumber} detected automatically.`,
+              title: "✓ Scan Successful",
+              description: `Passport ${passportData.passportNumber} detected. Populating form...`,
             });
 
-            // Auto-proceed after showing result
-            setTimeout(() => {
-              stopCamera();
-              onScanSuccess(passportData);
-            }, 2000);
+            // Immediately close camera and populate form
+            stopCamera();
+            onScanSuccess(passportData);
 
           } else {
             // Invalid MRZ, continue scanning
@@ -287,98 +297,6 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
     }, 2000); // Scan every 2 seconds
   };
 
-  // Handle file upload
-  const handleFileUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const imageDataUrl = e.target.result;
-      await processImage(imageDataUrl);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Process uploaded image
-  const processImage = async (imageDataUrl) => {
-    if (!ocrWorker) {
-      toast({
-        title: "OCR Not Ready",
-        description: "Please wait for OCR to initialize.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setScanStatus('processing');
-    setStatusMessage('Processing image...');
-    setScanResult(null);
-
-    try {
-      // Use synchronous recognize() instead of worker
-      const { data: { text } } = await recognize(imageDataUrl, 'eng', {
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<',
-      });
-
-      const lines = text.split('\n').filter(line => line.trim().length > 0);
-      const mrzLines = lines.filter(line =>
-        line.startsWith('P<') ||
-        (line.includes('<') && line.replace(/[^<]/g, '').length > 10)
-      );
-
-      if (mrzLines.length < 2) {
-        throw new Error('Could not find MRZ lines. Please ensure the bottom of the passport is clearly visible.');
-      }
-
-      const mrzLine1 = mrzLines[mrzLines.length - 2].replace(/\s/g, '');
-      const mrzLine2 = mrzLines[mrzLines.length - 1].replace(/\s/g, '');
-      const mrzString = mrzLine1 + mrzLine2;
-
-      const parseResult = parseMrzUtil(mrzString);
-
-      if (!parseResult.success) {
-        throw new Error(parseResult.message || 'Failed to parse MRZ data');
-      }
-
-      const passportData = {
-        passportNumber: parseResult.passportNumber,
-        surname: parseResult.surname,
-        givenName: parseResult.givenName,
-        nationality: parseResult.nationality,
-        dob: parseResult.dob,
-        sex: parseResult.sex,
-        dateOfExpiry: parseResult.dateOfExpiry,
-      };
-
-      setScanStatus('success');
-      setScanResult({
-        type: 'success',
-        data: passportData,
-        message: 'Passport MRZ extracted successfully!'
-      });
-
-      toast({
-        title: "Scan Successful",
-        description: `Passport details for ${passportData.givenName} ${passportData.surname} extracted.`,
-      });
-
-    } catch (error) {
-      console.error('OCR Error:', error);
-
-      setScanStatus('error');
-      setScanResult({
-        type: 'error',
-        message: error.message || 'Failed to scan passport. Please try again with better lighting.'
-      });
-
-      toast({
-        title: "Scan Failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  };
 
   // Get status color
   const getStatusColor = () => {
@@ -435,18 +353,18 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
 
       {/* Scanner Options (if not scanning) */}
       {!showCamera && scanStatus !== 'processing' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="flex justify-center">
           <Button
             onClick={startCamera}
-            className="h-24 text-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-24 w-full max-w-md text-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!ocrWorker}
           >
             {ocrWorker ? (
               <>
                 <Camera className="w-6 h-6 mr-2" />
                 <div>
-                  <div className="font-bold">Live Camera Scan</div>
-                  <div className="text-xs opacity-90">Auto-detect MRZ</div>
+                  <div className="font-bold">Start Camera Scan</div>
+                  <div className="text-xs opacity-90">Auto-detect passport MRZ</div>
                 </div>
               </>
             ) : (
@@ -459,38 +377,6 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
               </>
             )}
           </Button>
-
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            className="h-24 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!ocrWorker}
-          >
-            {ocrWorker ? (
-              <>
-                <Upload className="w-6 h-6 mr-2" />
-                <div>
-                  <div className="font-bold">Upload Photo</div>
-                  <div className="text-xs opacity-90">Choose from gallery</div>
-                </div>
-              </>
-            ) : (
-              <>
-                <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-                <div>
-                  <div className="font-bold">Initializing...</div>
-                  <div className="text-xs opacity-90">Loading OCR</div>
-                </div>
-              </>
-            )}
-          </Button>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
         </div>
       )}
 
