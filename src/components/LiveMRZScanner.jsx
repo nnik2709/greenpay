@@ -35,35 +35,43 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
   // Initialize OCR worker once
   useEffect(() => {
     let worker = null;
+    let isActive = true;
 
     const initWorker = async () => {
       try {
         console.log('Initializing Tesseract.js worker...');
         setStatusMessage('Loading OCR engine...');
 
-        // Create worker with explicit paths to avoid CDN issues
+        // Create worker using default paths (bundled with node_modules)
         // Note: No logger function - it causes DataCloneError with Web Workers
-        worker = await createWorker({
-          workerPath: '/tesseract/worker.min.js',
-          langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-          corePath: 'https://unpkg.com/tesseract.js-core@v5.0.0/tesseract-core.wasm.js',
-        });
+        // Using 'eng' language data from official CDN (smaller, cached by browsers)
+        worker = await createWorker('eng');
 
-        console.log('Worker created successfully');
-        setStatusMessage('Loading language data...');
+        if (!isActive) {
+          // Component unmounted during initialization
+          await worker.terminate();
+          return;
+        }
 
-        console.log('Loading English language...');
-        await worker.loadLanguage('eng');
+        if (!isActive) {
+          // Component unmounted during initialization
+          await worker.terminate();
+          return;
+        }
 
-        console.log('Initializing with English...');
-        setStatusMessage('Initializing OCR...');
-        await worker.initialize('eng');
+        console.log('Worker initialized successfully');
+        setStatusMessage('Configuring OCR parameters...');
 
         console.log('Setting OCR parameters...');
         await worker.setParameters({
           tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<',
           tessedit_pageseg_mode: '6',
         });
+
+        if (!isActive) {
+          await worker.terminate();
+          return;
+        }
 
         console.log('✅ OCR worker ready!');
         setOcrWorker(worker);
@@ -74,6 +82,8 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
           description: "Camera scanner is ready to use!",
         });
       } catch (error) {
+        if (!isActive) return;
+
         console.error('❌ Failed to initialize OCR:', error);
         console.error('Error details:', error.message, error.stack);
 
@@ -90,6 +100,7 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
     initWorker();
 
     return () => {
+      isActive = false;
       if (worker) {
         console.log('Terminating OCR worker...');
         worker.terminate();
