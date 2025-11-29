@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, X, CheckCircle, AlertCircle, Loader2, Upload, Focus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import Tesseract from 'tesseract.js';
+import { createWorker } from 'tesseract.js';
 import { parseMrz as parseMrzUtil } from '@/lib/mrzParser';
 
 /**
@@ -42,12 +42,10 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
         console.log('Initializing Tesseract.js worker...');
         setStatusMessage('Loading OCR engine...');
 
-        // Create worker with fully local paths to avoid CDN issues
+        // Create worker using default configuration
+        // Tesseract.js will use bundled files from node_modules
         // Note: No logger function - it causes DataCloneError with Web Workers
-        worker = await Tesseract.createWorker('eng', 1, {
-          workerPath: '/tesseract/worker.min.js',
-          corePath: '/tesseract/tesseract-core-lstm.wasm.js',
-        });
+        worker = await createWorker('eng');
 
         if (!isActive) {
           // Component unmounted during initialization
