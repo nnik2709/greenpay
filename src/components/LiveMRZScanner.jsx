@@ -76,11 +76,16 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
 
   // Start camera stream
   const startCamera = async () => {
+    console.log('🎥 Starting camera...');
+    console.log('OCR Worker ready:', !!ocrWorker);
+
     try {
       const isSecureContext = window.isSecureContext ||
                              window.location.hostname === 'localhost' ||
                              window.location.hostname === '127.0.0.1' ||
                              window.location.protocol === 'https:';
+
+      console.log('Secure context:', isSecureContext);
 
       if (!isSecureContext) {
         toast({
@@ -91,6 +96,17 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
         return;
       }
 
+      if (!ocrWorker) {
+        toast({
+          title: "OCR Loading",
+          description: "Please wait for OCR engine to initialize...",
+          variant: "default",
+        });
+        return;
+      }
+
+      console.log('Requesting camera permission...');
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
@@ -99,6 +115,8 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
         }
       });
 
+      console.log('Camera stream obtained:', stream);
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
@@ -106,16 +124,34 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
         setScanStatus('scanning');
         setStatusMessage('Position passport MRZ in the frame');
 
+        console.log('Camera started successfully!');
+
         // Start live scanning after a short delay for camera to stabilize
         setTimeout(() => {
+          console.log('Starting live scanning loop...');
           startLiveScanning();
         }, 1000);
+      } else {
+        console.error('Video ref not available');
       }
     } catch (error) {
       console.error('Camera error:', error);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+
+      let errorMessage = "Please allow camera access or use file upload.";
+
+      if (error.name === 'NotAllowedError') {
+        errorMessage = "Camera permission denied. Please allow camera access in your browser settings.";
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = "No camera found. Please use file upload instead.";
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = "Camera is already in use by another application.";
+      }
+
       toast({
-        title: "Camera Access Denied",
-        description: "Please allow camera access or use file upload.",
+        title: "Camera Access Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -399,31 +435,68 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
         </div>
       </div>
 
+      {/* OCR Loading Status */}
+      {!ocrWorker && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <Loader2 className="w-5 h-5 text-yellow-600 animate-spin" />
+            <div>
+              <p className="font-medium text-yellow-900">Loading OCR Engine...</p>
+              <p className="text-sm text-yellow-700">Please wait a few seconds for initialization.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Scanner Options (if not scanning) */}
       {!showCamera && scanStatus !== 'processing' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Button
             onClick={startCamera}
-            className="h-24 text-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+            className="h-24 text-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!ocrWorker}
           >
-            <Camera className="w-6 h-6 mr-2" />
-            <div>
-              <div className="font-bold">Live Camera Scan</div>
-              <div className="text-xs opacity-90">Auto-detect MRZ</div>
-            </div>
+            {ocrWorker ? (
+              <>
+                <Camera className="w-6 h-6 mr-2" />
+                <div>
+                  <div className="font-bold">Live Camera Scan</div>
+                  <div className="text-xs opacity-90">Auto-detect MRZ</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                <div>
+                  <div className="font-bold">Initializing...</div>
+                  <div className="text-xs opacity-90">Loading OCR</div>
+                </div>
+              </>
+            )}
           </Button>
 
           <Button
             onClick={() => fileInputRef.current?.click()}
-            className="h-24 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            className="h-24 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!ocrWorker}
           >
-            <Upload className="w-6 h-6 mr-2" />
-            <div>
-              <div className="font-bold">Upload Photo</div>
-              <div className="text-xs opacity-90">Choose from gallery</div>
-            </div>
+            {ocrWorker ? (
+              <>
+                <Upload className="w-6 h-6 mr-2" />
+                <div>
+                  <div className="font-bold">Upload Photo</div>
+                  <div className="text-xs opacity-90">Choose from gallery</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                <div>
+                  <div className="font-bold">Initializing...</div>
+                  <div className="text-xs opacity-90">Loading OCR</div>
+                </div>
+              </>
+            )}
           </Button>
 
           <input
