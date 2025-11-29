@@ -39,30 +39,24 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
     const initWorker = async () => {
       try {
         console.log('Initializing Tesseract.js worker...');
+        setStatusMessage('Loading OCR engine...');
 
         // Create worker with explicit paths to avoid CDN issues
+        // Note: No logger function - it causes DataCloneError with Web Workers
         worker = await createWorker({
-          logger: (m) => {
-            console.log('Tesseract:', m);
-            if (m.status === 'loading tesseract core') {
-              setStatusMessage('Loading OCR engine...');
-            } else if (m.status === 'initializing tesseract') {
-              setStatusMessage('Initializing OCR...');
-            } else if (m.status === 'loading language traineddata') {
-              setStatusMessage('Loading language data...');
-            }
-          },
-          // Use worker from public directory (copied from node_modules)
           workerPath: '/tesseract/worker.min.js',
-          // Use stable CDN URLs for language data and core
           langPath: 'https://tessdata.projectnaptha.com/4.0.0',
           corePath: 'https://unpkg.com/tesseract.js-core@v5.0.0/tesseract-core.wasm.js',
         });
+
+        console.log('Worker created successfully');
+        setStatusMessage('Loading language data...');
 
         console.log('Loading English language...');
         await worker.loadLanguage('eng');
 
         console.log('Initializing with English...');
+        setStatusMessage('Initializing OCR...');
         await worker.initialize('eng');
 
         console.log('Setting OCR parameters...');
@@ -71,16 +65,16 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
           tessedit_pageseg_mode: '6',
         });
 
-        console.log('OCR worker ready!');
+        console.log('✅ OCR worker ready!');
         setOcrWorker(worker);
         setStatusMessage('OCR ready');
 
         toast({
-          title: "OCR Ready",
+          title: "✅ OCR Ready",
           description: "Camera scanner is ready to use!",
         });
       } catch (error) {
-        console.error('Failed to initialize OCR:', error);
+        console.error('❌ Failed to initialize OCR:', error);
         console.error('Error details:', error.message, error.stack);
 
         setStatusMessage('OCR failed to load');
