@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, X, CheckCircle, AlertCircle, Loader2, Upload, Focus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { createWorker } from 'tesseract.js';
+import Tesseract from 'tesseract.js';
 import { parseMrz as parseMrzUtil } from '@/lib/mrzParser';
 
 /**
@@ -44,7 +44,7 @@ const LiveMRZScanner = ({ onScanSuccess, onClose }) => {
 
         // Create worker with fully local paths to avoid CDN issues
         // Note: No logger function - it causes DataCloneError with Web Workers
-        worker = await createWorker('eng', 1, {
+        worker = await Tesseract.createWorker('eng', 1, {
           workerPath: '/tesseract/worker.min.js',
           corePath: '/tesseract/tesseract-core-lstm.wasm.js',
         });
