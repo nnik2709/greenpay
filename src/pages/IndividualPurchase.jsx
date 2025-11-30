@@ -15,6 +15,7 @@ import { createIndividualPurchase } from '@/lib/individualPurchasesService';
 import { getPaymentModes } from '@/lib/paymentModesStorage';
 import { useAuth } from '@/contexts/AuthContext';
 import VoucherPrint from '@/components/VoucherPrint';
+import PassportVoucherReceipt from '@/components/PassportVoucherReceipt';
 import { processOnlinePayment, isGatewayActive, GATEWAY_NAMES } from '@/lib/paymentGatewayService';
 import { useScannerInput } from '@/hooks/useScannerInput';
 
@@ -630,6 +631,7 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
 
 const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
   const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [showPassportReceipt, setShowPassportReceipt] = useState(false);
 
   if (!voucher) {
     return (
@@ -705,7 +707,10 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 pt-4 border-t">
             <Button onClick={() => setShowPrintDialog(true)} className="flex-1 bg-emerald-600 hover:bg-emerald-700">
-              Print Voucher
+              Print Standard Voucher
+            </Button>
+            <Button onClick={() => setShowPassportReceipt(true)} className="flex-1 bg-green-800 hover:bg-green-900">
+              🌿 Print Green Card
             </Button>
             <Button variant="outline" className="flex-1">
               Show QR Code
@@ -729,6 +734,20 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
         isOpen={showPrintDialog}
         onClose={() => setShowPrintDialog(false)}
         voucherType="Individual"
+      />
+
+      {/* Passport Green Card Receipt */}
+      <PassportVoucherReceipt
+        voucher={voucher}
+        passport={{
+          passport_number: passportInfo.passportNumber,
+          given_name: passportInfo.givenName,
+          surname: passportInfo.surname,
+          nationality: passportInfo.nationality,
+          dob: passportInfo.dob
+        }}
+        isOpen={showPassportReceipt}
+        onClose={() => setShowPassportReceipt(false)}
       />
     </motion.div>
   );

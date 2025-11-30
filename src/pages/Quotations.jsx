@@ -13,6 +13,7 @@ import { getQuotations } from '@/lib/quotationsService';
 import { getQuotationStatistics, markQuotationAsSent, approveQuotation, convertQuotationToVoucherBatch, canConvertQuotation, canApproveQuotation } from '@/lib/quotationWorkflowService';
 import { convertQuotationToInvoice } from '@/lib/invoiceService';
 import { formatPGK, calculateTotals } from '@/lib/gstUtils';
+import QuotationPDF from '@/components/QuotationPDF';
 
 const StatCard = ({ title, value }) => {
   return (
@@ -283,6 +284,16 @@ const Quotations = () => {
                             ✓ Converted to Invoice
                           </span>
                         )}
+
+                        {/* Download PDF button */}
+                        <QuotationPDF
+                          quotation={quotation}
+                          onEmailClick={() => {
+                            setQuotationId(quotation.quotation_number);
+                            setRecipient(quotation.contact_email || quotation.customer_email);
+                            setSendOpen(true);
+                          }}
+                        />
 
                         {/* View/Edit button */}
                         <Button
