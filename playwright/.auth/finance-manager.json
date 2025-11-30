@@ -1,0 +1,18 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "greenpay_auth_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYsImlhdCI6MTc2NDUwNTc1NCwiZXhwIjoxNzY0NTkyMTU0fQ.jRZOAiKqk9uISwJ5yoacccwfQWghro1pUINaqgY3FMg"
+        },
+        {
+          "name": "greenpay_user",
+          "value": "{\"id\":6,\"name\":\"Finance Manager\",\"email\":\"finance@greenpay.com\",\"roleId\":7,\"role\":\"Finance_Manager\",\"isActive\":true}"
+        }
+      ]
+    }
+  ]
+}

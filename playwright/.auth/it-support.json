@@ -1,0 +1,18 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "greenpay_auth_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsImlhdCI6MTc2NDUwNTc1NCwiZXhwIjoxNzY0NTkyMTU0fQ.3wFLjMxjG3-id-lL8WZusdLRIcjJjjpbq6EX_pWPYTE"
+        },
+        {
+          "name": "greenpay_user",
+          "value": "{\"id\":3,\"name\":\"IT Support\",\"email\":\"support@greenpay.com\",\"roleId\":5,\"role\":\"IT_Support\",\"isActive\":true}"
+        }
+      ]
+    }
+  ]
+}

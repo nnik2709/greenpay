@@ -1,0 +1,18 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "greenpay_auth_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjcsImlhdCI6MTc2NDUwNTc1NCwiZXhwIjoxNzY0NTkyMTU0fQ.Xl9jzsTmWh0Mw-c-1pribCNg_lS8lkc_Z1bMxAw-dGE"
+        },
+        {
+          "name": "greenpay_user",
+          "value": "{\"id\":7,\"name\":\"Counter Agent\",\"email\":\"agent@greenpay.com\",\"roleId\":8,\"role\":\"Counter_Agent\",\"isActive\":true}"
+        }
+      ]
+    }
+  ]
+}
