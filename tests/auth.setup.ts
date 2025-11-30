@@ -33,13 +33,13 @@ setup('authenticate', async ({ page }) => {
   await page.waitForSelector('button[type="submit"]', { state: 'visible' });
   
   // Fill in login credentials using field IDs (more reliable)
-  // Using credentials from create-test-users.sql
+  // Using credentials from test accounts (flexadmin@greenpay.com)
   await page.locator('input#email').clear();
-  await page.locator('input#email').fill('admin@example.com');
+  await page.locator('input#email').fill('flexadmin@greenpay.com');
   await page.waitForTimeout(500);
-  
+
   await page.locator('input#password').clear();
-  await page.locator('input#password').fill('admin123');
+  await page.locator('input#password').fill('test123');
   await page.waitForTimeout(500);
   
   // Verify fields are filled correctly
