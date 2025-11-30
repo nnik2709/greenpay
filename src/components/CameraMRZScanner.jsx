@@ -155,7 +155,13 @@ const CameraMRZScanner = ({ onScanSuccess, onClose }) => {
 
   const stopScanning = () => {
     if (scanner) {
-      scanner.clear().catch(err => console.error("Failed to clear scanner", err));
+      try {
+        scanner.clear().catch(err => {
+          // Silently catch errors - DOM might be gone already
+        });
+      } catch (err) {
+        // Silently catch synchronous errors
+      }
       setScanner(null);
     }
     setIsScanning(false);
@@ -164,7 +170,16 @@ const CameraMRZScanner = ({ onScanSuccess, onClose }) => {
   useEffect(() => {
     return () => {
       if (scanner) {
-        scanner.clear().catch(err => console.error("Failed to clear scanner", err));
+        try {
+          // Use a small delay to let React finish its cleanup first
+          setTimeout(() => {
+            scanner.clear().catch(err => {
+              // Silently catch errors - DOM might be gone already
+            });
+          }, 0);
+        } catch (err) {
+          // Silently catch synchronous errors
+        }
       }
     };
   }, [scanner]);
