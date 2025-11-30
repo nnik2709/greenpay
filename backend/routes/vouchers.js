@@ -25,16 +25,20 @@ router.get('/validate/:code', auth, async (req, res) => {
     const individualResult = await db.query(
       `SELECT
         id,
-        "voucherCode" as voucher_code,
-        "passportNumber" as passport_number,
-        "fullName" as full_name,
-        "validUntil" as valid_until,
-        "usedAt" as used_at,
-        "createdAt" as created_at,
+        voucher_code,
+        passport_number,
+        customer_name as full_name,
+        valid_until,
+        used_at,
+        created_at,
         amount,
-        status
-      FROM "IndividualPurchase"
-      WHERE "voucherCode" = $1`,
+        CASE
+          WHEN used_at IS NOT NULL THEN 'used'
+          WHEN valid_until < NOW() THEN 'expired'
+          ELSE 'active'
+        END as status
+      FROM individual_purchases
+      WHERE voucher_code = $1`,
       [trimmedCode]
     );
 
@@ -42,16 +46,20 @@ router.get('/validate/:code', auth, async (req, res) => {
     const corporateResult = await db.query(
       `SELECT
         id,
-        "voucherCode" as voucher_code,
-        "passportNumber" as passport_number,
-        "companyName" as company_name,
-        "validUntil" as valid_until,
-        "usedAt" as used_at,
-        "createdAt" as created_at,
+        voucher_code,
+        passport_number,
+        company_name,
+        valid_until,
+        used_at,
+        created_at,
         amount,
-        status
-      FROM "CorporateVoucher"
-      WHERE "voucherCode" = $1`,
+        CASE
+          WHEN used_at IS NOT NULL THEN 'used'
+          WHEN valid_until < NOW() THEN 'expired'
+          ELSE 'active'
+        END as status
+      FROM corporate_vouchers
+      WHERE voucher_code = $1`,
       [trimmedCode]
     );
 
@@ -123,10 +131,10 @@ router.post('/mark-used/:code', auth, async (req, res) => {
 
     // Try to update individual purchase
     const individualResult = await db.query(
-      `UPDATE "IndividualPurchase"
-       SET "usedAt" = NOW(), status = 'used'
-       WHERE "voucherCode" = $1 AND "usedAt" IS NULL
-       RETURNING id, "voucherCode"`,
+      `UPDATE individual_purchases
+       SET used_at = NOW()
+       WHERE voucher_code = $1 AND used_at IS NULL
+       RETURNING id, voucher_code`,
       [trimmedCode]
     );
 
@@ -140,10 +148,10 @@ router.post('/mark-used/:code', auth, async (req, res) => {
 
     // Try to update corporate voucher
     const corporateResult = await db.query(
-      `UPDATE "CorporateVoucher"
-       SET "usedAt" = NOW(), status = 'used'
-       WHERE "voucherCode" = $1 AND "usedAt" IS NULL
-       RETURNING id, "voucherCode"`,
+      `UPDATE corporate_vouchers
+       SET used_at = NOW()
+       WHERE voucher_code = $1 AND used_at IS NULL
+       RETURNING id, voucher_code`,
       [trimmedCode]
     );
 
