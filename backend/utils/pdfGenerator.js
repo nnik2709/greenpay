@@ -142,6 +142,15 @@ const generateInvoicePDF = (invoice, customer, supplier) => {
          .text(formatDate(invoice.due_date), rightColumnX + 80, rightYPosition);
       rightYPosition += 15;
 
+      // PO Reference (Laravel template enhancement)
+      if (invoice.purchase_order_reference || invoice.po_reference) {
+        doc.font('Helvetica-Bold')
+           .text('PO Reference:', rightColumnX, rightYPosition)
+           .font('Helvetica')
+           .text(invoice.purchase_order_reference || invoice.po_reference, rightColumnX + 80, rightYPosition);
+        rightYPosition += 15;
+      }
+
       // Payment Terms
       if (invoice.payment_terms) {
         doc.font('Helvetica-Bold')
@@ -339,6 +348,86 @@ const generateInvoicePDF = (invoice, customer, supplier) => {
            .text(formatCurrency(invoice.amount_due), totalsX + 80, yPosition, { width: 85, align: 'right' });
       }
 
+      // Payment Details Section (Laravel template enhancement)
+      yPosition += 30;
+
+      if (invoice.payment_mode || invoice.card_number || invoice.collected_amount || invoice.returned_amount) {
+        doc.fontSize(10)
+           .fillColor(darkGray)
+           .font('Helvetica-Bold')
+           .text('PAYMENT DETAILS:', 50, yPosition);
+
+        yPosition += 20;
+
+        doc.fontSize(9)
+           .font('Helvetica');
+
+        if (invoice.payment_mode) {
+          doc.font('Helvetica-Bold').text('Payment Mode: ', 50, yPosition, { continued: true })
+             .font('Helvetica').text(invoice.payment_mode.toUpperCase());
+          yPosition += 15;
+        }
+
+        if (invoice.card_number && invoice.payment_mode === 'card') {
+          const maskedCard = '****' + invoice.card_number.slice(-4);
+          doc.font('Helvetica-Bold').text('Card Number: ', 50, yPosition, { continued: true })
+             .font('Helvetica').text(maskedCard);
+          yPosition += 15;
+        }
+
+        if (invoice.card_holder && invoice.payment_mode === 'card') {
+          doc.font('Helvetica-Bold').text('Card Holder: ', 50, yPosition, { continued: true })
+             .font('Helvetica').text(invoice.card_holder);
+          yPosition += 15;
+        }
+
+        if (invoice.collected_amount) {
+          doc.font('Helvetica-Bold').text('Amount Collected: ', 50, yPosition, { continued: true })
+             .font('Helvetica').text(formatCurrency(invoice.collected_amount));
+          yPosition += 15;
+        }
+
+        if (invoice.returned_amount && invoice.returned_amount > 0) {
+          doc.font('Helvetica-Bold').text('Change Given: ', 50, yPosition, { continued: true })
+             .font('Helvetica').text(formatCurrency(invoice.returned_amount));
+          yPosition += 15;
+        }
+      }
+
+      // Bank Details Section (Laravel template enhancement)
+      yPosition += 10;
+
+      doc.fontSize(10)
+         .fillColor(darkGray)
+         .font('Helvetica-Bold')
+         .text('PAYMENT INFORMATION:', 50, yPosition);
+
+      yPosition += 20;
+
+      doc.fontSize(9)
+         .font('Helvetica-Bold')
+         .text('Bank: ', 50, yPosition, { continued: true })
+         .font('Helvetica')
+         .text('Bank of Papua New Guinea');
+      yPosition += 15;
+
+      doc.font('Helvetica-Bold')
+         .text('Account Name: ', 50, yPosition, { continued: true })
+         .font('Helvetica')
+         .text('Climate Change & Development Authority (CCDA)');
+      yPosition += 15;
+
+      doc.font('Helvetica-Bold')
+         .text('Account Number: ', 50, yPosition, { continued: true })
+         .font('Helvetica')
+         .text('1234567890');
+      yPosition += 15;
+
+      doc.font('Helvetica-Bold')
+         .text('Swift Code: ', 50, yPosition, { continued: true })
+         .font('Helvetica')
+         .text('BPNGPGPM');
+
       // Notes section
       if (invoice.notes) {
         yPosition += 30;
@@ -352,6 +441,33 @@ const generateInvoicePDF = (invoice, customer, supplier) => {
            .fontSize(8)
            .text(invoice.notes, 50, yPosition, { width: 495 });
       }
+
+      // Terms & Conditions Section (Laravel template enhancement)
+      yPosition += 30;
+
+      doc.fontSize(10)
+         .fillColor(darkGray)
+         .font('Helvetica-Bold')
+         .text('TERMS & CONDITIONS:', 50, yPosition);
+
+      yPosition += 20;
+
+      doc.fontSize(8)
+         .font('Helvetica')
+         .fillColor(darkGray);
+
+      const terms = [
+        'Payment is due within 30 days of invoice date unless otherwise specified.',
+        'Vouchers are valid for the period specified on each voucher.',
+        'Vouchers are non-refundable once issued.',
+        'Please contact our office if you have any questions regarding this invoice.',
+        'For bank transfers, please include the invoice number as reference.'
+      ];
+
+      terms.forEach((term, index) => {
+        doc.text(`${index + 1}. ${term}`, 50, yPosition, { width: 495 });
+        yPosition += 12;
+      });
 
       // Footer - GST Compliance Notice
       const footerY = 750;

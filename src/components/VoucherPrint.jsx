@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import QRCode from 'qrcode';
+import JsBarcode from 'jsbarcode';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Printer, X } from 'lucide-react';
@@ -7,13 +8,17 @@ import { Printer, X } from 'lucide-react';
 const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
   const [qrError, setQrError] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState('');
+  const [barcodeDataUrl, setBarcodeDataUrl] = useState('');
+  const barcodeCanvasRef = useRef(null);
 
   useEffect(() => {
     if (isOpen && voucher && voucher.voucher_code) {
-      console.log('Generating QR code for:', voucher.voucher_code);
+      console.log('Generating QR code and barcode for:', voucher.voucher_code);
       setQrError(false);
       setQrDataUrl('');
+      setBarcodeDataUrl('');
 
+      // Generate QR Code
       QRCode.toDataURL(
         voucher.voucher_code,
         {
@@ -34,8 +39,28 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
           }
         }
       );
+
+      // Generate Barcode (CODE-128)
+      try {
+        const canvas = document.createElement('canvas');
+        JsBarcode(canvas, voucher.voucher_code, {
+          format: 'CODE128',
+          width: 2,
+          height: 50,
+          displayValue: true,
+          fontSize: 14,
+          margin: 10,
+          background: '#ffffff',
+          lineColor: '#000000'
+        });
+        const barcodeUrl = canvas.toDataURL('image/png');
+        setBarcodeDataUrl(barcodeUrl);
+        console.log('Barcode generated successfully');
+      } catch (error) {
+        console.error('Barcode generation error:', error);
+      }
     } else {
-      console.log('QR Code generation skipped:', { isOpen, hasVoucher: !!voucher, hasCode: !!voucher?.voucher_code });
+      console.log('QR Code and barcode generation skipped:', { isOpen, hasVoucher: !!voucher, hasCode: !!voucher?.voucher_code });
     }
   }, [isOpen, voucher]);
 
@@ -108,6 +133,7 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
 
             <div class="qr-section">
               <img src="${qrDataUrl}" alt="QR Code" width="200" height="200" />
+              ${barcodeDataUrl ? `<img src="${barcodeDataUrl}" alt="Barcode" style="margin-top: 10px;" />` : ''}
               <div class="voucher-code">${voucher.voucher_code}</div>
               <span class="status-badge">✓ VALID</span>
             </div>
@@ -204,7 +230,7 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
                 </div>
               </div>
 
-              {/* Right column - QR Code */}
+              {/* Right column - QR Code and Barcode */}
               <div className="flex flex-col items-center justify-center space-y-4">
                 {qrError ? (
                   <div className="w-[200px] h-[200px] border-2 border-red-300 rounded flex items-center justify-center bg-red-50">
@@ -217,6 +243,14 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
                     <p className="text-gray-500 text-sm">Generating QR Code...</p>
                   </div>
                 )}
+
+                {/* Barcode */}
+                {barcodeDataUrl && (
+                  <div className="mt-2">
+                    <img src={barcodeDataUrl} alt="Barcode" className="border border-gray-200 rounded" />
+                  </div>
+                )}
+
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600 font-mono tracking-wider break-all">
                     {voucher.voucher_code}
