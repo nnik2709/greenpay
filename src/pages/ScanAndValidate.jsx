@@ -10,7 +10,6 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import api from '@/lib/api/client';
 import { useScannerInput } from '@/hooks/useScannerInput';
 import { parseMrz as parseMrzUtil } from '@/lib/mrzParser';
-import LiveMRZScanner from '@/components/LiveMRZScanner';
 
 const ScanAndValidate = () => {
   const { toast } = useToast();
@@ -18,7 +17,6 @@ const ScanAndValidate = () => {
   const [validationResult, setValidationResult] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
-  const [showMRZScanner, setShowMRZScanner] = useState(false);
   const [showSuccessFlash, setShowSuccessFlash] = useState(false);
   const [showErrorFlash, setShowErrorFlash] = useState(false);
   const lastScannedCode = useRef(null);
@@ -414,22 +412,6 @@ const ScanAndValidate = () => {
                 <span className="block text-xs opacity-80">Voucher codes</span>
               </div>
             </Button>
-
-            {/* Passport MRZ OCR Scanner */}
-            <Button
-              className="h-24 text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
-              onClick={() => setShowMRZScanner(true)}
-              disabled={!window.isSecureContext &&
-                       window.location.hostname !== 'localhost' &&
-                       window.location.hostname !== '127.0.0.1' &&
-                       window.location.protocol !== 'https:'}
-            >
-              <div className="text-center">
-                <span className="block text-3xl mb-1">📹</span>
-                <span className="block text-base">Live Passport Scanner</span>
-                <span className="block text-xs opacity-80">Auto-detect & capture MRZ</span>
-              </div>
-            </Button>
           </div>
 
           {/* Manual Input Option */}
@@ -489,44 +471,6 @@ const ScanAndValidate = () => {
         <ResultCard result={validationResult} />
       </AnimatePresence>
 
-      {/* Live MRZ Scanner Dialog */}
-      <Dialog open={showMRZScanner} onOpenChange={setShowMRZScanner}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <span>📹</span> Live Passport Scanner - Auto-Detect
-            </DialogTitle>
-          </DialogHeader>
-          <LiveMRZScanner
-            onScanSuccess={(data) => {
-              const mrzResult = {
-                type: 'passport',
-                status: 'success',
-                data: {
-                  passportNumber: data.passportNumber,
-                  surname: data.surname,
-                  givenName: data.givenName,
-                  nationality: data.nationality,
-                  dob: data.dob,
-                  sex: data.sex,
-                  dateOfExpiry: data.dateOfExpiry,
-                },
-                message: 'Passport MRZ scanned successfully via camera OCR'
-              };
-              setValidationResult(mrzResult);
-              setShowMRZScanner(false);
-
-              // Success feedback
-              playSuccessBeep();
-              setShowSuccessFlash(true);
-              setTimeout(() => setShowSuccessFlash(false), 1000);
-              if (navigator.vibrate) navigator.vibrate(200);
-            }}
-            onClose={() => setShowMRZScanner(false)}
-          />
-        </DialogContent>
-      </Dialog>
-
       <Card className="mt-8 bg-blue-50 border-blue-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-blue-800">
@@ -541,10 +485,6 @@ const ScanAndValidate = () => {
           <div>
             <p className="font-bold mb-1">📷 QR/Barcode Scanner:</p>
             <p className="text-sm">Click 'Scan QR/Barcode' for voucher codes. Position the code within the frame for automatic scanning. <em>Requires HTTPS in production.</em></p>
-          </div>
-          <div>
-            <p className="font-bold mb-1">📹 Live Passport Scanner (Real-time OCR):</p>
-            <p className="text-sm">Click 'Live Passport Scanner' for real-time MRZ detection. Position passport in camera view - system automatically detects and captures MRZ when recognized. Provides live feedback to adjust position. Also supports photo upload.</p>
           </div>
           <div>
             <p className="font-bold mb-1">⌨️ Manual Entry:</p>

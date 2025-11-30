@@ -17,8 +17,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import VoucherPrint from '@/components/VoucherPrint';
 import { processOnlinePayment, isGatewayActive, GATEWAY_NAMES } from '@/lib/paymentGatewayService';
 import { useScannerInput } from '@/hooks/useScannerInput';
-import LiveMRZScanner from '@/components/LiveMRZScanner';
-import { Camera } from 'lucide-react';
 
 const StepIndicator = ({ currentStep }) => {
   const steps = [
@@ -68,7 +66,6 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [scanInput, setScanInput] = useState('');
   const [searchResult, setSearchResult] = useState(null);
-  const [showOCRScanner, setShowOCRScanner] = useState(false);
 
   // Hardware scanner support with MRZ parsing
   const { isScanning: isScannerActive } = useScannerInput({
@@ -280,97 +277,6 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
             </Card>
           )}
 
-          {/* Camera OCR Scanner - Backup Option */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or Use Camera (If Hardware Scanner Fails)</span>
-            </div>
-          </div>
-
-          <Button
-            onClick={() => setShowOCRScanner(true)}
-            variant="outline"
-            className="w-full h-16 text-lg border-2 border-indigo-300 hover:bg-indigo-50 hover:border-indigo-400"
-          >
-            <Camera className="w-6 h-6 mr-3 text-indigo-600" />
-            <div className="text-left">
-              <div className="font-bold text-indigo-900">📹 Live Camera Scanner (Auto-Detect MRZ)</div>
-              <div className="text-xs text-indigo-600">Backup option - Real-time OCR with auto-capture</div>
-            </div>
-          </Button>
-
-          {/* Live MRZ Scanner Dialog */}
-          <Dialog open={showOCRScanner} onOpenChange={setShowOCRScanner}>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-xl">
-                  <Camera className="w-6 h-6" />
-                  Live MRZ Scanner - Auto-Detect & Capture
-                </DialogTitle>
-              </DialogHeader>
-              <LiveMRZScanner
-                onScanSuccess={async (data) => {
-                  // Same logic as hardware scanner
-                  const passportData = {
-                    passportNumber: data.passportNumber,
-                    surname: data.surname,
-                    givenName: data.givenName,
-                    nationality: data.nationality,
-                    dob: data.dob,
-                    sex: data.sex,
-                    dateOfExpiry: data.dateOfExpiry,
-                  };
-
-                  // Check if passport exists in database
-                  try {
-                    const existingPassport = await getPassportByNumber(data.passportNumber);
-                    if (existingPassport) {
-                      // Passport exists - load full record
-                      const fullPassportData = {
-                        id: existingPassport.id,
-                        passportNumber: existingPassport.passport_number,
-                        nationality: existingPassport.nationality,
-                        surname: existingPassport.surname,
-                        givenName: existingPassport.given_name,
-                        dob: existingPassport.dob,
-                        sex: existingPassport.sex,
-                        dateOfExpiry: existingPassport.date_of_expiry,
-                      };
-                      setSearchResult(fullPassportData);
-                      setPassportInfo(fullPassportData);
-                      setSearchQuery(fullPassportData.passportNumber);
-                      toast({
-                        title: "Camera OCR - Passport Found",
-                        description: `${fullPassportData.givenName} ${fullPassportData.surname}'s details loaded from database.`
-                      });
-                    } else {
-                      // New passport - use OCR data
-                      setPassportInfo(passportData);
-                      setSearchQuery(data.passportNumber);
-                      toast({
-                        title: "Camera OCR - New Passport",
-                        description: "Passport details extracted. Please verify information."
-                      });
-                    }
-                  } catch (error) {
-                    // Error checking database, still use OCR data
-                    setPassportInfo(passportData);
-                    setSearchQuery(data.passportNumber);
-                    toast({
-                      title: "Camera OCR Complete",
-                      description: "Passport details extracted. Please verify information."
-                    });
-                  }
-
-                  setShowOCRScanner(false);
-                }}
-                onClose={() => setShowOCRScanner(false)}
-              />
-            </DialogContent>
-          </Dialog>
         </CardContent>
       </Card>
 
