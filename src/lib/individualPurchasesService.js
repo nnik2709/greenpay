@@ -1,35 +1,8 @@
 import api from './api/client';
 
-// Helper to make direct fetch calls for individual purchases
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://greenpay.eywademo.cloud/api';
-const getToken = () => localStorage.getItem('greenpay_auth_token');
-
-const fetchAPI = async (endpoint, options = {}) => {
-  const token = getToken();
-
-  const config = {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...options.headers,
-    },
-  };
-
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    console.error('API Error Response:', error);
-    throw new Error(error.message || error.error || `HTTP ${response.status}: ${response.statusText}`);
-  }
-
-  return response.json();
-};
-
 export const getIndividualPurchases = async () => {
   try {
-    const response = await fetchAPI('/individual-purchases');
+    const response = await api.get('/individual-purchases');
     return response.data || [];
   } catch (error) {
     console.error('Error loading individual purchases:', error);
@@ -48,19 +21,16 @@ export const createIndividualPurchase = async (purchaseData, userId) => {
       validUntil.setDate(validUntil.getDate() + 30);
     }
 
-    const response = await fetchAPI('/individual-purchases', {
-      method: 'POST',
-      body: JSON.stringify({
-        passportNumber: purchaseData.passportNumber,
-        amount: purchaseData.amount,
-        paymentMethod: purchaseData.paymentMethod,
-        cardLastFour: purchaseData.cardLastFour,
-        discount: purchaseData.discount || 0,
-        collectedAmount: purchaseData.collectedAmount,
-        returnedAmount: purchaseData.returnedAmount || 0,
-        validUntil: validUntil.toISOString(),
-        nationality: purchaseData.nationality
-      })
+    const response = await api.post('/individual-purchases', {
+      passportNumber: purchaseData.passportNumber,
+      amount: purchaseData.amount,
+      paymentMethod: purchaseData.paymentMethod,
+      cardLastFour: purchaseData.cardLastFour,
+      discount: purchaseData.discount || 0,
+      collectedAmount: purchaseData.collectedAmount,
+      returnedAmount: purchaseData.returnedAmount || 0,
+      validUntil: validUntil.toISOString(),
+      nationality: purchaseData.nationality
     });
 
     return response.data;
