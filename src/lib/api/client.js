@@ -27,22 +27,37 @@ const setStoredUser = (user) => {
 // Base fetch wrapper
 const fetchAPI = async (endpoint, options = {}) => {
   const token = getToken();
-  
+
+  // Extract responseType before passing to fetch
+  const { responseType, ...fetchOptions } = options;
+
   const config = {
-    ...options,
+    ...fetchOptions,
     headers: {
       'Content-Type': 'application/json',
       ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...options.headers,
+      ...fetchOptions.headers,
     },
   };
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    
+
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+      // Create error with proper structure to match axios-like error handling
+      const error = new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      error.response = {
+        data: errorData,
+        status: response.status,
+        statusText: response.statusText
+      };
+      throw error;
+    }
+
+    // Handle different response types
+    if (responseType === 'blob') {
+      return response.blob();
     }
 
     return response.json();
@@ -53,7 +68,7 @@ const fetchAPI = async (endpoint, options = {}) => {
                           endpoint.includes('/payment-modes');
 
     if (!isExpected404 || !error.message.includes('Route not found')) {
-      console.error('API Error:', error);
+      console.error('Fetch error from ' + API_BASE_URL + endpoint + ':', error.response?.data || error.message);
     }
     throw error;
   }
@@ -261,6 +276,41 @@ export const api = {
     const { params, ...fetchOptions } = options;
     const queryString = params ? `?${new URLSearchParams(params)}` : '';
     return fetchAPI(`${endpoint}${queryString}`, fetchOptions);
+  },
+
+  // Generic POST method for custom endpoints
+  post: (endpoint, data = {}, options = {}) => {
+    return fetchAPI(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data),
+      ...options,
+    });
+  },
+
+  // Generic PUT method for custom endpoints
+  put: (endpoint, data = {}, options = {}) => {
+    return fetchAPI(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+      ...options,
+    });
+  },
+
+  // Generic PATCH method for custom endpoints
+  patch: (endpoint, data = {}, options = {}) => {
+    return fetchAPI(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+      ...options,
+    });
+  },
+
+  // Generic DELETE method for custom endpoints
+  delete: (endpoint, options = {}) => {
+    return fetchAPI(endpoint, {
+      method: 'DELETE',
+      ...options,
+    });
   },
 };
 

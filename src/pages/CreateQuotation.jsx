@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { createQuotation } from '@/lib/quotationsService';
 import { useAuth } from '@/contexts/AuthContext';
+import CustomerSelector from '@/components/CustomerSelector';
 
 const CreateQuotation = () => {
   const { toast } = useToast();
@@ -16,10 +17,7 @@ const CreateQuotation = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form state
-  const [companyName, setCompanyName] = useState('');
-  const [contactPerson, setContactPerson] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [totalVouchers, setTotalVouchers] = useState(1);
   const [discount, setDiscount] = useState(0);
   const [validUntil, setValidUntil] = useState('');
@@ -34,11 +32,11 @@ const CreateQuotation = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!companyName || !contactPerson || !contactEmail || !validUntil) {
+    if (!selectedCustomer || !validUntil) {
       toast({
         variant: "destructive",
         title: "Missing Required Fields",
-        description: "Please fill in all required fields.",
+        description: "Please select a customer and set valid until date.",
       });
       return;
     }
@@ -47,10 +45,10 @@ const CreateQuotation = () => {
 
     try {
       const quotationData = {
-        companyName: companyName,
-        contactPerson: contactPerson,
-        contactEmail: contactEmail,
-        contactPhone: contactPhone,
+        companyName: selectedCustomer.company_name || selectedCustomer.name,
+        contactPerson: selectedCustomer.contact_person || selectedCustomer.name,
+        contactEmail: selectedCustomer.email,
+        contactPhone: selectedCustomer.phone,
         numberOfPassports: totalVouchers,
         amountPerPassport: voucherValue,
         discount: discount,
@@ -99,52 +97,51 @@ const CreateQuotation = () => {
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-emerald-100 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="company_name">Company Name *</Label>
-                <Input
-                  id="company_name"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  required
-                  placeholder="Enter company name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contact_person">Contact Person *</Label>
-                <Input
-                  id="contact_person"
-                  value={contactPerson}
-                  onChange={(e) => setContactPerson(e.target.value)}
-                  required
-                  placeholder="Enter contact person"
-                />
-              </div>
-            </div>
+            <CustomerSelector
+              value={selectedCustomer?.id}
+              onSelect={setSelectedCustomer}
+              className="mb-6"
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="contact_email">Contact Email *</Label>
-                <Input
-                  id="contact_email"
-                  type="email"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  required
-                  placeholder="email@example.com"
-                />
+            {selectedCustomer && (
+              <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                <h3 className="font-semibold text-emerald-900 mb-2">Selected Customer Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-emerald-700 font-medium">Name:</span>{' '}
+                    <span className="text-emerald-900">{selectedCustomer.name}</span>
+                  </div>
+                  {selectedCustomer.company_name && (
+                    <div>
+                      <span className="text-emerald-700 font-medium">Company:</span>{' '}
+                      <span className="text-emerald-900">{selectedCustomer.company_name}</span>
+                    </div>
+                  )}
+                  {selectedCustomer.email && (
+                    <div>
+                      <span className="text-emerald-700 font-medium">Email:</span>{' '}
+                      <span className="text-emerald-900">{selectedCustomer.email}</span>
+                    </div>
+                  )}
+                  {selectedCustomer.phone && (
+                    <div>
+                      <span className="text-emerald-700 font-medium">Phone:</span>{' '}
+                      <span className="text-emerald-900">{selectedCustomer.phone}</span>
+                    </div>
+                  )}
+                  {selectedCustomer.address_line1 && (
+                    <div className="md:col-span-2">
+                      <span className="text-emerald-700 font-medium">Address:</span>{' '}
+                      <span className="text-emerald-900">
+                        {selectedCustomer.address_line1}
+                        {selectedCustomer.address_line2 && `, ${selectedCustomer.address_line2}`}
+                        {selectedCustomer.city && `, ${selectedCustomer.city}`}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="contact_phone">Contact Phone</Label>
-                <Input
-                  id="contact_phone"
-                  type="tel"
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  placeholder="+675..."
-                />
-              </div>
-            </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="space-y-2">

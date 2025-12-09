@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
 import ExportButton from '@/components/ExportButton';
-import { supabase } from '@/lib/supabaseClient';
+import api from '@/lib/api/client';
 import { useToast } from '@/components/ui/use-toast';
 
 const columns = [
@@ -46,15 +46,11 @@ const QuotationsReports = () => {
   const fetchQuotations = async () => {
     try {
       setLoading(true);
-      const { data: quotations, error } = await supabase
-        .from('quotations')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
+      const response = await api.get('/quotations');
+      const quotations = response.data || [];
+
       // Transform the data to match the columns
-      const transformedData = (quotations || []).map(q => ({
+      const transformedData = quotations.map(q => ({
         id: q.id,
         quotation: q.quotation_number || `QUO-${q.id}`,
         sentAt: q.sent_at ? new Date(q.sent_at).toLocaleDateString() : 'Not sent',

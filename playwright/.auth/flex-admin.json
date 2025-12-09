@@ -6,7 +6,7 @@
       "localStorage": [
         {
           "name": "greenpay_auth_token",
-          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjUsImlhdCI6MTc2NDUwNjkwOSwiZXhwIjoxNzY0NTkzMzA5fQ.zRb2SnB9j1Q-bDx1NdppZnvsXnkw5KunZPcB531YTkA"
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjUsImlhdCI6MTc2NDU2NzQ4MSwiZXhwIjoxNzY0NjUzODgxfQ._ohsfY-rBT-YxIjt4l8b7bdg0BIEIy-d51LQphzs_ig"
         },
         {
           "name": "greenpay_user",

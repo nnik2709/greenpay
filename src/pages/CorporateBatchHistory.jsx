@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabaseClient';
+import api from '@/lib/api/client';
 import ExportButton from '@/components/ExportButton';
 
 const CorporateBatchHistory = () => {
@@ -14,7 +14,7 @@ const CorporateBatchHistory = () => {
   const [filteredBatches, setFilteredBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [showBatchDetails, setShowBatchDetails] = useState(false);
@@ -30,42 +30,31 @@ const CorporateBatchHistory = () => {
   const fetchBatches = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('corporate_vouchers')
-        .select(`
-          *,
-          profiles!inner(
-            id,
-            full_name,
-            email
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const response = await api.get('/vouchers/corporate-vouchers');
+      const data = response.vouchers || [];
 
       // Group vouchers by batch_id
       const batchMap = new Map();
-      (data || []).forEach(voucher => {
+      data.forEach(voucher => {
         const batchId = voucher.batch_id || 'individual';
         if (!batchMap.has(batchId)) {
           batchMap.set(batchId, {
             batchId,
             companyName: voucher.company_name || 'Unknown Company',
             contactEmail: voucher.contact_email || 'No email',
-            createdBy: voucher.profiles?.full_name || 'Unknown',
-            createdAt: voucher.created_at,
+            createdBy: voucher.created_by_name || 'Unknown',
+            createdAt: voucher.created_at || voucher.issued_date,
             vouchers: [],
             totalAmount: 0,
             usedCount: 0,
             status: 'active'
           });
         }
-        
+
         const batch = batchMap.get(batchId);
         batch.vouchers.push(voucher);
         batch.totalAmount += parseFloat(voucher.amount || 0);
-        if (voucher.used_at) {
+        if (voucher.used_at || voucher.redeemed_date) {
           batch.usedCount++;
         }
       });
@@ -104,7 +93,7 @@ const CorporateBatchHistory = () => {
     }
 
     // Status filter
-    if (statusFilter) {
+    if (statusFilter && statusFilter !== 'all') {
       if (statusFilter === 'used') {
         filtered = filtered.filter(batch => batch.usedCount > 0);
       } else if (statusFilter === 'unused') {
@@ -131,23 +120,11 @@ const CorporateBatchHistory = () => {
 
   const downloadBatchZip = async (batchId) => {
     try {
-      const { data, error } = await supabase.functions.invoke('generate-corporate-zip', {
-        body: { batchId }
-      });
-
-      if (error) throw error;
-
-      // Create download link
-      const link = document.createElement('a');
-      link.href = data.downloadUrl;
-      link.download = `corporate-batch-${batchId}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
+      // TODO: Implement API endpoint for batch ZIP download
       toast({
-        title: "Download Started",
-        description: "Corporate batch ZIP file is being downloaded",
+        title: "Feature Coming Soon",
+        description: "Batch ZIP download will be available soon",
+        variant: "default"
       });
     } catch (error) {
       console.error('Error downloading batch:', error);
@@ -161,19 +138,11 @@ const CorporateBatchHistory = () => {
 
   const emailBatch = async (batchId, companyEmail) => {
     try {
-      const { error } = await supabase.functions.invoke('send-voucher-batch', {
-        body: { 
-          batchId,
-          email: companyEmail,
-          message: 'Your corporate voucher batch is ready for download.'
-        }
-      });
-
-      if (error) throw error;
-
+      // TODO: Implement API endpoint for batch email
       toast({
-        title: "Email Sent",
-        description: `Batch sent to ${companyEmail}`,
+        title: "Feature Coming Soon",
+        description: "Batch email will be available soon",
+        variant: "default"
       });
     } catch (error) {
       console.error('Error emailing batch:', error);
@@ -292,7 +261,7 @@ const CorporateBatchHistory = () => {
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="unused">Unused</SelectItem>
                   <SelectItem value="partial">Partially used</SelectItem>
                   <SelectItem value="used">Fully used</SelectItem>

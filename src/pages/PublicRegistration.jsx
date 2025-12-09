@@ -96,36 +96,36 @@ const PublicRegistration = () => {
       setLoading(true);
       setError(null);
 
-      // Check voucher validity
-      const { data: voucherData, error: voucherError } = await supabase
-        .from('individual_purchases')
-        .select('*')
-        .eq('voucher_code', voucherCode)
-        .maybeSingle();
+      // Check voucher validity via API
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const url = `${API_URL}/public-purchases/validate/${voucherCode}`;
 
-      if (voucherError) throw voucherError;
+      console.log('🔍 Validating voucher:', voucherCode);
+      console.log('📡 API URL:', url);
 
-      if (!voucherData) {
-        // Try corporate vouchers
-        const { data: corpVoucher, error: corpError } = await supabase
-          .from('corporate_vouchers')
-          .select('*')
-          .eq('voucher_code', voucherCode)
-          .maybeSingle();
+      const response = await fetch(url);
 
-        if (corpError) throw corpError;
-        if (!corpVoucher) {
+      console.log('📥 Response status:', response.status);
+      console.log('📥 Response OK:', response.ok);
+
+      if (!response.ok) {
+        if (response.status === 404) {
           setError('Invalid voucher code. Please check and try again.');
-          return;
+        } else {
+          throw new Error('Unable to validate voucher');
         }
-        
-        setVoucher(corpVoucher);
-        checkVoucherStatus(corpVoucher);
         return;
       }
 
-      setVoucher(voucherData);
-      checkVoucherStatus(voucherData);
+      const result = await response.json();
+
+      if (!result.success || !result.data) {
+        setError('Invalid voucher code. Please check and try again.');
+        return;
+      }
+
+      setVoucher(result.data);
+      checkVoucherStatus(result.data);
 
     } catch (err) {
       console.error('Error validating voucher:', err);
@@ -136,30 +136,49 @@ const PublicRegistration = () => {
   };
 
   const checkVoucherStatus = (voucherData) => {
+    console.log('🔍 Checking voucher status:', voucherData);
+
     // Check if already used
     if (voucherData.used_at) {
+      console.log('❌ Voucher already used');
       setError(`This voucher was already used on ${new Date(voucherData.used_at).toLocaleDateString()}`);
       return;
     }
+    console.log('✅ Voucher not used');
 
     // Check if expired
     const today = new Date().toISOString().split('T')[0];
-    if (today > voucherData.valid_until) {
+    const validUntil = voucherData.valid_until.split('T')[0];
+    const validFrom = voucherData.valid_from.split('T')[0];
+
+    console.log('📅 Today:', today);
+    console.log('📅 Valid until:', validUntil);
+    console.log('📅 Valid from:', validFrom);
+
+    if (today > validUntil) {
+      console.log('❌ Voucher expired');
       setError(`This voucher expired on ${new Date(voucherData.valid_until).toLocaleDateString()}`);
       return;
     }
+    console.log('✅ Voucher not expired');
 
     // Check if not yet valid
-    if (today < voucherData.valid_from) {
+    if (today < validFrom) {
+      console.log('❌ Voucher not yet valid');
       setError(`This voucher is not valid until ${new Date(voucherData.valid_from).toLocaleDateString()}`);
       return;
     }
+    console.log('✅ Voucher is valid now');
 
     // Check if already has passport registered
+    console.log('🛂 Passport number:', voucherData.passport_number);
     if (voucherData.passport_number && voucherData.passport_number !== 'PENDING') {
+      console.log('❌ Passport already registered');
       setError('This voucher has already been registered with a passport.');
       return;
     }
+    console.log('✅ Passport not registered yet');
+    console.log('✅✅✅ All validations passed!');
   };
 
   const handlePhotoChange = (e) => {
@@ -190,47 +209,45 @@ const PublicRegistration = () => {
     setSubmitting(true);
 
     try {
-      // Validate required fields
-      if (!photoFile) {
-        throw new Error('Please upload your passport photo');
+      // Only passport number is required
+      if (!formData.passportNumber || formData.passportNumber.trim() === '') {
+        throw new Error('Passport number is required');
       }
 
-      // Upload photo
-      const photoResult = await uploadPassportPhoto(photoFile, formData.passportNumber);
-
-      // Create or update passport
-      const passportData = {
-        passport_number: formData.passportNumber,
-        surname: formData.surname.toUpperCase(),
-        given_name: formData.givenName.toUpperCase(),
-        date_of_birth: formData.dateOfBirth,
-        nationality: formData.nationality,
-        sex: formData.sex,
-        date_of_expiry: voucher.valid_until,
-        photo_path: photoResult.path
-      };
-
-      const { data: passport, error: passportError } = await supabase
-        .from('passports')
-        .insert(passportData)
-        .select()
-        .single();
-
-      if (passportError) throw passportError;
-
-      // Update voucher with passport info
-      const { error: updateError } = await supabase
-        .from(voucher.company_name ? 'corporate_vouchers' : 'individual_purchases')
-        .update({
-          passport_id: passport.id,
-          passport_number: formData.passportNumber
+      // Update voucher with passport number via API
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${API_URL}/public-purchases/register-passport`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          voucherCode: voucherCode,
+          passportNumber: formData.passportNumber.toUpperCase(),
+          surname: formData.surname ? formData.surname.toUpperCase() : null,
+          givenName: formData.givenName ? formData.givenName.toUpperCase() : null,
+          dateOfBirth: formData.dateOfBirth || null,
+          nationality: formData.nationality || null,
+          sex: formData.sex || null
         })
-        .eq('voucher_code', voucherCode);
+      });
 
-      if (updateError) throw updateError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to register passport');
+      }
 
-      // Success - navigate to success page
-      navigate(`/register/success/${voucherCode}`);
+      const result = await response.json();
+
+      toast({
+        title: 'Registration Successful',
+        description: `Passport ${formData.passportNumber} has been registered with your voucher.`
+      });
+
+      // Success - navigate to success page or show confirmation
+      setTimeout(() => {
+        navigate(`/`);
+      }, 2000);
 
     } catch (err) {
       console.error('Registration error:', err);
@@ -306,7 +323,7 @@ const PublicRegistration = () => {
           <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100">
             <CardTitle>Passport Details</CardTitle>
             <CardDescription>
-              Please fill in your passport information accurately. All fields are required.
+              Enter your passport number to register your voucher. Additional details are optional.
             </CardDescription>
           </CardHeader>
 
@@ -344,118 +361,72 @@ const PublicRegistration = () => {
                 />
               </div>
 
-              {/* Name Fields */}
+              {/* Name Fields - Optional */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="surname">Surname (Family Name) *</Label>
+                  <Label htmlFor="surname">Surname (Family Name) <span className="text-slate-400 text-sm">(Optional)</span></Label>
                   <Input
                     id="surname"
                     data-testid="public-reg-surname"
                     value={formData.surname}
                     onChange={(e) => setFormData({...formData, surname: e.target.value})}
                     placeholder="SURNAME"
-                    required
                     className="text-lg uppercase"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="givenName">Given Name(s) *</Label>
+                  <Label htmlFor="givenName">Given Name(s) <span className="text-slate-400 text-sm">(Optional)</span></Label>
                   <Input
                     id="givenName"
                     data-testid="public-reg-given-name"
                     value={formData.givenName}
                     onChange={(e) => setFormData({...formData, givenName: e.target.value})}
                     placeholder="GIVEN NAME"
-                    required
                     className="text-lg uppercase"
                   />
                 </div>
               </div>
 
-              {/* Date of Birth and Nationality */}
+              {/* Date of Birth and Nationality - Optional */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="dob">Date of Birth *</Label>
+                  <Label htmlFor="dob">Date of Birth <span className="text-slate-400 text-sm">(Optional)</span></Label>
                   <Input
                     id="dob"
                     data-testid="public-reg-dob"
                     type="date"
                     value={formData.dateOfBirth}
                     onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
-                    required
                     max={new Date().toISOString().split('T')[0]}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="nationality">Nationality *</Label>
+                  <Label htmlFor="nationality">Nationality <span className="text-slate-400 text-sm">(Optional)</span></Label>
                   <Input
                     id="nationality"
                     data-testid="public-reg-nationality"
                     value={formData.nationality}
                     onChange={(e) => setFormData({...formData, nationality: e.target.value})}
                     placeholder="e.g., Australian"
-                    required
                   />
                 </div>
               </div>
 
-              {/* Sex */}
+              {/* Sex - Optional */}
               <div className="space-y-2">
-                <Label htmlFor="sex">Sex *</Label>
+                <Label htmlFor="sex">Sex <span className="text-slate-400 text-sm">(Optional)</span></Label>
                 <select
                   id="sex"
                   data-testid="public-reg-sex"
                   value={formData.sex}
                   onChange={(e) => setFormData({...formData, sex: e.target.value})}
                   className="w-full h-10 px-3 rounded-md border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                  required
                 >
+                  <option value="">Select...</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
                 </select>
-              </div>
-
-              {/* Photo Upload */}
-              <div className="space-y-2">
-                <Label htmlFor="photo">Passport Photo *</Label>
-                <div className="border-2 border-dashed border-emerald-300 rounded-lg p-6 text-center hover:border-emerald-400 transition-colors">
-                  <input
-                    id="photo"
-                    data-testid="public-reg-photo"
-                    type="file"
-                    accept="image/jpeg,image/png,image/jpg"
-                    onChange={handlePhotoChange}
-                    className="hidden"
-                    required
-                  />
-                  <label htmlFor="photo" className="cursor-pointer">
-                    {photoPreview ? (
-                      <div className="space-y-3">
-                        <img 
-                          src={photoPreview} 
-                          alt="Preview" 
-                          className="w-32 h-32 mx-auto rounded-lg object-cover border-2 border-emerald-200"
-                        />
-                        <p className="text-sm text-emerald-600 font-medium">
-                          Click to change photo
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="text-5xl">📤</div>
-                        <div>
-                          <p className="text-slate-700 font-medium">
-                            Click to upload passport photo
-                          </p>
-                          <p className="text-xs text-slate-500 mt-1">
-                            JPEG or PNG, max 2MB
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </label>
-                </div>
               </div>
 
               {/* Voucher Info Display */}
@@ -475,16 +446,16 @@ const PublicRegistration = () => {
               <Button
                 type="submit"
                 data-testid="public-reg-submit"
-                disabled={submitting || !photoFile}
+                disabled={submitting || !formData.passportNumber}
                 className="w-full h-12 text-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
               >
                 {submitting ? (
                   <>
                     <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
-                    Submitting...
+                    Registering...
                   </>
                 ) : (
-                  '✓ Complete Registration'
+                  '✓ Register Passport'
                 )}
               </Button>
 

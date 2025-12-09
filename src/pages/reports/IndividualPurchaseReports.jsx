@@ -3,7 +3,7 @@ import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabaseClient';
+import api from '@/lib/api/client';
 import VoucherPrint from '@/components/VoucherPrint';
 import ExportButton from '@/components/ExportButton';
 import EditPaymentModal from '@/components/EditPaymentModal';
@@ -40,13 +40,9 @@ const IndividualPurchaseReports = () => {
 
   const fetchVouchers = async () => {
     try {
-      const { data: vouchers, error } = await supabase
-        .from('individual_purchases')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setData(vouchers || []);
+      const response = await api.get('/individual-purchases');
+      // Backend returns { type: 'success', data: [...] }
+      setData(response.data || []);
     } catch (error) {
       console.error('Error fetching vouchers:', error);
       toast({
@@ -76,12 +72,7 @@ const IndividualPurchaseReports = () => {
 
   const handleSavePayment = async (id, updatedData) => {
     try {
-      const { error } = await supabase
-        .from('individual_purchases')
-        .update(updatedData)
-        .eq('id', id);
-
-      if (error) throw error;
+      await api.put(`/individual-purchases/${id}`, updatedData);
 
       // Refresh data
       await fetchVouchers();
@@ -99,20 +90,15 @@ const IndividualPurchaseReports = () => {
   const handleProcessRefund = async (id, refundData) => {
     try {
       // Update the payment record with refund information
-      const { error } = await supabase
-        .from('individual_purchases')
-        .update({
-          refunded: true,
-          refund_amount: refundData.refund_amount,
-          refund_reason: refundData.refund_reason,
-          refund_method: refundData.refund_method,
-          refund_notes: refundData.notes,
-          refunded_at: refundData.refunded_at,
-          status: refundData.refund_amount === refundData.original_amount ? 'refunded' : 'partial_refund'
-        })
-        .eq('id', id);
-
-      if (error) throw error;
+      await api.put(`/individual-purchases/${id}`, {
+        refunded: true,
+        refund_amount: refundData.refund_amount,
+        refund_reason: refundData.refund_reason,
+        refund_method: refundData.refund_method,
+        refund_notes: refundData.notes,
+        refunded_at: refundData.refunded_at,
+        status: refundData.refund_amount === refundData.original_amount ? 'refunded' : 'partial_refund'
+      });
 
       // Refresh data
       await fetchVouchers();

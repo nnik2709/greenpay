@@ -15,7 +15,7 @@ export const getInvoices = async (filters = {}) => {
     if (filters.to_date) params.append('to_date', filters.to_date);
 
     const response = await api.get(`/invoices?${params.toString()}`);
-    return response.data || [];
+    return response || [];
   } catch (error) {
     console.error('Error fetching invoices:', error);
     throw error;
@@ -30,7 +30,7 @@ export const getInvoices = async (filters = {}) => {
 export const getInvoice = async (id) => {
   try {
     const response = await api.get(`/invoices/${id}`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Error fetching invoice:', error);
     throw error;
@@ -45,7 +45,7 @@ export const getInvoice = async (id) => {
 export const convertQuotationToInvoice = async (data) => {
   try {
     const response = await api.post('/invoices/from-quotation', data);
-    return response.data;
+    return response; // response is already the JSON object, no .data wrapper
   } catch (error) {
     console.error('Error converting quotation to invoice:', error);
     throw error;
@@ -61,7 +61,7 @@ export const convertQuotationToInvoice = async (data) => {
 export const recordPayment = async (invoiceId, paymentData) => {
   try {
     const response = await api.post(`/invoices/${invoiceId}/payments`, paymentData);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Error recording payment:', error);
     throw error;
@@ -76,7 +76,7 @@ export const recordPayment = async (invoiceId, paymentData) => {
 export const getPaymentHistory = async (invoiceId) => {
   try {
     const response = await api.get(`/invoices/${invoiceId}/payments`);
-    return response.data || [];
+    return response || [];
   } catch (error) {
     console.error('Error fetching payment history:', error);
     throw error;
@@ -91,7 +91,7 @@ export const getPaymentHistory = async (invoiceId) => {
 export const generateVouchers = async (invoiceId) => {
   try {
     const response = await api.post(`/invoices/${invoiceId}/generate-vouchers`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Error generating vouchers:', error);
     throw error;
@@ -105,7 +105,7 @@ export const generateVouchers = async (invoiceId) => {
 export const getInvoiceStatistics = async () => {
   try {
     const response = await api.get('/invoices/stats');
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Error fetching invoice statistics:', error);
     throw error;
@@ -155,12 +155,11 @@ export const canGenerateVouchers = (invoice) => {
  */
 export const downloadInvoicePDF = async (invoiceId, invoiceNumber) => {
   try {
-    const response = await api.get(`/invoices/${invoiceId}/pdf`, {
+    const blob = await api.get(`/invoices/${invoiceId}/pdf`, {
       responseType: 'blob'
     });
 
     // Create a blob URL and trigger download
-    const blob = new Blob([response.data], { type: 'application/pdf' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -189,7 +188,7 @@ export const emailInvoice = async (invoiceId, email = null) => {
     }
 
     const response = await api.post(`/invoices/${invoiceId}/email`, payload);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Error emailing invoice:', error);
     throw error;

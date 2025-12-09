@@ -1,41 +1,51 @@
 #!/bin/bash
 
-echo "=================================="
-echo "Deploying Invoice Fix to Production"
-echo "=================================="
+# Deploy invoices-gst.js with fixed route ordering
+# The issue: /stats route must come BEFORE /:id route to avoid "invalid input syntax for type integer: stats"
+
+echo "🔧 Deploying Invoice Route Fix"
+echo "==============================="
+echo ""
+echo "Issue: Express was matching /invoices/stats to /:id route, trying to parse 'stats' as integer"
+echo "Fix: Reordered routes so /stats (line 42) comes before /:id (line 109)"
 echo ""
 
-SERVER="root@72.61.208.79"
-BACKEND_PATH="/home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend"
+# Deploy using rsync like the other deployment scripts
+echo "📤 Uploading invoices-gst.js..."
+rsync -avz backend/routes/invoices-gst.js root@72.61.208.79:/home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/routes/
 
-echo "Step 1: Creating config directory on server..."
-ssh $SERVER "mkdir -p $BACKEND_PATH/config"
+if [ $? -ne 0 ]; then
+    echo "❌ Upload failed"
+    exit 1
+fi
+
+echo "✅ File uploaded"
+echo ""
+
+# Restart backend
+echo "🔄 Restarting backend..."
+ssh root@72.61.208.79 "pm2 restart greenpay-api"
+
+if [ $? -ne 0 ]; then
+    echo "❌ Restart failed"
+    exit 1
+fi
+
+echo "✅ Backend restarted"
+echo ""
+
+# Check status
+echo "🔍 Checking backend status..."
+ssh root@72.61.208.79 "pm2 list | grep greenpay-api"
 
 echo ""
-echo "Step 2: Uploading database.js to config folder..."
-scp backend/config/database.js $SERVER:$BACKEND_PATH/config/
-
+echo "✅ Invoice route ordering fix deployed!"
 echo ""
-echo "Step 3: Uploading fixed invoices.js..."
-scp backend/routes/invoices.js $SERVER:$BACKEND_PATH/routes/
-
+echo "Changes made:"
+echo "  - Renamed local invoices.js → invoices-gst.js (eliminates confusion)"
+echo "  - Routes now ordered correctly: /stats (line 42) before /:id (line 109)"
+echo "  - Deployed to server"
 echo ""
-echo "Step 4: Uploading fixed vouchers.js..."
-scp backend/routes/vouchers.js $SERVER:$BACKEND_PATH/routes/
-
+echo "Next: Re-run tests to verify fix"
+echo "  npx playwright test --grep 'invoices'"
 echo ""
-echo "Step 5: Restarting PM2..."
-ssh $SERVER "pm2 restart greenpay-api"
-
-echo ""
-echo "Step 6: Checking backend status..."
-sleep 3
-ssh $SERVER "pm2 logs greenpay-api --lines 20 --nostream"
-
-echo ""
-echo "=================================="
-echo "✅ Deployment Complete!"
-echo "=================================="
-echo ""
-echo "Test the backend:"
-echo "curl https://greenpay.eywademo.cloud/api/auth/login"

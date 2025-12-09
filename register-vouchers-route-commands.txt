@@ -1,0 +1,29 @@
+# Commands to Register Vouchers Route in server.js
+# Run these commands on the server
+
+# 1. Backup server.js first
+ssh root@72.61.208.79 "cd /home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend && cp server.js server.js.backup.\$(date +%Y%m%d_%H%M%S)"
+
+# 2. Check if vouchers route already exists
+ssh root@72.61.208.79 "grep -n 'vouchers' /home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/server.js"
+
+# 3. Add vouchers route registration (if not found above)
+# You need to add this line to server.js after the other routes:
+# app.use('/api/vouchers', require('./routes/vouchers'));
+
+# Option A: Add it manually by editing server.js
+ssh root@72.61.208.79 "nano /home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/server.js"
+# Then add this line after other route registrations (around where tickets route is):
+# app.use('/api/vouchers', require('./routes/vouchers'));
+
+# Option B: Use sed to add it automatically (safer - adds after tickets route)
+ssh root@72.61.208.79 "cd /home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend && sed -i \"/app\.use('\/api\/tickets'/a app.use('/api/vouchers', require('./routes/vouchers'));\" server.js"
+
+# 4. Verify the route was added
+ssh root@72.61.208.79 "grep -n 'vouchers' /home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/server.js"
+
+# 5. Restart backend
+ssh root@72.61.208.79 "pm2 restart greenpay-api"
+
+# 6. Test the vouchers API
+curl -s "https://greenpay.eywademo.cloud/api/vouchers/validate/TEST-VOUCHER-123" -H "Authorization: Bearer test"

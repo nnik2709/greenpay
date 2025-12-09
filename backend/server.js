@@ -14,6 +14,12 @@ app.use(cors({
   preflightContinue: false,
   optionsSuccessStatus: 204
 }));
+
+// Stripe webhook needs raw body for signature verification
+// Apply raw body parser BEFORE express.json() for webhook routes
+app.use('/api/public-purchases/webhook', express.raw({ type: 'application/json' }));
+
+// JSON parser for all other routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('combined'));
@@ -32,10 +38,12 @@ const invoiceRoutes = require('./routes/invoices-gst'); // PNG GST-compliant inv
 const quotationRoutes = require('./routes/quotations');
 const customerRoutes = require('./routes/customers'); // Customer management for PNG invoices
 const ticketRoutes = require('./routes/tickets');
+const voucherRoutes = require('./routes/vouchers');
 const paymentModeRoutes = require('./routes/payment-modes');
 const transactionRoutes = require('./routes/transactions');
 const loginEventsRoutes = require('./routes/login-events');
 const settingsRoutes = require('./routes/settings');
+const publicPurchasesRoutes = require('./routes/public-purchases'); // Public voucher purchases (no auth)
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -45,10 +53,12 @@ app.use('/api/invoices', invoiceRoutes); // PNG GST-compliant invoices
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/customers', customerRoutes); // Customer management
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/vouchers', voucherRoutes);
 app.use('/api/payment-modes', paymentModeRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/login-events', loginEventsRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/public-purchases', publicPurchasesRoutes); // Public routes (no authentication)
 
 // 404 handler
 app.use((req, res) => {

@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabaseClient';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getQuotations } from '@/lib/quotationsService';
 import { getQuotationStatistics, markQuotationAsSent, approveQuotation, convertQuotationToVoucherBatch, canConvertQuotation, canApproveQuotation } from '@/lib/quotationWorkflowService';
@@ -340,7 +339,7 @@ const Quotations = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">Total Amount:</span>
-                  <span className="text-sm font-semibold">PGK {selectedQuotation.total_amount?.toFixed(2)}</span>
+                  <span className="text-sm font-semibold">PGK {parseFloat(selectedQuotation.total_amount || 0).toFixed(2)}</span>
                 </div>
               </div>
 
@@ -366,14 +365,14 @@ const Quotations = () => {
                     step="0.01"
                     value={collectedAmount}
                     onChange={(e) => setCollectedAmount(e.target.value)}
-                    placeholder={selectedQuotation.total_amount?.toFixed(2)}
+                    placeholder={parseFloat(selectedQuotation.total_amount || 0).toFixed(2)}
                     data-testid="conversion-collected-amount"
                   />
                 </div>
 
-                {parseFloat(collectedAmount) > (selectedQuotation.total_amount || 0) && (
+                {parseFloat(collectedAmount) > parseFloat(selectedQuotation.total_amount || 0) && (
                   <div className="text-sm text-emerald-600">
-                    Change: PGK {(parseFloat(collectedAmount) - (selectedQuotation.total_amount || 0)).toFixed(2)}
+                    Change: PGK {(parseFloat(collectedAmount) - parseFloat(selectedQuotation.total_amount || 0)).toFixed(2)}
                   </div>
                 )}
               </div>
@@ -473,19 +472,27 @@ const Quotations = () => {
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">Subtotal:</span>
                   <span className="text-sm font-semibold">
-                    {formatPGK(selectedQuotation.subtotal || (selectedQuotation.total_amount / 1.10))}
+                    {(() => {
+                      const total = parseFloat(selectedQuotation.total_amount) || 0;
+                      const subtotal = parseFloat(selectedQuotation.subtotal) || (total / 1.10);
+                      return formatPGK(subtotal);
+                    })()}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">GST (10%):</span>
                   <span className="text-sm font-semibold">
-                    {formatPGK(selectedQuotation.gst_amount || (selectedQuotation.total_amount - selectedQuotation.total_amount / 1.10))}
+                    {(() => {
+                      const total = parseFloat(selectedQuotation.total_amount) || 0;
+                      const gst = parseFloat(selectedQuotation.gst_amount) || (total - total / 1.10);
+                      return formatPGK(gst);
+                    })()}
                   </span>
                 </div>
                 <div className="flex justify-between border-t pt-2">
                   <span className="text-sm font-bold">Total Amount:</span>
                   <span className="text-sm font-bold text-emerald-600">
-                    {formatPGK(selectedQuotation.total_amount)}
+                    {formatPGK(parseFloat(selectedQuotation.total_amount) || 0)}
                   </span>
                 </div>
               </div>
@@ -530,16 +537,20 @@ const Quotations = () => {
                     due_days: dueDays
                   });
 
-                  toast({
-                    title: 'Invoice Created!',
-                    description: `Invoice ${result.invoice?.invoice_number} created successfully`
-                  });
-
+                  // Close modal first
                   setInvoiceModalOpen(false);
                   setSelectedQuotation(null);
                   setDueDays(30);
-                  loadQuotations();
-                  loadStatistics();
+
+                  // Reload data
+                  await loadQuotations();
+                  await loadStatistics();
+
+                  // Show success message
+                  toast({
+                    title: 'Invoice Created!',
+                    description: `Invoice ${result.invoice?.invoice_number || 'INV-XXXXX'} created successfully`
+                  });
 
                   // Navigate to invoices page
                   navigate('/invoices');
@@ -590,32 +601,42 @@ const Quotations = () => {
                 }
                 setSending(true);
                 try {
-                  // First, find the quotation by quotation_number to get the UUID
-                  const { data: quotationData, error: findError } = await supabase
-                    .from('quotations')
-                    .select('id')
-                    .eq('quotation_number', quotationId)
-                    .single();
+                  // Call backend API to send quotation email
+                  const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://greenpay.eywademo.cloud/api'}/quotations/send-email`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${localStorage.getItem('greenpay_auth_token')}`
+                    },
+                    body: JSON.stringify({
+                      quotationId: quotationId,
+                      recipientEmail: recipient
+                    })
+                  });
 
-                  if (findError || !quotationData) {
-                    throw new Error('Quotation not found. Please check the quotation number.');
+                  if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to send quotation');
                   }
 
-                  // Call Edge Function to send quotation (server would render PDF and email)
-                  const { error: fnError } = await supabase.functions.invoke('send-quotation', {
-                    body: { quotationId: quotationData.id, email: recipient }
+                  const result = await response.json();
+
+                  toast({
+                    title: 'Quotation sent successfully!',
+                    description: `Email sent to ${recipient}`
                   });
-                  if (fnError) throw fnError;
-
-                  // Update quotation status in DB using the UUID
-                  await supabase.from('quotations')
-                    .update({ status: 'sent', sent_at: new Date().toISOString() })
-                    .eq('id', quotationData.id);
-
-                  toast({ title: 'Quotation sent', description: 'Email has been queued for delivery.' });
                   setSendOpen(false);
+
+                  // Reload quotations to show updated status
+                  loadQuotations();
+                  loadStatistics();
                 } catch (e) {
-                  toast({ variant: 'destructive', title: 'Send failed', description: e?.message || 'Unable to send quotation.' });
+                  console.error('Send quotation error:', e);
+                  toast({
+                    variant: 'destructive',
+                    title: 'Send failed',
+                    description: e?.message || 'Unable to send quotation.'
+                  });
                 } finally {
                   setSending(false);
                 }

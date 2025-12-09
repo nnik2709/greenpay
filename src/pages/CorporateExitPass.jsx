@@ -7,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getPaymentModes } from '@/lib/paymentModesStorage';
-import { createBulkCorporateVouchers } from '@/lib/corporateVouchersService';
+import { createBulkCorporateVouchers, emailCorporateVouchers } from '@/lib/corporateVouchersService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import VoucherPrint from '@/components/VoucherPrint';
@@ -32,6 +32,10 @@ const CorporateExitPass = () => {
   const [generatedVouchers, setGeneratedVouchers] = useState([]);
   const [selectedVoucher, setSelectedVoucher] = useState(null);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
+
+  // Email vouchers
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const voucherValue = 50;
   const totalAmount = totalVouchers * voucherValue;
@@ -142,6 +146,55 @@ const CorporateExitPass = () => {
     setTotalVouchers(1);
     setDiscount(0);
     setGeneratedVouchers([]);
+    setRecipientEmail('');
+  };
+
+  const handleEmailVouchers = async () => {
+    if (!recipientEmail.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Email Required",
+        description: "Please enter a recipient email address.",
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+      });
+      return;
+    }
+
+    setIsSendingEmail(true);
+
+    try {
+      const voucherIds = generatedVouchers.map(v => v.id);
+
+      await emailCorporateVouchers({
+        voucherIds,
+        companyName,
+        recipientEmail: recipientEmail.trim(),
+      });
+
+      toast({
+        title: "Email Sent!",
+        description: `Vouchers successfully emailed to ${recipientEmail}`,
+      });
+    } catch (error) {
+      console.error('Error emailing vouchers:', error);
+      toast({
+        variant: "destructive",
+        title: "Email Failed",
+        description: error.message || "Failed to send email. Please try again.",
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   return (
@@ -316,6 +369,70 @@ const CorporateExitPass = () => {
                   <div>
                     <span className="text-slate-600">Valid Until:</span>
                     <p className="font-semibold">{new Date(validUntil).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Email Vouchers Section */}
+            <Card className="border-blue-200">
+              <CardHeader className="bg-blue-50">
+                <CardTitle className="text-blue-700 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  Email Vouchers to Corporate Customer
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+                    <p className="font-semibold mb-2">📧 Email Delivery:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-2">
+                      <li>Vouchers will be sent as a printable PDF (one voucher per page)</li>
+                      <li>Each voucher includes a large QR code for easy scanning at the airport</li>
+                      <li>Corporate customer can print and distribute to employees</li>
+                      <li>Each voucher is single-use only - once scanned, it cannot be reused</li>
+                    </ul>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1">
+                      <Label htmlFor="recipient_email" className="mb-2 block">
+                        Recipient Email Address *
+                      </Label>
+                      <Input
+                        id="recipient_email"
+                        type="email"
+                        placeholder="corporate@example.com"
+                        value={recipientEmail}
+                        onChange={(e) => setRecipientEmail(e.target.value)}
+                        disabled={isSendingEmail}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        onClick={handleEmailVouchers}
+                        disabled={isSendingEmail || !recipientEmail.trim()}
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                      >
+                        {isSendingEmail ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            Email Vouchers
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>

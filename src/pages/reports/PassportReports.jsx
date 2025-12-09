@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
-import { supabase } from '@/lib/supabaseClient';
-
-//const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
+import api from '@/lib/api/client';
 
 const columns = [
   { name: 'Type', selector: row => row.type, sortable: true },
@@ -39,33 +37,26 @@ const PassportReports = () => {
   const fetchPassports = async () => {
     try {
       setLoading(true);
-      let query = supabase
-        .from('passports')
-        .select('*')
-        .order('created_at', { ascending: false });
 
-      if (fromDate) {
-        query = query.gte('created_at', fromDate);
-      }
-      if (toDate) {
-        query = query.lte('created_at', toDate);
-      }
+      // Build query params for date filtering
+      const params = {};
+      if (fromDate) params.dateFrom = fromDate;
+      if (toDate) params.dateTo = toDate;
 
-      const { data: passports, error } = await query;
-
-      if (error) throw error;
+      const response = await api.get('/passports', { params });
+      const passports = response.data || [];
 
       // Transform data to match table format
-      const transformedData = (passports || []).map(p => ({
+      const transformedData = passports.map(p => ({
         id: p.id,
         type: 'P', // Default type
         nationality: p.nationality,
-        passportNo: p.passport_number,
+        passportNo: p.passport_number || p.passportNo,
         surname: p.surname,
-        givenName: p.given_name,
-        dob: p.date_of_birth,
+        givenName: p.given_name || p.givenName,
+        dob: p.date_of_birth || p.dob,
         sex: p.sex,
-        dateOfExpiry: p.date_of_expiry,
+        dateOfExpiry: p.date_of_expiry || p.dateOfExpiry,
       }));
 
       setData(transformedData);

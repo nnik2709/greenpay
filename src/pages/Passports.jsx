@@ -16,58 +16,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPassports, searchPassports } from '@/lib/passportsService';
 import CameraMRZScanner from '@/components/CameraMRZScanner';
 
-const PassportCard = ({ passport, index, selectedIds, setSelectedIds, openSendEmail }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      whileHover={{ scale: 1.02, y: -4 }}
-    >
-      <Card className={`overflow-hidden card-hover border-slate-200 ${selectedIds.includes(passport.id) ? 'ring-2 ring-emerald-300' : ''}`}>
-        <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100">
-          <CardTitle className="text-lg font-semibold text-slate-800">
-            {passport.given_name || passport.givenName} {passport.surname}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-5 space-y-3 text-sm">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              className="rounded border-slate-300"
-              checked={selectedIds.includes(passport.id)}
-              onChange={(e) => {
-                setSelectedIds(prev => e.target.checked ? [...prev, passport.id] : prev.filter(id => id !== passport.id));
-              }}
-            />
-            <span className="text-slate-600">Select</span>
-          </div>
-          <div>
-            <strong>Passport No:</strong> {passport.passport_number || passport.passportNumber}
-          </div>
-          <div>
-            <strong>Nationality:</strong> {passport.nationality}
-          </div>
-          <div>
-            <strong>Sex:</strong> {passport.sex}
-          </div>
-          <div>
-            <strong>DOB:</strong> {passport.date_of_birth ? new Date(passport.date_of_birth).toLocaleDateString() : passport.dob}
-          </div>
-          <div>
-            <strong>Expiry:</strong> {passport.date_of_expiry ? new Date(passport.date_of_expiry).toLocaleDateString() : passport.dateOfExpiry}
-          </div>
-          <div className="pt-2">
-            <Button size="sm" variant="outline" onClick={() => openSendEmail(passport)}>
-              Send Voucher Email
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
-
 const Passports = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -292,10 +240,69 @@ const Passports = () => {
                       <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])} disabled={selectedIds.length === 0}>Clear Selection</Button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {searchResults.map((passport, index) => (
-                      <PassportCard key={passport.id} passport={passport} index={index} selectedIds={selectedIds} setSelectedIds={setSelectedIds} openSendEmail={openSendEmail} />
-                    ))}
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b text-left text-sm text-slate-600">
+                          <th className="pb-3 font-semibold w-12">
+                            <input
+                              type="checkbox"
+                              className="rounded border-slate-300"
+                              checked={selectedIds.length === searchResults.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedIds(searchResults.map(p => p.id));
+                                } else {
+                                  setSelectedIds([]);
+                                }
+                              }}
+                            />
+                          </th>
+                          <th className="pb-3 font-semibold">Name</th>
+                          <th className="pb-3 font-semibold">Passport No</th>
+                          <th className="pb-3 font-semibold">Nationality</th>
+                          <th className="pb-3 font-semibold">Sex</th>
+                          <th className="pb-3 font-semibold">DOB</th>
+                          <th className="pb-3 font-semibold">Expiry</th>
+                          <th className="pb-3 font-semibold">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {searchResults.map((passport) => (
+                          <tr key={passport.id} className="border-b hover:bg-slate-50 transition-colors">
+                            <td className="py-4">
+                              <input
+                                type="checkbox"
+                                className="rounded border-slate-300"
+                                checked={selectedIds.includes(passport.id)}
+                                onChange={(e) => {
+                                  setSelectedIds(prev => e.target.checked ? [...prev, passport.id] : prev.filter(id => id !== passport.id));
+                                }}
+                              />
+                            </td>
+                            <td className="py-4 font-semibold">
+                              {passport.given_name || passport.givenName} {passport.surname}
+                            </td>
+                            <td className="py-4">
+                              <span className="font-mono text-sm">{passport.passport_number || passport.passportNumber}</span>
+                            </td>
+                            <td className="py-4">{passport.nationality}</td>
+                            <td className="py-4">{passport.sex}</td>
+                            <td className="py-4">
+                              {passport.date_of_birth ? new Date(passport.date_of_birth).toLocaleDateString() : passport.dob}
+                            </td>
+                            <td className="py-4">
+                              {passport.date_of_expiry ? new Date(passport.date_of_expiry).toLocaleDateString() : passport.dateOfExpiry}
+                            </td>
+                            <td className="py-4">
+                              <Button size="sm" variant="outline" onClick={() => openSendEmail(passport)}>
+                                Send Email
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                   </>
                 ) : (
@@ -328,10 +335,69 @@ const Passports = () => {
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
                 </div>
               ) : allPassports.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {allPassports.map((passport, index) => (
-                    <PassportCard key={passport.id} passport={passport} index={index} selectedIds={selectedIds} setSelectedIds={setSelectedIds} openSendEmail={openSendEmail} />
-                  ))}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b text-left text-sm text-slate-600">
+                        <th className="pb-3 font-semibold w-12">
+                          <input
+                            type="checkbox"
+                            className="rounded border-slate-300"
+                            checked={selectedIds.length === allPassports.length}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedIds(allPassports.map(p => p.id));
+                              } else {
+                                setSelectedIds([]);
+                              }
+                            }}
+                          />
+                        </th>
+                        <th className="pb-3 font-semibold">Name</th>
+                        <th className="pb-3 font-semibold">Passport No</th>
+                        <th className="pb-3 font-semibold">Nationality</th>
+                        <th className="pb-3 font-semibold">Sex</th>
+                        <th className="pb-3 font-semibold">DOB</th>
+                        <th className="pb-3 font-semibold">Expiry</th>
+                        <th className="pb-3 font-semibold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allPassports.map((passport) => (
+                        <tr key={passport.id} className="border-b hover:bg-slate-50 transition-colors">
+                          <td className="py-4">
+                            <input
+                              type="checkbox"
+                              className="rounded border-slate-300"
+                              checked={selectedIds.includes(passport.id)}
+                              onChange={(e) => {
+                                setSelectedIds(prev => e.target.checked ? [...prev, passport.id] : prev.filter(id => id !== passport.id));
+                              }}
+                            />
+                          </td>
+                          <td className="py-4 font-semibold">
+                            {passport.given_name || passport.givenName} {passport.surname}
+                          </td>
+                          <td className="py-4">
+                            <span className="font-mono text-sm">{passport.passport_number || passport.passportNumber}</span>
+                          </td>
+                          <td className="py-4">{passport.nationality}</td>
+                          <td className="py-4">{passport.sex}</td>
+                          <td className="py-4">
+                            {passport.date_of_birth ? new Date(passport.date_of_birth).toLocaleDateString() : passport.dob}
+                          </td>
+                          <td className="py-4">
+                            {passport.date_of_expiry ? new Date(passport.date_of_expiry).toLocaleDateString() : passport.dateOfExpiry}
+                          </td>
+                          <td className="py-4">
+                            <Button size="sm" variant="outline" onClick={() => openSendEmail(passport)}>
+                              Send Email
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
                 <p className="text-center text-slate-500 py-8">No passports found. Create your first passport to get started.</p>

@@ -25,7 +25,8 @@ async function parseCSVFile(file) {
 
         // Parse header
         const header = lines[0].split(',').map(h => h.trim());
-        
+        console.log('CSV Headers:', header);
+
         // Parse rows
         const rows = [];
         for (let i = 1; i < lines.length; i++) {
@@ -104,6 +105,10 @@ export async function uploadBulkPassports(file) {
     
     const rows = await parseCSVFile(file);
     console.log('CSV parsed successfully, rows:', rows.length);
+    if (rows.length > 0) {
+      console.log('First row sample:', rows[0]);
+      console.log('First row keys:', Object.keys(rows[0]));
+    }
     
     const errors = [];
     const validRows = [];
@@ -132,92 +137,67 @@ export async function uploadBulkPassports(file) {
         if (sex === 'M') sex = 'Male';
         if (sex === 'F') sex = 'Female';
         
-        // Only include columns that exist in passports table
+        // Map CSV fields to database columns (camelCase as used in backend)
         validRows.push({
-          passport_number: row.passportNo.toUpperCase(),
+          passportNo: row.passportNo.toUpperCase(),
           surname: row.surname,
-          given_name: row.givenName,
+          givenName: row.givenName,
           nationality: row.nationality,
-          date_of_birth: row.dob,
+          dob: row.dob,
           sex: sex,
-          date_of_expiry: row.dateOfExpiry,
-          created_by: user.id,
-          // Optional fields removed as they don't exist in new schema:
-          // place_of_birth, place_of_issue, date_of_issue, file_number, email, phone
+          dateOfExpiry: row.dateOfExpiry,
+          // Optional fields if present in CSV
+          ...(row.placeOfBirth && { placeOfBirth: row.placeOfBirth }),
+          ...(row.placeOfIssue && { placeOfIssue: row.placeOfIssue }),
+          ...(row.dateOfIssue && { dateOfIssue: row.dateOfIssue }),
+          ...(row.email && { email: row.email }),
+          ...(row.phone && { phone: row.phone }),
         });
       }
     }
 
-    // Insert valid passports
+    // Insert valid passports using API
     const inserted = [];
     const insertErrors = [];
-    
-    if (validRows.length > 0) {
-      console.log('Inserting valid rows:', validRows.length);
-      
-      // Insert in batches of 100
-      const batchSize = 100;
-      for (let i = 0; i < validRows.length; i += batchSize) {
-        const batch = validRows.slice(i, i + batchSize);
-        console.log(`Inserting batch ${Math.floor(i / batchSize) + 1}, records:`, batch.length);
-        console.log('Sample record:', batch[0]);
-        
-        const { data: batchData, error: batchError } = await supabase
-          .from('passports')
-          .insert(batch)
-          .select('id, passport_number, surname, given_name');
 
-        if (batchError) {
-          console.error('Insert error details:', {
-            message: batchError.message,
-            details: batchError.details,
-            hint: batchError.hint,
-            code: batchError.code
-          });
-          
-          if (batchError.message && /duplicate/i.test(batchError.message)) {
-            insertErrors.push(`Some passport numbers already exist in the database`);
-          } else if (batchError.message && /permission/i.test(batchError.message)) {
-            insertErrors.push(`Permission denied - check RLS policies or authentication`);
+    if (validRows.length > 0) {
+      console.log('Inserting valid rows via API:', validRows.length);
+
+      // Insert individually through API (bulk endpoint would be better but this works)
+      for (let i = 0; i < validRows.length; i++) {
+        const passportData = validRows[i];
+        console.log(`Inserting passport ${i + 1}/${validRows.length}:`, passportData.passportNo);
+        console.log('Passport data being sent:', passportData);
+
+        try {
+          const response = await api.post('/passports', passportData);
+
+          if (response && response.passport) {
+            console.log('Passport inserted successfully:', response.passport.passport_number);
+            inserted.push(response.passport);
           } else {
-            insertErrors.push(`Database error: ${batchError.message}`);
+            console.error('Unexpected response format:', response);
+            insertErrors.push(`Failed to insert ${passportData.passport_number}: Unexpected response`);
           }
-        } else if (batchData) {
-          console.log('Batch inserted successfully:', batchData.length);
-          inserted.push(...batchData);
+        } catch (error) {
+          console.error('Insert error for', passportData.passport_number, ':', error);
+
+          if (error.message && /duplicate/i.test(error.message)) {
+            insertErrors.push(`${passportData.passport_number}: Already exists in database`);
+          } else if (error.message && /permission/i.test(error.message)) {
+            insertErrors.push(`${passportData.passport_number}: Permission denied`);
+          } else {
+            insertErrors.push(`${passportData.passport_number}: ${error.message || 'Unknown error'}`);
+          }
         }
       }
     } else {
       console.log('No valid rows to insert');
     }
 
-    // Create upload log
-    console.log('Creating upload log entry...');
-    const batchId = `BULK_${Date.now()}_${user.id.substring(0, 8)}`;
-    const { error: logError } = await supabase
-      .from('bulk_uploads')
-      .insert({
-        batch_id: batchId,
-        file_name: file.name,
-        total_records: rows.length,
-        successful_records: inserted.length,
-        failed_records: errors.length + insertErrors.length,
-        created_by: user.id,
-        status: inserted.length > 0 ? 'completed' : 'failed',
-        error_log: errors.length + insertErrors.length > 0 ? [...errors, ...insertErrors] : null,
-        completed_at: new Date().toISOString()
-      });
-    
-    if (logError) {
-      console.error('Failed to create upload log:', logError);
-      console.error('Log error details:', {
-        message: logError.message,
-        details: logError.details,
-        hint: logError.hint
-      });
-    } else {
-      console.log('Upload log created successfully');
-    }
+    // Create upload log (TODO: implement bulk_uploads API endpoint)
+    console.log('Bulk upload completed - log entry skipped (no API endpoint yet)');
+    const batchId = `BULK_${Date.now()}_${String(user.id).padStart(8, '0')}`;
 
     return {
       success: inserted.length > 0,

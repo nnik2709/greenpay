@@ -11,14 +11,14 @@ const createTransporter = () => {
     secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
     auth: {
       user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASSWORD
+      pass: process.env.SMTP_PASS // Changed from SMTP_PASSWORD to match notificationService
     }
   };
 
   // If credentials are not configured, log warning and return null
   if (!config.auth.user || !config.auth.pass) {
     console.warn('⚠️  SMTP credentials not configured. Email sending is disabled.');
-    console.warn('   Please set SMTP_USER and SMTP_PASSWORD in your .env file');
+    console.warn('   Please set SMTP_USER and SMTP_PASS in your .env file');
     return null;
   }
 

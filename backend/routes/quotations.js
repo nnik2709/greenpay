@@ -374,6 +374,60 @@ router.get('/stats/summary',
   }
 );
 
+// Send quotation by email
+router.post('/send-email',
+  auth,
+  checkRole('Flex_Admin', 'Finance_Manager', 'Counter_Agent'),
+  [
+    body('quotationId').notEmpty().withMessage('Quotation ID is required'),
+    body('recipientEmail').isEmail().withMessage('Valid recipient email is required')
+  ],
+  validate,
+  async (req, res) => {
+    try {
+      const { quotationId, recipientEmail } = req.body;
+
+      // Get quotation details by quotation_number (not ID)
+      const result = await db.query(
+        `SELECT q.*, u.name as created_by_name
+         FROM quotations q
+         LEFT JOIN "User" u ON q.created_by = u.id
+         WHERE q.quotation_number = $1`,
+        [quotationId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Quotation not found. Please check the quotation number.' });
+      }
+
+      const quotation = result.rows[0];
+
+      // Import email service
+      const { sendQuotationEmail } = require('../services/notificationService');
+
+      // Send email
+      await sendQuotationEmail(recipientEmail, quotation);
+
+      // Mark as sent
+      await db.query(
+        `UPDATE quotations
+         SET status = 'sent', sent_at = NOW()
+         WHERE quotation_number = $1`,
+        [quotationId]
+      );
+
+      res.json({
+        success: true,
+        message: 'Quotation sent successfully',
+        data: { ...quotation, status: 'sent' }
+      });
+    } catch (error) {
+      console.error('Send quotation email error:', error);
+      res.status(500).json({ error: 'Failed to send quotation email' });
+    }
+  }
+);
+
 // Convert quotation to invoice
 router.post('/:id/convert-to-invoice',
   auth,

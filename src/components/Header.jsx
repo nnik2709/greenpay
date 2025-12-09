@@ -55,6 +55,10 @@ const navItemsByRole = {
       icon: <Package className="h-4 w-4" />,
       label: 'Batch History'
     }, {
+      to: '/vouchers-list',
+      icon: <FileText className="h-4 w-4" />,
+      label: 'Vouchers List'
+    }, {
       to: '/scan',
       icon: <ScanSearch className="h-4 w-4" />,
       label: 'Scan & Validate'
@@ -120,6 +124,10 @@ const navItemsByRole = {
       icon: <Building className="h-4 w-4" />,
       label: 'Corporate Exit Pass'
     }, {
+      to: '/vouchers-list',
+      icon: <FileText className="h-4 w-4" />,
+      label: 'Vouchers List'
+    }, {
       to: '/scan',
       icon: <ScanSearch className="h-4 w-4" />,
       label: 'Scan & Validate'
@@ -172,6 +180,10 @@ const navItemsByRole = {
       icon: <Package className="h-4 w-4" />,
       label: 'Batch History'
     }, {
+      to: '/vouchers-list',
+      icon: <FileText className="h-4 w-4" />,
+      label: 'Vouchers List'
+    }, {
       to: '/scan',
       icon: <ScanSearch className="h-4 w-4" />,
       label: 'Scan & Validate'
@@ -197,6 +209,10 @@ const navItemsByRole = {
       to: '/passports',
       icon: <FileText className="h-4 w-4" />,
       label: 'All Passports'
+    }, {
+      to: '/vouchers-list',
+      icon: <FileText className="h-4 w-4" />,
+      label: 'Vouchers List'
     }, {
       to: '/scan',
       icon: <ScanSearch className="h-4 w-4" />,

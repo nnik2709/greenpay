@@ -13,6 +13,10 @@ import ResetPassword from '@/pages/ResetPassword';
 import PublicRegistration from '@/pages/PublicRegistration';
 import PublicRegistrationSuccess from '@/pages/PublicRegistrationSuccess';
 import ScannerTest from '@/pages/ScannerTest';
+// Public voucher purchase pages (no auth required)
+import PublicVoucherPurchase from '@/pages/PublicVoucherPurchase';
+import PublicPurchaseCallback from '@/pages/PublicPurchaseCallback';
+import MockBSPPayment from '@/pages/MockBSPPayment';
 
 // Lazy load pages for code splitting and better performance
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -51,6 +55,7 @@ const ScanAndValidate = lazy(() => import('@/pages/ScanAndValidate'));
 const AgentLanding = lazy(() => import('@/pages/AgentLanding'));
 const CashReconciliation = lazy(() => import('@/pages/CashReconciliation'));
 const Invoices = lazy(() => import('@/pages/Invoices'));
+const VouchersList = lazy(() => import('@/pages/VouchersList'));
 
 // Loading component for suspense fallback
 const PageLoader = () => (
@@ -120,6 +125,13 @@ const AppRoutes = () => {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/payment-callback" element={<PaymentCallback />} />
 
+        {/* Public routes - No authentication required */}
+        <Route path="/buy-voucher" element={<PublicVoucherPurchase />} />
+        <Route path="/purchase/callback" element={<PublicPurchaseCallback />} />
+        <Route path="/mock-bsp-payment" element={<MockBSPPayment />} />
+        <Route path="/register/:voucherCode" element={<PublicRegistration />} />
+        <Route path="/register/success/:voucherCode" element={<PublicRegistrationSuccess />} />
+
         {/* All authenticated routes under MainLayout */}
         <Route path="/" element={
           <PrivateRoute>
@@ -162,6 +174,11 @@ const AppRoutes = () => {
           <Route path="scanner-test" element={
             <PrivateRoute roles={['Flex_Admin', 'IT_Support', 'Counter_Agent']}>
               <ScannerTest />
+            </PrivateRoute>
+          } />
+          <Route path="vouchers-list" element={
+            <PrivateRoute roles={['Flex_Admin', 'Finance_Manager', 'IT_Support', 'Counter_Agent']}>
+              <VouchersList />
             </PrivateRoute>
           } />
           <Route path="payments/corporate-exit-pass" element={

@@ -119,37 +119,40 @@ export const markCorporateVoucherAsUsed = async (voucherCode) => {
 };
 
 export const createBulkCorporateVouchers = async (bulkData) => {
-  // Calls Supabase Edge Function: bulk-corporate
+  // Calls PostgreSQL backend API: POST /api/vouchers/bulk-corporate
   // bulkData: { companyName, count, amount, paymentMethod, validFrom?, validUntil }
-  // TODO: Migrate to use PostgreSQL API auth
-  const { session } = api.auth.getSession();
-  const accessToken = session?.token;
-  if (!accessToken) throw new Error('Not authenticated');
+  try {
+    const payload = {
+      company_name: bulkData.companyName,
+      count: bulkData.count,
+      amount: bulkData.amount, // per-voucher amount
+      payment_method: bulkData.paymentMethod,
+      valid_from: bulkData.validFrom || new Date().toISOString(),
+      valid_until: bulkData.validUntil,
+    };
 
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bulk-corporate`;
-  const payload = {
-    company_name: bulkData.companyName,
-    count: bulkData.count,
-    amount: bulkData.amount, // per-voucher amount
-    payment_method: bulkData.paymentMethod,
-    valid_from: bulkData.validFrom || new Date().toISOString(),
-    valid_until: bulkData.validUntil,
-  };
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || 'Failed to create corporate vouchers');
+    const response = await api.post('/vouchers/bulk-corporate', payload);
+    return response.vouchers || [];
+  } catch (error) {
+    console.error('Error creating bulk corporate vouchers:', error);
+    throw error;
   }
+};
 
-  const json = await res.json();
-  return json.vouchers || [];
+export const emailCorporateVouchers = async (emailData) => {
+  // Calls PostgreSQL backend API: POST /api/vouchers/email-vouchers
+  // emailData: { voucherIds, companyName, recipientEmail }
+  try {
+    const payload = {
+      voucher_ids: emailData.voucherIds,
+      company_name: emailData.companyName,
+      recipient_email: emailData.recipientEmail,
+    };
+
+    const response = await api.post('/vouchers/email-vouchers', payload);
+    return response;
+  } catch (error) {
+    console.error('Error emailing corporate vouchers:', error);
+    throw error;
+  }
 };

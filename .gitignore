@@ -11,6 +11,13 @@ yarn-error.log*
 .env.*.local
 .env.development
 .env.test
+.env.bak
+
+# Security keys backup (NEVER COMMIT!)
+KEYS_BACKUP.txt
+*_keys.txt
+*.key
+*.pem
 
 # Build outputs
 dist/

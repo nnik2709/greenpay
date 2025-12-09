@@ -359,7 +359,7 @@ const EmailTemplates = () => {
                 className="min-h-[400px] font-mono text-sm"
               />
               <p className="text-sm text-slate-500 mt-1">
-                Use {{ $variable }} for Laravel syntax or {'{variable}'} for simple placeholders
+                Use {'{{ $variable }}'} for Laravel syntax or {'{variable}'} for simple placeholders
               </p>
             </div>
             

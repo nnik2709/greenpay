@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
 import ExportButton from '@/components/ExportButton';
-import { supabase } from '@/lib/supabaseClient';
+import api from '@/lib/api/client';
 
 const columns = [
   { name: 'Type', selector: row => row.type, sortable: true },
@@ -56,29 +56,24 @@ const RevenueGeneratedReports = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch individual purchases
-      let individualQuery = supabase
-        .from('individual_purchases')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Build query params for date filtering
+      const params = {};
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
 
-      if (dateFrom) individualQuery = individualQuery.gte('created_at', dateFrom);
-      if (dateTo) individualQuery = individualQuery.lte('created_at', dateTo);
+      // Fetch individual purchases from API
+      const individualResponse = await api.get('/individual-purchases', { params });
+      const individualData = individualResponse.data || [];
 
-      const { data: individualData, error: individualError } = await individualQuery;
-      if (individualError) throw individualError;
-
-      // Fetch corporate vouchers
-      let corporateQuery = supabase
-        .from('corporate_vouchers')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (dateFrom) corporateQuery = corporateQuery.gte('created_at', dateFrom);
-      if (dateTo) corporateQuery = corporateQuery.lte('created_at', dateTo);
-
-      const { data: corporateData, error: corporateError } = await corporateQuery;
-      if (corporateError) throw corporateError;
+      // Fetch corporate vouchers from API
+      let corporateData = [];
+      try {
+        const corporateResponse = await api.get('/vouchers/corporate-vouchers', { params });
+        corporateData = corporateResponse.vouchers || [];
+      } catch (error) {
+        // Corporate vouchers endpoint might not exist yet
+        console.log('Corporate vouchers not available:', error.message);
+      }
 
       // Transform individual purchases
       const individualRows = (individualData || []).map(item => {

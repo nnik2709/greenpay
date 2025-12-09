@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import api from '@/lib/api/client';
 import {
   getInvoices,
   getInvoiceStatistics,
@@ -71,6 +72,11 @@ const Invoices = () => {
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailAddress, setEmailAddress] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
+
+  // Voucher Email Modal
+  const [voucherEmailModalOpen, setVoucherEmailModalOpen] = useState(false);
+  const [voucherEmailAddress, setVoucherEmailAddress] = useState('');
+  const [sendingVoucherEmail, setSendingVoucherEmail] = useState(false);
 
   useEffect(() => {
     loadInvoices();
@@ -156,21 +162,58 @@ const Invoices = () => {
       const result = await generateVouchers(selectedInvoice.id);
 
       toast({
-        title: 'Vouchers Generated',
-        description: result.message || `Generated ${result.vouchers?.length} green passes`
+        title: 'Vouchers Generated Successfully',
+        description: `${result.message || `Generated ${result.vouchers?.length} green passes`}. Use the "Email Vouchers" button to send them to the customer.`
       });
 
       setVoucherModalOpen(false);
       setSelectedInvoice(null);
       loadInvoices();
     } catch (error) {
+      const errorData = error.response?.data;
+      const errorTitle = errorData?.error || 'Error';
+      const errorMessage = errorData?.message || 'Failed to generate vouchers';
+
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.response?.data?.error || 'Failed to generate vouchers'
+        title: errorTitle,
+        description: errorMessage
       });
     } finally {
       setGeneratingVouchers(false);
+    }
+  };
+
+  const openEmailVouchersModal = (invoice) => {
+    setSelectedInvoice(invoice);
+    setVoucherEmailAddress(invoice.customer_email || '');
+    setVoucherEmailModalOpen(true);
+  };
+
+  const handleEmailVouchers = async () => {
+    try {
+      setSendingVoucherEmail(true);
+
+      const response = await api.post(`/invoices/${selectedInvoice.id}/email-vouchers`, {
+        recipient_email: voucherEmailAddress || selectedInvoice.customer_email
+      });
+
+      toast({
+        title: 'Vouchers Emailed',
+        description: response.message || `Vouchers sent successfully to ${voucherEmailAddress || selectedInvoice.customer_email}`
+      });
+
+      setVoucherEmailModalOpen(false);
+      setVoucherEmailAddress('');
+      setSelectedInvoice(null);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.response?.data?.error || 'Failed to email vouchers'
+      });
+    } finally {
+      setSendingVoucherEmail(false);
     }
   };
 
@@ -480,19 +523,23 @@ const Invoices = () => {
                             )}
 
                             {canGenerateVouchers(invoice) && (
-                              <Button
-                                size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700"
-                                onClick={() => openVoucherModal(invoice)}
-                              >
-                                Generate Vouchers
-                              </Button>
-                            )}
-
-                            {invoice.vouchers_generated && (
-                              <span className="text-xs text-emerald-600 font-semibold px-2 py-1 bg-emerald-50 rounded">
-                                ✓ Vouchers Generated
-                              </span>
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="bg-emerald-600 hover:bg-emerald-700"
+                                  onClick={() => openVoucherModal(invoice)}
+                                >
+                                  Generate Vouchers
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+                                  onClick={() => openEmailVouchersModal(invoice)}
+                                >
+                                  ✉️ Email Vouchers
+                                </Button>
+                              </>
                             )}
                           </div>
                         </td>
@@ -638,7 +685,7 @@ const Invoices = () => {
                   <div className="flex justify-between">
                     <span className="text-sm text-slate-600">Vouchers to Generate:</span>
                     <span className="text-sm font-semibold">
-                      {JSON.parse(selectedInvoice.items || '[]').reduce((sum, item) => sum + item.quantity, 0)}
+                      {(Array.isArray(selectedInvoice.items) ? selectedInvoice.items : JSON.parse(selectedInvoice.items || '[]')).reduce((sum, item) => sum + item.quantity, 0)}
                     </span>
                   </div>
                 </div>
@@ -733,6 +780,74 @@ const Invoices = () => {
                 className="bg-purple-600 hover:bg-purple-700"
               >
                 {sendingEmail ? 'Sending...' : '✉️ Send Email'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Email Vouchers Modal */}
+        <Dialog open={voucherEmailModalOpen} onOpenChange={setVoucherEmailModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Email Vouchers</DialogTitle>
+              <DialogDescription>
+                Send generated vouchers to {selectedInvoice?.customer_name} via email
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedInvoice && (
+              <div className="space-y-4">
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <p className="text-sm text-green-800">
+                    📄 The vouchers will be sent as a PDF with QR codes (one voucher per page)
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600">Customer:</span>
+                    <span className="text-sm font-semibold">{selectedInvoice.customer_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600">Invoice:</span>
+                    <span className="text-sm font-semibold">{selectedInvoice.invoice_number}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Email Address</Label>
+                  <Input
+                    type="email"
+                    value={voucherEmailAddress}
+                    onChange={(e) => setVoucherEmailAddress(e.target.value)}
+                    placeholder="customer@example.com"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Enter or confirm the customer's email address
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setVoucherEmailModalOpen(false);
+                  setVoucherEmailAddress('');
+                  setSelectedInvoice(null);
+                }}
+                disabled={sendingVoucherEmail}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleEmailVouchers}
+                disabled={sendingVoucherEmail || !voucherEmailAddress}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {sendingVoucherEmail ? 'Sending...' : '✉️ Send Vouchers'}
               </Button>
             </DialogFooter>
           </DialogContent>

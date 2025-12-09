@@ -3,7 +3,7 @@ import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabaseClient';
+import api from '@/lib/api/client';
 import VoucherPrint from '@/components/VoucherPrint';
 import ExportButton from '@/components/ExportButton';
 
@@ -34,13 +34,8 @@ const CorporateVoucherReports = () => {
 
   const fetchVouchers = async () => {
     try {
-      const { data: vouchers, error } = await supabase
-        .from('corporate_vouchers')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setData(vouchers || []);
+      const response = await api.get('/vouchers/corporate-vouchers');
+      setData(response.vouchers || []);
     } catch (error) {
       console.error('Error fetching vouchers:', error);
       toast({
