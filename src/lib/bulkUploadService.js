@@ -1,4 +1,3 @@
-import { supabase } from './supabaseClient';
 import api from './api/client';
 
 /**

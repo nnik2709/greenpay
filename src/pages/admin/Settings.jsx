@@ -5,7 +5,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { getSettings, updateSettings } from '@/lib/settingsService';
-import { supabase } from '@/lib/supabaseClient';
 
 const Settings = () => {
   const { toast } = useToast();

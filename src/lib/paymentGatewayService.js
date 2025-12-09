@@ -3,7 +3,6 @@
  * Handles integration with Kina Bank IPG and other payment gateways
  */
 
-import { supabase } from './supabaseClient';
 
 // =====================================================
 // Constants

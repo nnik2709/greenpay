@@ -1,4 +1,3 @@
-import { supabase } from './supabaseClient';
 import { generateVoucherCode } from './utils';
 import api from './api/client';
 

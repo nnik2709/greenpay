@@ -8,7 +8,6 @@ import { Switch } from '@/components/ui/switch';
 import Payments from '@/pages/Payments';
 import { uploadBulkPassports, getBulkUploadHistory } from '@/lib/bulkUploadService';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabaseClient';
 
 const steps = [
   { id: 1, name: 'Upload File' },

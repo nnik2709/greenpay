@@ -1,4 +1,3 @@
-import { supabase } from './supabaseClient';
 
 export const getRevenueReport = async (startDate, endDate) => {
   try {

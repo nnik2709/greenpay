@@ -1,4 +1,3 @@
-import { supabase } from './supabaseClient';
 
 /**
  * Quotation PDF Generation Service
