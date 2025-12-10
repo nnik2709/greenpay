@@ -284,7 +284,7 @@ const Passports = () => {
                               {passport.given_name || passport.givenName} {passport.surname}
                             </td>
                             <td className="py-4">
-                              <span className="font-mono text-sm">{passport.passport_number || passport.passportNumber}</span>
+                              <span className="font-mono text-sm">{passport.passportNo || passport.passport_number || passport.passportNumber}</span>
                             </td>
                             <td className="py-4">{passport.nationality}</td>
                             <td className="py-4">{passport.sex}</td>
@@ -379,7 +379,7 @@ const Passports = () => {
                             {passport.given_name || passport.givenName} {passport.surname}
                           </td>
                           <td className="py-4">
-                            <span className="font-mono text-sm">{passport.passport_number || passport.passportNumber}</span>
+                            <span className="font-mono text-sm">{passport.passportNo || passport.passport_number || passport.passportNumber}</span>
                           </td>
                           <td className="py-4">{passport.nationality}</td>
                           <td className="py-4">{passport.sex}</td>

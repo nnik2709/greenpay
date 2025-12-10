@@ -7,7 +7,11 @@ import MainLayout from '@/components/MainLayout';
 import RoleBasedRedirect from '@/components/RoleBasedRedirect';
 
 // Eager load critical pages
+import HomePage from '@/pages/HomePage';
 import Login from '@/pages/Login';
+import BuyOnline from '@/pages/BuyOnline';
+import PaymentSuccess from '@/pages/PaymentSuccess';
+import PaymentCancelled from '@/pages/PaymentCancelled';
 import NotFound from '@/pages/NotFound';
 import ResetPassword from '@/pages/ResetPassword';
 import PublicRegistration from '@/pages/PublicRegistration';
@@ -67,7 +71,7 @@ const PageLoader = () => (
 // Login route component that uses useAuth hook
 const LoginRoute = () => {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/" /> : <Login />;
+  return isAuthenticated ? <Navigate to="/app" /> : <Login />;
 };
 
 // Special route for /scan - restricted to Counter_Agent and Finance_Manager only
@@ -86,9 +90,9 @@ const ScanRoute = () => {
 
   const userRole = user?.role || 'Flex_Admin';
 
-  // Only Counter_Agent and Finance_Manager can access scan page
-  if (!['Counter_Agent', 'Finance_Manager'].includes(userRole)) {
-    return <Navigate to="/" replace />;
+  // Only Flex_Admin, Counter_Agent and Finance_Manager can access scan page
+  if (!['Flex_Admin', 'Counter_Agent', 'Finance_Manager'].includes(userRole)) {
+    return <Navigate to="/app" replace />;
   }
 
   // Authorized: Show scan page
@@ -111,7 +115,7 @@ const PrivateRoute = ({ children, roles }) => {
   const userRole = user?.role || 'Flex_Admin';
 
   if (roles && !roles.includes(userRole)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   return children;
@@ -121,11 +125,18 @@ const AppRoutes = () => {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
+        {/* Public Home Page at root */}
+        <Route path="/" element={<HomePage />} />
+
+        {/* Staff Login */}
         <Route path="/login" element={<LoginRoute />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/payment-callback" element={<PaymentCallback />} />
 
         {/* Public routes - No authentication required */}
+        <Route path="/buy-online" element={<BuyOnline />} />
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+        <Route path="/payment/cancelled" element={<PaymentCancelled />} />
         <Route path="/buy-voucher" element={<PublicVoucherPurchase />} />
         <Route path="/purchase/callback" element={<PublicPurchaseCallback />} />
         <Route path="/mock-bsp-payment" element={<MockBSPPayment />} />
@@ -133,7 +144,7 @@ const AppRoutes = () => {
         <Route path="/register/success/:voucherCode" element={<PublicRegistrationSuccess />} />
 
         {/* All authenticated routes under MainLayout */}
-        <Route path="/" element={
+        <Route path="/app" element={
           <PrivateRoute>
             <MainLayout />
           </PrivateRoute>

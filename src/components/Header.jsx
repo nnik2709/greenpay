@@ -10,229 +10,229 @@ import { cn } from '@/lib/utils';
 import PasswordChangeModal from '@/components/PasswordChangeModal';
 
 const reportSubItems = [
-    { to: '/reports', icon: <BarChart2 className="h-4 w-4" />, label: 'Reports Dashboard' },
-    { to: '/reports/passports', icon: <FileText className="h-4 w-4" />, label: 'Passport Reports' },
-    { to: '/reports/individual-purchase', icon: <FilePlus className="h-4 w-4" />, label: 'Individual Purchase' },
-    { to: '/reports/corporate-vouchers', icon: <Building className="h-4 w-4" />, label: 'Corporate Vouchers' },
-    { to: '/reports/revenue-generated', icon: <CreditCard className="h-4 w-4" />, label: 'Revenue Generated' },
-    { to: '/reports/bulk-passport-uploads', icon: <UploadCloud className="h-4 w-4" />, label: 'Bulk Uploads' },
-    { to: '/reports/quotations', icon: <FileSignature className="h-4 w-4" />, label: 'Quotations' },
-    { to: '/reports/refunded', icon: <FileText className="h-4 w-4" />, label: 'Refunded' },
-    { to: '/reports/cash-reconciliation', icon: <CreditCard className="h-4 w-4" />, label: 'Cash Reconciliation' },
+    { to: '/app/reports', icon: <BarChart2 className="h-4 w-4" />, label: 'Reports Dashboard' },
+    { to: '/app/reports/passports', icon: <FileText className="h-4 w-4" />, label: 'Passport Reports' },
+    { to: '/app/reports/individual-purchase', icon: <FilePlus className="h-4 w-4" />, label: 'Individual Purchase' },
+    { to: '/app/reports/corporate-vouchers', icon: <Building className="h-4 w-4" />, label: 'Corporate Vouchers' },
+    { to: '/app/reports/revenue-generated', icon: <CreditCard className="h-4 w-4" />, label: 'Revenue Generated' },
+    { to: '/app/reports/bulk-passport-uploads', icon: <UploadCloud className="h-4 w-4" />, label: 'Bulk Uploads' },
+    { to: '/app/reports/quotations', icon: <FileSignature className="h-4 w-4" />, label: 'Quotations' },
+    { to: '/app/reports/refunded', icon: <FileText className="h-4 w-4" />, label: 'Refunded' },
+    { to: '/app/reports/cash-reconciliation', icon: <CreditCard className="h-4 w-4" />, label: 'Cash Reconciliation' },
 ];
 
 const navItemsByRole = {
   Flex_Admin: [{
-    to: '/',
+    to: '/app/dashboard',
     icon: <LayoutDashboard className="h-4 w-4" />,
     label: 'Dashboard'
   }, {
-    to: '/users',
+    to: '/app/users',
     icon: <Users className="h-4 w-4" />,
     label: 'Users'
   }, {
     title: 'Passports',
     icon: <FileText className="h-4 w-4" />,
-    base_path: '/passports',
+    base_path: '/app/passports',
     subItems: [{
-      to: '/passports',
+      to: '/app/passports',
       icon: <FileText className="h-4 w-4" />,
       label: 'All Passports'
     }, {
-      to: '/passports/create',
+      to: '/app/passports/create',
       icon: <FilePlus className="h-4 w-4" />,
       label: 'Individual Exit Pass'
     }, {
-      to: '/passports/bulk-upload',
+      to: '/app/passports/bulk-upload',
       icon: <UploadCloud className="h-4 w-4" />,
       label: 'Bulk Upload'
     }, {
-      to: '/payments/corporate-exit-pass',
+      to: '/app/payments/corporate-exit-pass',
       icon: <Building className="h-4 w-4" />,
       label: 'Corporate Exit Pass'
     }, {
-      to: '/payments/corporate-batch-history',
+      to: '/app/payments/corporate-batch-history',
       icon: <Package className="h-4 w-4" />,
       label: 'Batch History'
     }, {
-      to: '/vouchers-list',
+      to: '/app/vouchers-list',
       icon: <FileText className="h-4 w-4" />,
       label: 'Vouchers List'
     }, {
-      to: '/scan',
+      to: '/app/scan',
       icon: <ScanSearch className="h-4 w-4" />,
       label: 'Scan & Validate'
     }]
   }, {
-    to: '/payments',
+    to: '/app/payments',
     icon: <CreditCard className="h-4 w-4" />,
     label: 'Payments'
   }, {
     title: 'Quotations & Invoices',
     icon: <FileSignature className="h-4 w-4" />,
-    base_path: '/quotations',
+    base_path: '/app/quotations',
     subItems: [{
-      to: '/quotations',
+      to: '/app/quotations',
       icon: <FileSignature className="h-4 w-4" />,
       label: 'Quotations'
     }, {
-      to: '/invoices',
+      to: '/app/invoices',
       icon: <FileText className="h-4 w-4" />,
       label: 'Tax Invoices'
     }]
   }, {
     title: 'Reports',
     icon: <BarChart2 className="h-4 w-4" />,
-    base_path: '/reports',
+    base_path: '/app/reports',
     subItems: reportSubItems
   }, {
     title: 'Admin',
     icon: <Settings className="h-4 w-4" />,
-    base_path: '/admin',
+    base_path: '/app/admin',
     subItems: [{
-      to: '/admin/customers',
+      to: '/app/admin/customers',
       icon: <Building className="h-4 w-4" />,
       label: 'Customers'
     }, {
-      to: '/admin/settings',
+      to: '/app/admin/settings',
       icon: <Settings className="h-4 w-4" />,
       label: 'System Settings'
     }, {
-      to: '/admin/payment-modes',
+      to: '/app/admin/payment-modes',
       icon: <CreditCard className="h-4 w-4" />,
       label: 'Payment Modes'
     }, {
-      to: '/admin/email-templates',
+      to: '/app/admin/email-templates',
       icon: <Mail className="h-4 w-4" />,
       label: 'Email Templates'
     }]
   }],
   Finance_Manager: [{
-    to: '/',
+    to: '/app/dashboard',
     icon: <LayoutDashboard className="h-4 w-4" />,
     label: 'Dashboard'
   }, {
     title: 'Passports',
     icon: <FileText className="h-4 w-4" />,
-    base_path: '/passports',
+    base_path: '/app/passports',
     subItems: [{
-      to: '/passports',
+      to: '/app/passports',
       icon: <FileText className="h-4 w-4" />,
       label: 'All Passports'
     }, {
-      to: '/purchases/corporate-exit-pass',
+      to: '/app/payments/corporate-exit-pass',
       icon: <Building className="h-4 w-4" />,
       label: 'Corporate Exit Pass'
     }, {
-      to: '/vouchers-list',
+      to: '/app/vouchers-list',
       icon: <FileText className="h-4 w-4" />,
       label: 'Vouchers List'
     }, {
-      to: '/scan',
+      to: '/app/scan',
       icon: <ScanSearch className="h-4 w-4" />,
       label: 'Scan & Validate'
     }]
   }, {
     title: 'Quotations & Invoices',
     icon: <FileSignature className="h-4 w-4" />,
-    base_path: '/quotations',
+    base_path: '/app/quotations',
     subItems: [{
-      to: '/quotations',
+      to: '/app/quotations',
       icon: <FileSignature className="h-4 w-4" />,
       label: 'Quotations'
     }, {
-      to: '/invoices',
+      to: '/app/invoices',
       icon: <FileText className="h-4 w-4" />,
       label: 'Tax Invoices'
     }]
   }, {
     title: 'Reports',
     icon: <BarChart2 className="h-4 w-4" />,
-    base_path: '/reports',
+    base_path: '/app/reports',
     subItems: reportSubItems
   }],
   Counter_Agent: [{
-    to: '/',
+    to: '/app/dashboard',
     icon: <LayoutDashboard className="h-4 w-4" />,
     label: 'Dashboard'
   }, {
     title: 'Passports',
     icon: <FileText className="h-4 w-4" />,
-    base_path: '/passports',
+    base_path: '/app/passports',
     subItems: [{
-      to: '/passports',
+      to: '/app/passports',
       icon: <FileText className="h-4 w-4" />,
       label: 'All Passports'
     }, {
-      to: '/passports/create',
+      to: '/app/passports/create',
       icon: <FilePlus className="h-4 w-4" />,
       label: 'Individual Exit Pass'
     }, {
-      to: '/passports/bulk-upload',
+      to: '/app/passports/bulk-upload',
       icon: <UploadCloud className="h-4 w-4" />,
       label: 'Bulk Upload'
     }, {
-      to: '/payments/corporate-exit-pass',
+      to: '/app/payments/corporate-exit-pass',
       icon: <Building className="h-4 w-4" />,
       label: 'Corporate Exit Pass'
     }, {
-      to: '/payments/corporate-batch-history',
+      to: '/app/payments/corporate-batch-history',
       icon: <Package className="h-4 w-4" />,
       label: 'Batch History'
     }, {
-      to: '/vouchers-list',
+      to: '/app/vouchers-list',
       icon: <FileText className="h-4 w-4" />,
       label: 'Vouchers List'
     }, {
-      to: '/scan',
+      to: '/app/scan',
       icon: <ScanSearch className="h-4 w-4" />,
       label: 'Scan & Validate'
     }]
   }, {
-    to: '/payments',
+    to: '/app/payments',
     icon: <CreditCard className="h-4 w-4" />,
     label: 'Payments'
   }],
   IT_Support: [{
-    to: '/',
+    to: '/app/dashboard',
     icon: <LayoutDashboard className="h-4 w-4" />,
     label: 'Dashboard'
   }, {
-    to: '/users',
+    to: '/app/users',
     icon: <Users className="h-4 w-4" />,
     label: 'Users'
   }, {
     title: 'Passports',
     icon: <FileText className="h-4 w-4" />,
-    base_path: '/passports',
+    base_path: '/app/passports',
     subItems: [{
-      to: '/passports',
+      to: '/app/passports',
       icon: <FileText className="h-4 w-4" />,
       label: 'All Passports'
     }, {
-      to: '/vouchers-list',
+      to: '/app/vouchers-list',
       icon: <FileText className="h-4 w-4" />,
       label: 'Vouchers List'
     }, {
-      to: '/scan',
+      to: '/app/scan',
       icon: <ScanSearch className="h-4 w-4" />,
       label: 'Scan Exit Pass'
     }, {
-      to: '/scanner',
+      to: '/app/scanner-test',
       icon: <ScanSearch className="h-4 w-4" />,
       label: 'Voucher Scanner'
     }]
   }, {
-    to: '/invoices',
+    to: '/app/invoices',
     icon: <FileText className="h-4 w-4" />,
     label: 'Invoices'
   }, {
     title: 'Reports',
     icon: <BarChart2 className="h-4 w-4" />,
-    base_path: '/reports',
+    base_path: '/app/reports',
     subItems: reportSubItems
   }, {
-    to: '/tickets',
+    to: '/app/tickets',
     icon: <Ticket className="h-4 w-4" />,
     label: 'Support Tickets'
   }]

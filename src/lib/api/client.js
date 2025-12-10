@@ -45,6 +45,16 @@ const fetchAPI = async (endpoint, options = {}) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+
+      // Handle token expiration - redirect to login
+      if (response.status === 401 && errorData.error?.includes('expired')) {
+        removeToken();
+        // Redirect to login page
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          window.location.href = '/login?expired=true';
+        }
+      }
+
       // Create error with proper structure to match axios-like error handling
       const error = new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       error.response = {

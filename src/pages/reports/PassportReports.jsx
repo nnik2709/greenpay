@@ -44,7 +44,7 @@ const PassportReports = () => {
       if (toDate) params.dateTo = toDate;
 
       const response = await api.get('/passports', { params });
-      const passports = response.data || [];
+      const passports = response.passports || response.data || [];
 
       // Transform data to match table format
       const transformedData = passports.map(p => ({

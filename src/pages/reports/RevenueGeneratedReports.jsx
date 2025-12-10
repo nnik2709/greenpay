@@ -63,13 +63,13 @@ const RevenueGeneratedReports = () => {
 
       // Fetch individual purchases from API
       const individualResponse = await api.get('/individual-purchases', { params });
-      const individualData = individualResponse.data || [];
+      const individualData = individualResponse.purchases || individualResponse.data || [];
 
       // Fetch corporate vouchers from API
       let corporateData = [];
       try {
         const corporateResponse = await api.get('/vouchers/corporate-vouchers', { params });
-        corporateData = corporateResponse.vouchers || [];
+        corporateData = corporateResponse.vouchers || corporateResponse.data || [];
       } catch (error) {
         // Corporate vouchers endpoint might not exist yet
         console.log('Corporate vouchers not available:', error.message);

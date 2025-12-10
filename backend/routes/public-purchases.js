@@ -802,10 +802,22 @@ router.post('/webhook', async (req, res) => {
       // Complete the purchase and generate vouchers
       const { sessionId, data } = result;
 
-      // Call existing complete endpoint logic
-      await completeVoucherPurchase(sessionId, data);
+      // Check if session has passport data (Buy Online flow)
+      const sessionCheck = await pool.query(
+        'SELECT passport_data FROM purchase_sessions WHERE id = $1',
+        [sessionId]
+      );
 
-      console.log(`✅ Webhook processed successfully for session: ${sessionId}`);
+      if (sessionCheck.rows.length > 0 && sessionCheck.rows[0].passport_data) {
+        // Buy Online flow: Create passport + voucher atomically
+        const { completePurchaseWithPassport } = require('./buy-online');
+        await completePurchaseWithPassport(sessionId, data);
+        console.log(`✅ Webhook processed (Buy Online) for session: ${sessionId}`);
+      } else {
+        // Legacy flow: Just generate voucher
+        await completeVoucherPurchase(sessionId, data);
+        console.log(`✅ Webhook processed (Legacy) for session: ${sessionId}`);
+      }
     }
 
     // Always acknowledge webhook

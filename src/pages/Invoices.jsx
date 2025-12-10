@@ -31,6 +31,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const StatCard = ({ title, value }) => {
   return (
@@ -48,6 +55,7 @@ const Invoices = () => {
   const [invoices, setInvoices] = useState([]);
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
@@ -303,6 +311,53 @@ const Invoices = () => {
     }
   };
 
+  const handleAction = (action) => {
+    if (!selectedInvoiceId) {
+      toast({
+        variant: 'destructive',
+        title: 'No Invoice Selected',
+        description: 'Please select an invoice first by clicking the radio button'
+      });
+      return;
+    }
+
+    const invoice = invoices.find(inv => inv.id === selectedInvoiceId);
+    if (!invoice) return;
+
+    switch (action) {
+      case 'download':
+        handleDownloadPDF(invoice);
+        break;
+      case 'email':
+        openEmailModal(invoice);
+        break;
+      case 'generate':
+        if (canGenerateVouchers(invoice)) {
+          openVoucherModal(invoice);
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Cannot Generate Vouchers',
+            description: 'Invoice must be fully paid to generate vouchers'
+          });
+        }
+        break;
+      case 'email-vouchers':
+        if (canGenerateVouchers(invoice)) {
+          openEmailVouchersModal(invoice);
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Cannot Email Vouchers',
+            description: 'Generate vouchers first or ensure invoice is paid'
+          });
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
   const stats = statistics ? [
     { title: 'Total Invoices', value: statistics.total_count || '0' },
     { title: 'Pending', value: statistics.pending_count || '0' },
@@ -417,10 +472,37 @@ const Invoices = () => {
 
         {/* Invoices Table */}
         <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-100">
+          {/* Action Dropdown */}
+          <div className="mb-4 flex items-center gap-4">
+            <Label className="font-semibold text-slate-700">Action:</Label>
+            <Select onValueChange={handleAction}>
+              <SelectTrigger className="w-[250px]">
+                <SelectValue placeholder="Select an action..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="download">Download PDF</SelectItem>
+                <SelectItem value="email">Email Invoice</SelectItem>
+                <SelectItem value="generate">Generate Vouchers</SelectItem>
+                <SelectItem value="email-vouchers">Email Vouchers</SelectItem>
+              </SelectContent>
+            </Select>
+            {selectedInvoiceId && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectedInvoiceId(null)}
+                className="text-slate-600"
+              >
+                Clear Selection
+              </Button>
+            )}
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left text-slate-600">
               <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                 <tr>
+                  <th scope="col" className="px-6 py-3">Select</th>
                   <th scope="col" className="px-6 py-3">Invoice #</th>
                   <th scope="col" className="px-6 py-3">Customer</th>
                   <th scope="col" className="px-6 py-3">Date</th>
@@ -429,7 +511,6 @@ const Invoices = () => {
                   <th scope="col" className="px-6 py-3">Paid</th>
                   <th scope="col" className="px-6 py-3">Balance</th>
                   <th scope="col" className="px-6 py-3">Status</th>
-                  <th scope="col" className="px-6 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -456,7 +537,19 @@ const Invoices = () => {
                     );
 
                     return (
-                      <tr key={invoice.id} className="bg-white border-b hover:bg-slate-50">
+                      <tr
+                        key={invoice.id}
+                        className={`bg-white border-b hover:bg-slate-50 ${selectedInvoiceId === invoice.id ? 'bg-emerald-50' : ''}`}
+                      >
+                        <td className="px-6 py-4">
+                          <input
+                            type="radio"
+                            name="selectedInvoice"
+                            checked={selectedInvoiceId === invoice.id}
+                            onChange={() => setSelectedInvoiceId(invoice.id)}
+                            className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                          />
+                        </td>
                         <td className="px-6 py-4 font-medium text-slate-900">
                           {invoice.invoice_number}
                         </td>
@@ -491,57 +584,6 @@ const Invoices = () => {
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${getStatusBadgeClass(displayStatus)}`}>
                             {getStatusText(displayStatus)}
                           </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2 flex-wrap">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDownloadPDF(invoice)}
-                              className="border-blue-300 text-blue-600 hover:bg-blue-50"
-                            >
-                              📄 Download PDF
-                            </Button>
-
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openEmailModal(invoice)}
-                              className="border-purple-300 text-purple-600 hover:bg-purple-50"
-                            >
-                              ✉️ Email Invoice
-                            </Button>
-
-                            {canRecordPayment(invoice) && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openPaymentModal(invoice)}
-                              >
-                                Record Payment
-                              </Button>
-                            )}
-
-                            {canGenerateVouchers(invoice) && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  className="bg-emerald-600 hover:bg-emerald-700"
-                                  onClick={() => openVoucherModal(invoice)}
-                                >
-                                  Generate Vouchers
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-emerald-600 text-emerald-600 hover:bg-emerald-50"
-                                  onClick={() => openEmailVouchersModal(invoice)}
-                                >
-                                  ✉️ Email Vouchers
-                                </Button>
-                              </>
-                            )}
-                          </div>
                         </td>
                       </tr>
                     );

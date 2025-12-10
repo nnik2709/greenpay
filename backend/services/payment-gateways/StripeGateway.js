@@ -43,9 +43,15 @@ class StripeGateway extends PaymentGatewayInterface {
     } = params;
 
     try {
-      // Convert PGK to USD for testing (approximate rate)
-      // In production BSP/Kina Bank will use native PGK
-      const exchangeRate = 0.27; // 1 PGK ≈ 0.27 USD
+      // Convert PGK to USD for testing (Stripe doesn't support PGK)
+      // In production: Use BSP/Kina Bank gateway that supports native PGK
+      //
+      // EXCHANGE RATE CONFIGURATION:
+      // - Set PGK_TO_USD_RATE environment variable to update rate
+      // - Default: 0.27 (1 PGK ≈ 0.27 USD as of Dec 2024)
+      // - This rate should be updated regularly to match current market rates
+      // - For production: Use live exchange rate API or local gateway
+      const exchangeRate = parseFloat(process.env.PGK_TO_USD_RATE || '0.27');
       const amountUSD = Math.ceil(amountPGK * exchangeRate * 100); // Convert to cents
 
       const session = await this.stripe.checkout.sessions.create({
@@ -53,12 +59,12 @@ class StripeGateway extends PaymentGatewayInterface {
         line_items: [
           {
             price_data: {
-              currency: currency.toLowerCase(),
+              currency: 'usd', // Stripe uses USD for international payments
               product_data: {
                 name: 'PNG Green Fees Exit Pass Voucher',
-                description: `${quantity} voucher(s) @ PGK 50.00 each (≈ USD ${(amountPGK * exchangeRate).toFixed(2)})`,
+                description: `${quantity} voucher(s) - PGK ${amountPGK.toFixed(2)} (converted to USD for payment)`,
               },
-              unit_amount: Math.ceil(5000 * exchangeRate), // PGK 50 ≈ USD 13.50
+              unit_amount: Math.ceil((amountPGK / quantity) * exchangeRate * 100), // Convert PGK to USD cents
             },
             quantity: quantity,
           },

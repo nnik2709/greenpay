@@ -135,4 +135,156 @@ async function generateInvoicePDF(invoice, customer, supplier) {
   });
 }
 
-module.exports = { generateInvoicePDF };
+/**
+ * Generate Voucher PDF with QR Code
+ * @param {Object} voucher - Voucher data with QR code
+ * @returns {Promise<Buffer>} PDF buffer
+ */
+async function generateVoucherPDF(voucher) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const buffers = [];
+
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
+
+      // Header with gradient background (simulated with lines)
+      doc.rect(0, 0, 612, 100).fill('#059669');
+
+      // Title
+      doc.fillColor('#ffffff')
+         .fontSize(28)
+         .font('Helvetica-Bold')
+         .text('PNG Green Fees System', 50, 30, { align: 'center' });
+
+      doc.fontSize(14)
+         .font('Helvetica')
+         .text('Green Fee Voucher', 50, 65, { align: 'center' });
+
+      // Reset color for body
+      doc.fillColor('#000000');
+
+      // Voucher Code Section
+      doc.fontSize(12)
+         .font('Helvetica')
+         .text('Voucher Code', 50, 130);
+
+      doc.fontSize(32)
+         .font('Helvetica-Bold')
+         .fillColor('#059669')
+         .text(voucher.voucher_code || voucher.code, 50, 150);
+
+      // QR Code (if provided as data URL)
+      if (voucher.qrCode) {
+        try {
+          // Extract base64 data from data URL
+          const base64Data = voucher.qrCode.replace(/^data:image\/png;base64,/, '');
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+          doc.image(imageBuffer, 400, 130, { width: 150, height: 150 });
+
+          doc.fontSize(9)
+             .fillColor('#6b7280')
+             .text('Scan at gate', 400, 285, { width: 150, align: 'center' });
+        } catch (err) {
+          console.error('Error adding QR code to PDF:', err);
+        }
+      }
+
+      // Reset color
+      doc.fillColor('#000000');
+
+      // Details Section
+      doc.fontSize(12).font('Helvetica');
+      let yPos = 220;
+
+      // Passport Number
+      doc.fillColor('#6b7280')
+         .fontSize(10)
+         .text('Passport Number', 50, yPos);
+      doc.fillColor('#000000')
+         .fontSize(12)
+         .font('Helvetica-Bold')
+         .text(voucher.passport_number || voucher.passportNumber, 50, yPos + 15);
+
+      // Amount
+      doc.fillColor('#6b7280')
+         .fontSize(10)
+         .font('Helvetica')
+         .text('Amount Paid', 250, yPos);
+      doc.fillColor('#000000')
+         .fontSize(12)
+         .font('Helvetica-Bold')
+         .text('PGK ' + (voucher.amount || '50.00'), 250, yPos + 15);
+
+      yPos += 50;
+
+      // Valid From
+      doc.fillColor('#6b7280')
+         .fontSize(10)
+         .font('Helvetica')
+         .text('Valid From', 50, yPos);
+      doc.fillColor('#000000')
+         .fontSize(12)
+         .font('Helvetica-Bold')
+         .text(voucher.valid_from ? new Date(voucher.valid_from).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'), 50, yPos + 15);
+
+      // Valid Until
+      doc.fillColor('#6b7280')
+         .fontSize(10)
+         .font('Helvetica')
+         .text('Valid Until', 250, yPos);
+      doc.fillColor('#000000')
+         .fontSize(12)
+         .font('Helvetica-Bold')
+         .text(voucher.valid_until ? new Date(voucher.valid_until).toLocaleDateString('en-GB') : 'N/A', 250, yPos + 15);
+
+      yPos += 60;
+
+      // Instructions Box
+      doc.rect(50, yPos, 512, 140).fillAndStroke('#dcfce7', '#10b981');
+
+      doc.fillColor('#065f46')
+         .fontSize(14)
+         .font('Helvetica-Bold')
+         .text('How to Use This Voucher', 70, yPos + 20);
+
+      doc.fillColor('#047857')
+         .fontSize(11)
+         .font('Helvetica')
+         .text('1. Present this voucher at the entry checkpoint', 70, yPos + 50)
+         .text('2. Show the voucher code or QR code for scanning', 70, yPos + 70)
+         .text('3. Keep your passport with you for verification', 70, yPos + 90)
+         .text('4. This voucher is valid for a single entry', 70, yPos + 110);
+
+      yPos += 160;
+
+      // Registered Notice
+      doc.rect(50, yPos, 512, 60).fillAndStroke('#f0fdf4', '#22c55e');
+
+      doc.fillColor('#166534')
+         .fontSize(12)
+         .font('Helvetica-Bold')
+         .text('✓ Your passport is already registered', 70, yPos + 15);
+
+      doc.fillColor('#15803d')
+         .fontSize(10)
+         .font('Helvetica')
+         .text('You\'re all set! Just present this voucher when you travel.', 70, yPos + 35);
+
+      // Footer
+      doc.fillColor('#6b7280')
+         .fontSize(8)
+         .font('Helvetica')
+         .text('PNG Green Fees System - Official Voucher', 50, 750, { align: 'center', width: 512 })
+         .text('For support, contact: support@greenpay.gov.pg', 50, 765, { align: 'center', width: 512 });
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+module.exports = { generateInvoicePDF, generateVoucherPDF };

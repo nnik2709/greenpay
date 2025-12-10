@@ -16,6 +16,18 @@ const Login = () => {
   const { login } = useAuth();
   const { toast } = useToast();
 
+  // Show toast if redirected due to token expiration
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('expired') === 'true') {
+      toast({
+        variant: 'warning',
+        title: 'Session Expired',
+        description: 'Your session has expired. Please log in again.',
+      });
+    }
+  }, [location.search, toast]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -26,13 +38,13 @@ const Login = () => {
           title: 'Login Successful!',
           description: 'Welcome back to the Green Fees System.',
         });
-        
-        // Check if user was trying to access /scan directly
+
+        // Check if user was trying to access a specific route
         const from = location.state?.from?.pathname;
-        if (from === '/scan') {
-          navigate('/scan');
+        if (from && from !== '/login') {
+          navigate(from);
         } else {
-          navigate('/');
+          navigate('/app');
         }
       } else {
         toast({
@@ -53,36 +65,48 @@ const Login = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-slate-50 via-emerald-50/40 to-teal-50/50 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(16,185,129,0.1),rgba(255,255,255,0))]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(6,182,212,0.1),rgba(255,255,255,0))]" />
+    <div className="flex items-center justify-center min-h-screen p-4 relative overflow-hidden">
+      {/* Background Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: 'url(/bg-png.jpg)',
+          filter: 'brightness(1.1) blur(3px)',
+        }}
+      />
+      {/* Light Overlay */}
+      <div className="absolute inset-0 bg-white/75" />
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/60 via-teal-50/50 to-cyan-50/60" />
+
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
         className="w-full max-w-md relative z-10"
       >
+        {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl md:text-5xl md:whitespace-nowrap font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
             PNG Green Fees
           </h1>
-          <p className="text-slate-600 text-lg">Welcome back! Please sign in to continue</p>
+          <p className="text-slate-600 text-lg">Staff Login</p>
         </div>
 
+        {/* Staff Login Form */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="glass-effect rounded-3xl p-10 shadow-2xl"
+          className="glass-effect rounded-2xl p-8 shadow-2xl border border-slate-200"
         >
-          <form onSubmit={handleSubmit} className="space-y-7">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-slate-700">Email Address</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="e.g., admin@example.com"
-                className="h-14 text-base border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                placeholder="staff@example.com"
+                className="h-12 text-base border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -95,7 +119,7 @@ const Login = () => {
                 id="password"
                 type="password"
                 placeholder="Enter your password"
-                className="h-14 text-base border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="h-12 text-base border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -107,12 +131,12 @@ const Login = () => {
               <Button
                 type="submit"
                 size="lg"
-                className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 text-white shadow-lg hover:shadow-2xl transition-all"
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-slate-700 to-slate-600 text-white shadow-lg hover:shadow-xl transition-all"
                 disabled={loading}
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Signing In...
                   </div>
                 ) : (
@@ -121,12 +145,17 @@ const Login = () => {
               </Button>
             </motion.div>
           </form>
+
+          <p className="text-xs text-slate-500 mt-4 text-center">
+            For counter agents, finance managers, and administrators only
+          </p>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-8 text-center text-sm text-slate-500"
+          transition={{ delay: 0.4 }}
+          className="text-center text-sm text-slate-500 mt-6"
         >
           <p>© 2025 Eywa Systems. All rights reserved.</p>
         </motion.div>

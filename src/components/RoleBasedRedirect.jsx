@@ -21,13 +21,13 @@ const RoleBasedRedirect = () => {
   switch (user?.role) {
     case 'Counter_Agent':
       // Redirect Counter_Agent directly to passport creation page
-      return <Navigate to="/passports/create" replace />;
+      return <Navigate to="/app/passports/create" replace />;
     case 'Flex_Admin':
     case 'Finance_Manager':
     case 'IT_Support':
     default:
       // Redirect to dashboard
-      return <Navigate to="/dashboard" replace />;
+      return <Navigate to="/app/dashboard" replace />;
   }
 };
 
