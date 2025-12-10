@@ -223,10 +223,11 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
 
       console.log('Found Line 1:', line1);
 
-      // Find Line 2: should start with passport number (digits)
-      // Line 2 format: PASSPORTNUMBER<NATIONALITY<DOBYYMMDDSEXEXPIRYYYMMDD
-      // Look for pattern: digits followed by <, then 3 letters, then 6 digits
-      const line2Match = cleanedText.match(/[0-9]{6,9}<+[A-Z]{3}[0-9]{6}[MF<][0-9]{7}/);
+      // Find Line 2: should start with passport number
+      // Line 2 format: PASSPORTNUMBER(9 chars)<CHECKDIGIT>NATIONALITY(3)DOBYYMMDDSEXEXPIRYYYMMDD
+      // Passport number can be digits/letters with optional < padding, followed by check digit
+      // Pattern: 9 alphanumeric chars, 1 digit (check), 3 letters (country), 6 digits (DOB)
+      const line2Match = cleanedText.match(/[A-Z0-9<]{9}[0-9][A-Z]{3}[0-9]{6}[0-9][MF<]/);
       if (!line2Match) {
         throw new Error('Could not find valid MRZ Line 2 (passport number pattern)');
       }
