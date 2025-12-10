@@ -359,8 +359,11 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
               }
             }
           },
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<',
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<P',
           tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
+          preserve_interword_spaces: '0',
+          // Additional OCR engine settings for better accuracy
+          tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY, // Use neural network engine
         }
       );
 
@@ -473,11 +476,20 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
       data[i + 2] = gray; // B
     }
 
-    // Calculate optimal threshold using Otsu-like method (simplified)
-    // Use average brightness as threshold
+    // Calculate optimal threshold using median brightness (more robust than average)
+    // Sort grayscale values and find median
+    const sortedValues = [...grayscaleValues].sort((a, b) => a - b);
+    const medianBrightness = sortedValues[Math.floor(sortedValues.length / 2)];
     const avgBrightness = grayscaleValues.reduce((a, b) => a + b, 0) / grayscaleValues.length;
-    const threshold = avgBrightness > 140 ? avgBrightness + 10 : 140; // Adjust for passport lighting
-    console.log('Calculated threshold:', threshold);
+
+    // Use median + offset for better separation of text from background
+    // For MRZ, we want to preserve dark text (characters) and remove light background
+    let threshold = medianBrightness + 15; // Offset above median to ensure text stays dark
+
+    // Clamp threshold to reasonable range for passport images
+    threshold = Math.max(120, Math.min(180, threshold));
+
+    console.log('Brightness stats - Avg:', Math.round(avgBrightness), 'Median:', Math.round(medianBrightness), 'Threshold:', threshold);
 
     // Second pass: binary thresholding (pure black or white)
     // This works MUCH better for OCR of machine-printed text
