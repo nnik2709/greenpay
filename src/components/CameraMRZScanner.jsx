@@ -115,8 +115,8 @@ const CameraMRZScanner = ({ onScanSuccess, onClose }) => {
     if (isScanning) return;
 
     // Check if we're in a secure context (HTTPS or localhost)
-    const isSecureContext = window.isSecureContext || 
-                           window.location.hostname === 'localhost' || 
+    const isSecureContext = window.isSecureContext ||
+                           window.location.hostname === 'localhost' ||
                            window.location.hostname === '127.0.0.1' ||
                            window.location.protocol === 'https:';
 
@@ -132,25 +132,35 @@ const CameraMRZScanner = ({ onScanSuccess, onClose }) => {
     setIsScanning(true);
     setScanResult(null);
 
-    const newScanner = new Html5QrcodeScanner(
-      'mrz-scanner',
-      {
-        fps: 10,
-        qrbox: 300,
-        rememberLastUsedCamera: true,
-        showTorchButtonIfSupported: true
-      },
-      {
-        verbose: false,
-        formatsToSupport: undefined,
-        useBarCodeDetectorIfSupported: true,
-        showZoomSliderIfSupported: true,
-        defaultZoomValueIfSupported: 2
-      }
-    );
+    try {
+      const newScanner = new Html5QrcodeScanner(
+        'mrz-scanner',
+        {
+          fps: 10,
+          qrbox: 300,
+          rememberLastUsedCamera: true,
+          showTorchButtonIfSupported: true
+        },
+        {
+          verbose: true, // Enable verbose for debugging
+          formatsToSupport: undefined,
+          useBarCodeDetectorIfSupported: true,
+          showZoomSliderIfSupported: true,
+          defaultZoomValueIfSupported: 2
+        }
+      );
 
-    newScanner.render(handleScanSuccess, handleScanError);
-    setScanner(newScanner);
+      newScanner.render(handleScanSuccess, handleScanError);
+      setScanner(newScanner);
+    } catch (error) {
+      console.error('Scanner initialization error:', error);
+      toast({
+        title: "Scanner Error",
+        description: error.message || "Failed to initialize camera scanner",
+        variant: "destructive",
+      });
+      setIsScanning(false);
+    }
   };
 
   const stopScanning = () => {
@@ -235,7 +245,15 @@ const CameraMRZScanner = ({ onScanSuccess, onClose }) => {
 
       {/* Scanner Container */}
       <div className="relative">
-        <div id="mrz-scanner" className="w-full min-h-[300px] bg-slate-100 rounded-lg flex items-center justify-center">
+        <div className="mb-2 p-2 bg-yellow-100 border border-yellow-300 text-sm">
+          <p>DEBUG: Scanner container ID: "mrz-scanner"</p>
+          <p>Is Scanning: {isScanning ? 'YES' : 'NO'}</p>
+        </div>
+        <div
+          id="mrz-scanner"
+          className="w-full min-h-[300px] bg-slate-100 rounded-lg flex items-center justify-center"
+          style={{ minHeight: '300px', backgroundColor: '#f1f5f9' }}
+        >
           {!isScanning && (
             <div className="text-center text-slate-500">
               <Camera className="w-12 h-12 mx-auto mb-2 opacity-50" />

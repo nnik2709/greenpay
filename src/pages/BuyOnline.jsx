@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { NationalityCombobox } from '@/components/NationalityCombobox';
 import api from '@/lib/api/client';
 import { useScannerInput } from '@/hooks/useScannerInput';
-import CameraMRZScanner from '@/components/CameraMRZScanner';
+import SimpleCameraScanner from '@/components/SimpleCameraScanner';
 import { Camera } from 'lucide-react';
 
 /**
@@ -502,9 +502,33 @@ const BuyOnline = () => {
 
       {/* Camera Scanner Modal */}
       {showCameraScanner && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="relative w-full max-w-2xl bg-white rounded-lg p-6 max-h-[90vh] overflow-y-auto">
-            <CameraMRZScanner
+        <div
+          className="fixed top-0 left-0 right-0 bottom-0 bg-white z-[9999]"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'white',
+            zIndex: 9999,
+            overflow: 'auto'
+          }}
+        >
+          <div className="p-4">
+            <div className="mb-4 p-4 bg-green-100 border-4 border-green-500">
+              <p className="text-green-800 font-bold text-2xl">✅ Modal is visible!</p>
+              <p className="text-green-700">If you see this, the modal works.</p>
+              <button
+                onClick={() => setShowCameraScanner(false)}
+                className="mt-2 px-4 py-2 bg-red-500 text-white rounded"
+              >
+                Close Modal (Test)
+              </button>
+            </div>
+            <SimpleCameraScanner
               onScanSuccess={handleCameraScan}
               onClose={() => setShowCameraScanner(false)}
             />
