@@ -52,8 +52,9 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
       startMrzDetection();
 
       toast({
-        title: "Camera Active",
-        description: "Align MRZ in green box - it will turn bright green when ready",
+        title: "📷 Camera Active",
+        description: "Position passport MRZ (bottom 2 lines) in the guide box",
+        duration: 3000,
       });
     } catch (error) {
       console.error('Camera error:', error);
@@ -254,14 +255,15 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
   };
 
   const processImageWithOCR = async (imageDataUrl) => {
-    console.log('Starting OCR processing...');
+    console.log('=== STARTING OCR PROCESSING ===');
     setIsProcessing(true);
     setOcrProgress(0);
 
     try {
+      // Step 1: Starting OCR
       toast({
-        title: "Processing Image",
-        description: "Reading MRZ data from passport...",
+        title: "⏳ Step 1/3: Starting OCR",
+        description: "Analyzing passport image...",
       });
 
       console.log('Calling Tesseract.recognize...');
@@ -272,7 +274,16 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
           logger: (m) => {
             console.log('Tesseract:', m);
             if (m.status === 'recognizing text') {
-              setOcrProgress(Math.round(m.progress * 100));
+              const progress = Math.round(m.progress * 100);
+              setOcrProgress(progress);
+
+              // Update toast at key milestones
+              if (progress === 25 || progress === 50 || progress === 75) {
+                toast({
+                  title: `⏳ Step 2/3: Reading Text (${progress}%)`,
+                  description: "Extracting MRZ data...",
+                });
+              }
             }
           },
           tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<',
@@ -287,35 +298,44 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
       console.log('Text length:', extractedText.length);
 
       if (!extractedText || extractedText.length < 20) {
-        throw new Error('No text extracted from image');
+        throw new Error('❌ No text found in image. Please retake with better lighting.');
       }
 
-      // Parse MRZ from extracted text
+      // Step 3: Parsing MRZ
+      toast({
+        title: "⏳ Step 3/3: Parsing Data",
+        description: "Extracting passport details...",
+      });
+
       console.log('Attempting to parse MRZ...');
       const passportData = parseMRZ(extractedText);
-      console.log('MRZ parsed successfully:', passportData);
+      console.log('✅ MRZ parsed successfully:', passportData);
 
+      // Success!
       toast({
-        title: "Success!",
-        description: `Passport details extracted for ${passportData.givenName} ${passportData.surname}`,
+        title: "✅ Success!",
+        description: `Data extracted: ${passportData.givenName} ${passportData.surname}`,
+        className: "bg-green-50 border-green-200",
       });
 
       // Auto-fill the form
       setTimeout(() => {
-        console.log('Calling onScanSuccess with data:', passportData);
+        console.log('✅ CALLING onScanSuccess with passport data:', passportData);
         onScanSuccess(passportData);
-      }, 1500);
+        console.log('✅ onScanSuccess called - form should populate now');
+      }, 1000);
 
     } catch (error) {
-      console.error('=== OCR/Parse ERROR ===');
+      console.error('=== ❌ OCR/Parse ERROR ===');
       console.error('Error type:', error.name);
       console.error('Error message:', error.message);
       console.error('Full error:', error);
 
       toast({
-        title: "Could Not Read MRZ",
-        description: error.message || "Try again with better lighting, or enter manually.",
+        title: "❌ OCR Failed",
+        description: error.message || "Could not read MRZ. Please try again or enter manually.",
         variant: "destructive",
+        duration: 5000,
       });
 
       // Don't clear captured image so user can retry or enter manually
@@ -420,22 +440,10 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
     <div className="space-y-4 bg-white">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-slate-800">Camera Scanner</h2>
+        <h2 className="text-2xl font-bold text-slate-800">Scan Passport</h2>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="w-5 h-5" />
         </Button>
-      </div>
-
-      {/* Instructions */}
-      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-        <h3 className="font-bold text-emerald-900 mb-2">📷 How to Scan</h3>
-        <ol className="text-emerald-800 text-sm space-y-1 list-decimal list-inside">
-          <li>Click "Start Camera" to activate your camera</li>
-          <li><strong>Position the passport MRZ (bottom 2 lines) inside the green guide box</strong></li>
-          <li>Align the 2 MRZ lines with the dashed lines in the guide</li>
-          <li>Use good lighting and hold phone steady</li>
-          <li>Click "Capture Image" - OCR will auto-read the data</li>
-        </ol>
       </div>
 
       {/* Camera View */}
@@ -493,11 +501,11 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
                 }`} />
 
                 {/* Instructions */}
-                <div className="absolute -top-12 left-0 right-0 text-center">
-                  <p className={`text-white text-sm font-bold px-3 py-1 rounded inline-block transition-colors ${
-                    mrzDetected ? 'bg-green-500 animate-pulse' : 'bg-emerald-600'
+                <div className="absolute -top-16 left-0 right-0 text-center">
+                  <p className={`text-white text-base font-bold px-4 py-2 rounded-lg inline-block transition-all shadow-lg ${
+                    mrzDetected ? 'bg-green-500 animate-pulse scale-110' : 'bg-slate-700'
                   }`}>
-                    {mrzDetected ? '✓ Ready! Tap Capture' : 'Position MRZ lines here'}
+                    {mrzDetected ? '✅ READY - TAP CAPTURE NOW!' : 'Align MRZ (bottom 2 lines)'}
                   </p>
                 </div>
 
