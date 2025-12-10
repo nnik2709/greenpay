@@ -214,27 +214,29 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
       console.log('Cleaned text:', cleanedText);
       console.log('Cleaned text length:', cleanedText.length);
 
-      // Try to find MRZ pattern - look for P< at the start
-      let mrzStart = cleanedText.indexOf('P<');
-      if (mrzStart === -1) {
-        // Try common OCR mistakes for P<
-        mrzStart = cleanedText.indexOf('P«');
-        if (mrzStart === -1) mrzStart = cleanedText.indexOf('P‹');
-        if (mrzStart === -1) throw new Error('Could not find MRZ start marker (P<)');
-        cleanedText = cleanedText.substring(0, mrzStart) + 'P<' + cleanedText.substring(mrzStart + 2);
+      // Find Line 1: starts with P<BGR or P<XXX (3-letter country code)
+      const line1Match = cleanedText.match(/P<[A-Z]{3}[A-Z<]{38}/);
+      if (!line1Match) {
+        throw new Error('Could not find valid MRZ Line 1 (P<XXX...)');
       }
+      const line1 = line1Match[0].substring(0, 44); // Ensure exactly 44 chars
 
-      // Extract 88 characters starting from P<
-      const mrz = cleanedText.substring(mrzStart, mrzStart + 88);
-      console.log('Extracted MRZ (88 chars):', mrz);
+      console.log('Found Line 1:', line1);
+
+      // Find Line 2: should start with passport number (digits)
+      // Line 2 format: PASSPORTNUMBER<NATIONALITY<DOBYYMMDDSEXEXPIRYYYMMDD
+      // Look for pattern: digits followed by <, then 3 letters, then 6 digits
+      const line2Match = cleanedText.match(/[0-9]{6,9}<+[A-Z]{3}[0-9]{6}[MF<][0-9]{7}/);
+      if (!line2Match) {
+        throw new Error('Could not find valid MRZ Line 2 (passport number pattern)');
+      }
+      const line2 = line2Match[0].substring(0, 44); // Ensure exactly 44 chars
+
+      console.log('Found Line 2:', line2);
+
+      const mrz = line1 + line2;
+      console.log('Combined MRZ (88 chars):', mrz);
       console.log('MRZ length:', mrz.length);
-
-      if (mrz.length < 88) {
-        throw new Error(`MRZ too short: only ${mrz.length} characters found, need 88`);
-      }
-
-      const line1 = mrz.substring(0, 44);
-      const line2 = mrz.substring(44, 88);
 
       console.log('Line 1 (44 chars):', line1);
       console.log('Line 2 (44 chars):', line2);
