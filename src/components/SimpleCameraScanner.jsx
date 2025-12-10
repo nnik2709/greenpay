@@ -201,46 +201,91 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
   // Parse MRZ text extracted from OCR
   const parseMRZ = (text) => {
     try {
-      // Clean up text - remove spaces, newlines
-      const cleanedText = text.replace(/\s/g, '').replace(/[^A-Z0-9<]/g, '');
+      console.log('=== PARSING MRZ ===');
+      console.log('Original text:', text);
 
-      // Find MRZ pattern - starts with P< and is 88 characters total (2 lines of 44)
-      const mrzMatch = cleanedText.match(/P<[A-Z<]{41,44}[A-Z0-9<]{41,44}/);
+      // Clean up text - remove spaces, newlines, and non-MRZ characters
+      // OCR often mistakes characters: I->1, O->0, S->5, etc.
+      let cleanedText = text
+        .toUpperCase()
+        .replace(/\s/g, '')
+        .replace(/[^A-Z0-9<]/g, '');
 
-      if (!mrzMatch) {
-        throw new Error('Could not find valid MRZ pattern in image');
+      console.log('Cleaned text:', cleanedText);
+      console.log('Cleaned text length:', cleanedText.length);
+
+      // Try to find MRZ pattern - look for P< at the start
+      let mrzStart = cleanedText.indexOf('P<');
+      if (mrzStart === -1) {
+        // Try common OCR mistakes for P<
+        mrzStart = cleanedText.indexOf('P«');
+        if (mrzStart === -1) mrzStart = cleanedText.indexOf('P‹');
+        if (mrzStart === -1) throw new Error('Could not find MRZ start marker (P<)');
+        cleanedText = cleanedText.substring(0, mrzStart) + 'P<' + cleanedText.substring(mrzStart + 2);
       }
 
-      const mrz = mrzMatch[0];
+      // Extract 88 characters starting from P<
+      const mrz = cleanedText.substring(mrzStart, mrzStart + 88);
+      console.log('Extracted MRZ (88 chars):', mrz);
+      console.log('MRZ length:', mrz.length);
+
       if (mrz.length < 88) {
-        throw new Error('MRZ data incomplete');
+        throw new Error(`MRZ too short: only ${mrz.length} characters found, need 88`);
       }
 
       const line1 = mrz.substring(0, 44);
       const line2 = mrz.substring(44, 88);
 
-      // Parse line 1: P<COUNTRYNAME<<GIVENNAMES<<<
-      const names = line1.substring(5).split('<<');
-      const surname = names[0].replace(/</g, ' ').trim();
-      const givenName = names.slice(1).join(' ').replace(/</g, ' ').trim();
+      console.log('Line 1 (44 chars):', line1);
+      console.log('Line 2 (44 chars):', line2);
+
+      // Parse line 1: P<ISSCOUNTRY<SURNAME<<GIVENNAMES<<<
+      const line1Content = line1.substring(5); // Remove P<XXX
+      const nameParts = line1Content.split('<<');
+
+      console.log('Name parts:', nameParts);
+
+      const surname = nameParts[0].replace(/</g, '').trim();
+      // Given name is everything after the first <<, remove all < and extra spaces
+      const givenName = nameParts.slice(1)
+        .join(' ')
+        .replace(/</g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      console.log('Parsed surname:', surname);
+      console.log('Parsed given name:', givenName);
 
       // Parse line 2: PASSPORTNUMBER<NATIONALITY<DOBYYMMDDSEXEXPIRYYYMMDD<
       const passportNumber = line2.substring(0, 9).replace(/</g, '').trim();
-      const nationality = line2.substring(10, 13);
+      const nationality = line2.substring(10, 13).replace(/</g, '').trim();
 
       const dobRaw = line2.substring(13, 19);
+      const sexChar = line2.substring(20, 21);
+      const expiryRaw = line2.substring(21, 27);
+
+      console.log('Passport Number:', passportNumber);
+      console.log('Nationality:', nationality);
+      console.log('DOB raw:', dobRaw);
+      console.log('Sex char:', sexChar);
+      console.log('Expiry raw:', expiryRaw);
+
+      // Parse date of birth
       let dobYear = parseInt(dobRaw.substring(0, 2), 10);
+      if (isNaN(dobYear)) throw new Error('Invalid birth year');
       dobYear += (dobYear > (new Date().getFullYear() % 100)) ? 1900 : 2000;
       const dateOfBirth = `${dobYear}-${dobRaw.substring(2, 4)}-${dobRaw.substring(4, 6)}`;
 
-      const sex = line2.substring(20, 21) === 'M' ? 'Male' : 'Female';
+      // Parse sex - be strict about M/F
+      const sex = (sexChar === 'M' || sexChar === 'H') ? 'Male' : 'Female';
 
-      const expiryRaw = line2.substring(21, 27);
+      // Parse expiry date
       let expiryYear = parseInt(expiryRaw.substring(0, 2), 10);
+      if (isNaN(expiryYear)) throw new Error('Invalid expiry year');
       expiryYear += (expiryYear > 50) ? 1900 : 2000;
       const dateOfExpiry = `${expiryYear}-${expiryRaw.substring(2, 4)}-${expiryRaw.substring(4, 6)}`;
 
-      return {
+      const result = {
         passportNumber,
         surname,
         givenName,
@@ -249,7 +294,13 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
         sex,
         dateOfExpiry
       };
+
+      console.log('=== PARSED RESULT ===');
+      console.log(JSON.stringify(result, null, 2));
+
+      return result;
     } catch (error) {
+      console.error('MRZ parsing failed:', error);
       throw new Error('Failed to parse MRZ: ' + error.message);
     }
   };
