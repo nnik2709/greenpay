@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { NationalityCombobox } from '@/components/NationalityCombobox';
 import api from '@/lib/api/client';
 import { useScannerInput } from '@/hooks/useScannerInput';
+import CameraMRZScanner from '@/components/CameraMRZScanner';
+import { Camera } from 'lucide-react';
 
 /**
  * Public Buy Online Page - Phase 2 Enhanced
@@ -28,6 +30,8 @@ const BuyOnline = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const [formData, setFormData] = useState({
     passportNumber: '',
@@ -39,6 +43,21 @@ const BuyOnline = () => {
     email: ''
   });
 
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'mobile', 'tablet'];
+      const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword));
+      const hasSmallScreen = window.innerWidth <= 768;
+      setIsMobile(isMobileDevice || hasSmallScreen);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Anti-bot verification
   const [verificationAnswer, setVerificationAnswer] = useState('');
   const [honeypot, setHoneypot] = useState('');
@@ -49,7 +68,7 @@ const BuyOnline = () => {
     return { question: `${num1} + ${num2}`, answer: num1 + num2 };
   });
 
-  // Hardware scanner support with MRZ parsing
+  // Hardware scanner support with MRZ parsing (for desktop with USB scanners)
   const { isScanning: isScannerActive } = useScannerInput({
     onScanComplete: (data) => {
       if (data.type === 'mrz') {
@@ -73,6 +92,26 @@ const BuyOnline = () => {
     enableMrzParsing: true,
     autoFocus: false
   });
+
+  // Camera scan handler (for mobile devices)
+  const handleCameraScan = (passportData) => {
+    setFormData(prev => ({
+      ...prev,
+      passportNumber: passportData.passportNumber,
+      surname: passportData.surname,
+      givenName: passportData.givenName,
+      nationality: passportData.nationality,
+      dateOfBirth: passportData.dateOfBirth,
+      sex: passportData.sex
+    }));
+
+    setShowCameraScanner(false);
+
+    toast({
+      title: 'Passport Scanned!',
+      description: 'Passport details filled automatically from camera.',
+    });
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -249,10 +288,33 @@ const BuyOnline = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {isScannerActive && (
+              {/* Mobile Camera Scanner Button */}
+              {isMobile && (
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex flex-col items-center gap-3">
+                    <p className="text-blue-700 font-medium text-center">
+                      Use your phone camera to scan passport MRZ
+                    </p>
+                    <Button
+                      onClick={() => setShowCameraScanner(true)}
+                      className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+                      disabled={loading}
+                    >
+                      <Camera className="h-5 w-5" />
+                      Scan Passport with Camera
+                    </Button>
+                    <p className="text-xs text-blue-600 text-center">
+                      Point camera at the MRZ (machine-readable zone) at the bottom of your passport
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Hardware Scanner (Desktop) */}
+              {!isMobile && isScannerActive && (
                 <div className="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-4 mb-4">
                   <p className="text-emerald-700 font-medium text-center">
-                    Scanner Active - Ready to scan passport MRZ
+                    Hardware Scanner Active - Ready to scan passport MRZ
                   </p>
                 </div>
               )}
@@ -437,6 +499,18 @@ const BuyOnline = () => {
           </p>
         </motion.div>
       </div>
+
+      {/* Camera Scanner Modal */}
+      {showCameraScanner && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="relative w-full max-w-2xl">
+            <CameraMRZScanner
+              onScanSuccess={handleCameraScan}
+              onClose={() => setShowCameraScanner(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
