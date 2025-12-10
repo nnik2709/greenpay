@@ -133,11 +133,14 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
               setOcrProgress(Math.round(m.progress * 100));
             }
           },
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<',
+          tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
         }
       );
 
       const extractedText = result.data.text;
       console.log('OCR Text:', extractedText);
+      console.log('OCR Confidence:', result.data.confidence);
 
       // Parse MRZ from extracted text
       const passportData = parseMRZ(extractedText);
@@ -156,7 +159,7 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
       console.error('OCR/Parse error:', error);
       toast({
         title: "Could Not Read MRZ",
-        description: "Please enter details manually or retake with better lighting and focus on the bottom 2 lines of passport",
+        description: "Try again with better lighting, or enter manually. Make sure MRZ lines fill the green guide box.",
         variant: "destructive",
       });
     } finally {
@@ -172,15 +175,42 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
 
-    // Set canvas size to video size
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // Get video dimensions
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
 
-    // Draw video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // Calculate MRZ crop area (bottom 30% of frame, centered)
+    const cropHeight = videoHeight * 0.3; // MRZ area height
+    const cropWidth = videoWidth * 0.9;   // 90% width for margins
+    const cropX = (videoWidth - cropWidth) / 2;
+    const cropY = videoHeight * 0.35; // Start from 35% down
+
+    // Set canvas to cropped size
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+
+    // Draw only the MRZ region
+    context.drawImage(
+      video,
+      cropX, cropY, cropWidth, cropHeight,  // Source rectangle (MRZ area)
+      0, 0, cropWidth, cropHeight            // Destination rectangle (full canvas)
+    );
+
+    // Enhance contrast for better OCR
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // Simple contrast enhancement
+    const factor = 1.5;
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = Math.min(255, (data[i] - 128) * factor + 128);     // R
+      data[i + 1] = Math.min(255, (data[i + 1] - 128) * factor + 128); // G
+      data[i + 2] = Math.min(255, (data[i + 2] - 128) * factor + 128); // B
+    }
+    context.putImageData(imageData, 0, 0);
 
     // Get image data URL
-    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
     setCapturedImage(imageDataUrl);
 
     stopCamera();
@@ -208,14 +238,14 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
       </div>
 
       {/* Instructions */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-bold text-blue-900 mb-2">Instructions</h3>
-        <ol className="text-blue-800 text-sm space-y-1 list-decimal list-inside">
+      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+        <h3 className="font-bold text-emerald-900 mb-2">📷 How to Scan</h3>
+        <ol className="text-emerald-800 text-sm space-y-1 list-decimal list-inside">
           <li>Click "Start Camera" to activate your camera</li>
-          <li>Position passport so the bottom 2 lines (MRZ) are clearly visible</li>
-          <li>Ensure good lighting and hold steady</li>
-          <li>Click "Capture Image" when ready</li>
-          <li>Enter the details manually from the captured image</li>
+          <li><strong>Position the passport MRZ (bottom 2 lines) inside the green guide box</strong></li>
+          <li>Align the 2 MRZ lines with the dashed lines in the guide</li>
+          <li>Use good lighting and hold phone steady</li>
+          <li>Click "Capture Image" - OCR will auto-read the data</li>
         </ol>
       </div>
 
@@ -236,6 +266,45 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
           className={`w-full h-auto ${isCameraActive ? 'block' : 'hidden'}`}
           style={{ maxHeight: '500px', objectFit: 'contain' }}
         />
+
+        {/* MRZ Guide Overlay - shown when camera is active */}
+        {isCameraActive && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            {/* Dark overlay with cutout */}
+            <div className="absolute inset-0 bg-black bg-opacity-50" />
+
+            {/* MRZ Guide Box */}
+            <div className="relative z-10" style={{ width: '90%', height: '30%' }}>
+              {/* Guide rectangle */}
+              <div
+                className="absolute inset-0 border-4 border-emerald-400 rounded-lg"
+                style={{
+                  boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+                  background: 'transparent'
+                }}
+              >
+                {/* Corner markers */}
+                <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-emerald-400" />
+                <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-emerald-400" />
+                <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-emerald-400" />
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-emerald-400" />
+
+                {/* Instructions */}
+                <div className="absolute -top-12 left-0 right-0 text-center">
+                  <p className="text-white text-sm font-bold bg-emerald-600 px-3 py-1 rounded inline-block">
+                    Position MRZ lines here
+                  </p>
+                </div>
+
+                {/* MRZ line guides */}
+                <div className="absolute inset-0 flex flex-col justify-center px-4">
+                  <div className="border-t-2 border-dashed border-emerald-300 opacity-70 mb-2" />
+                  <div className="border-t-2 border-dashed border-emerald-300 opacity-70" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {capturedImage && (
           <img
