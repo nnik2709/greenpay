@@ -214,12 +214,19 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
       console.log('Cleaned text:', cleanedText);
       console.log('Cleaned text length:', cleanedText.length);
 
-      // Find Line 1: starts with P<BGR or P<XXX (3-letter country code)
-      const line1Match = cleanedText.match(/P<[A-Z]{3}[A-Z<]{38}/);
+      // Find Line 1: starts with P<XXX (3-letter country code)
+      // Be flexible - accept 36-40 chars after P<XXX (OCR might lose edge padding)
+      const line1Match = cleanedText.match(/P<[A-Z]{3}[A-Z<]{36,40}/);
       if (!line1Match) {
         throw new Error('Could not find valid MRZ Line 1 (P<XXX...)');
       }
-      const line1 = line1Match[0].substring(0, 44); // Ensure exactly 44 chars
+      // Pad to exactly 44 chars if OCR lost edge characters
+      let line1 = line1Match[0];
+      if (line1.length < 44) {
+        line1 = line1 + '<'.repeat(44 - line1.length);
+        console.log('Line 1 was', line1Match[0].length, 'chars, padded to 44');
+      }
+      line1 = line1.substring(0, 44); // Ensure exactly 44 chars
 
       console.log('Found Line 1:', line1);
 
@@ -482,12 +489,14 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
     const medianBrightness = sortedValues[Math.floor(sortedValues.length / 2)];
     const avgBrightness = grayscaleValues.reduce((a, b) => a + b, 0) / grayscaleValues.length;
 
-    // Use median + offset for better separation of text from background
-    // For MRZ, we want to preserve dark text (characters) and remove light background
-    let threshold = medianBrightness + 15; // Offset above median to ensure text stays dark
+    // Use median with small offset for better separation of text from background
+    // For MRZ, we want to preserve ALL dark text characters, especially at edges
+    // Reduced from +15 to +5 to prevent losing edge characters
+    let threshold = medianBrightness + 5;
 
     // Clamp threshold to reasonable range for passport images
-    threshold = Math.max(120, Math.min(180, threshold));
+    // Lowered max from 180 to 170 to preserve more characters
+    threshold = Math.max(120, Math.min(170, threshold));
 
     console.log('Brightness stats - Avg:', Math.round(avgBrightness), 'Median:', Math.round(medianBrightness), 'Threshold:', threshold);
 
