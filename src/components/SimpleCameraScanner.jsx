@@ -325,11 +325,16 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
       // Given name is everything after the first <<
       // Single < separates given names, << separates surname from given names
       // Replace single < with space, then clean up extra spaces
-      const givenName = nameParts.slice(1)
+      const givenNameRaw = nameParts.slice(1)
         .join(' ')
         .replace(/</g, ' ')  // Replace < with space (not empty string)
         .replace(/\s+/g, ' ') // Collapse multiple spaces
         .trim();
+
+      // Filter OCR garbage: Keep only first 2-3 meaningful name parts (min 2 chars each)
+      // This removes single-letter artifacts and repeated characters from padding area
+      const givenNameParts = givenNameRaw.split(' ').filter(word => word.length > 1);
+      const givenName = givenNameParts.slice(0, 3).join(' '); // Take max 3 name parts
 
       console.log('Parsed surname:', surname);
       console.log('Parsed given name:', givenName);
