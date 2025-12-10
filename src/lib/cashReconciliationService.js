@@ -1,3 +1,4 @@
+import api from '@/lib/api/client';
 
 /**
  * Cash Reconciliation Service
@@ -11,28 +12,15 @@
  */
 export const getReconciliations = async (filters = {}) => {
   try {
-    let query = supabase
-      .from('cash_reconciliations')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Build query params
+    const params = {};
+    if (filters.date_from) params.date_from = filters.date_from;
+    if (filters.date_to) params.date_to = filters.date_to;
+    if (filters.agent_id) params.agent_id = filters.agent_id;
+    if (filters.status) params.status = filters.status;
 
-    if (filters.date_from) {
-      query = query.gte('reconciliation_date', filters.date_from);
-    }
-    if (filters.date_to) {
-      query = query.lte('reconciliation_date', filters.date_to);
-    }
-    if (filters.agent_id) {
-      query = query.eq('agent_id', filters.agent_id);
-    }
-    if (filters.status) {
-      query = query.eq('status', filters.status);
-    }
-
-    const { data, error } = await query;
-
-    if (error) throw error;
-    return data || [];
+    const response = await api.get('/cash-reconciliations', { params });
+    return response.data || response.reconciliations || [];
   } catch (error) {
     console.error('Error fetching reconciliations:', error);
     throw error;
@@ -47,48 +35,23 @@ export const getReconciliations = async (filters = {}) => {
  */
 export const getTransactionsForReconciliation = async (date, agentId) => {
   try {
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
+    const response = await api.get('/cash-reconciliations/transactions', {
+      params: {
+        date: date,
+        agent_id: agentId
+      }
+    });
 
-    const { data: transactions, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('created_by', agentId)
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString());
-
-    if (error) throw error;
-
-    // Calculate totals by payment method
-    const summary = {
+    // Return the summary from response
+    return response.summary || response.data || {
       total: 0,
       cash: 0,
       card: 0,
       bankTransfer: 0,
       eftpos: 0,
-      transactions: transactions || [],
-      count: transactions?.length || 0,
+      transactions: [],
+      count: 0,
     };
-
-    (transactions || []).forEach(tx => {
-      const amount = parseFloat(tx.amount) || 0;
-      summary.total += amount;
-
-      const method = tx.payment_method?.toLowerCase();
-      if (method === 'cash') {
-        summary.cash += amount;
-      } else if (method?.includes('card') || method === 'credit card' || method === 'debit card') {
-        summary.card += amount;
-      } else if (method === 'bank transfer') {
-        summary.bankTransfer += amount;
-      } else if (method === 'eftpos') {
-        summary.eftpos += amount;
-      }
-    });
-
-    return summary;
   } catch (error) {
     console.error('Error fetching transactions for reconciliation:', error);
     throw error;
@@ -102,29 +65,23 @@ export const getTransactionsForReconciliation = async (date, agentId) => {
  */
 export const createReconciliation = async (reconciliationData) => {
   try {
-    const { data, error } = await supabase
-      .from('cash_reconciliations')
-      .insert([{
-        agent_id: reconciliationData.agentId,
-        reconciliation_date: reconciliationData.date,
-        opening_float: reconciliationData.openingFloat || 0,
-        expected_cash: reconciliationData.expectedCash || 0,
-        actual_cash: reconciliationData.actualCash || 0,
-        variance: reconciliationData.variance || 0,
-        cash_denominations: reconciliationData.denominations || {},
-        card_transactions: reconciliationData.cardTotal || 0,
-        bank_transfers: reconciliationData.bankTransferTotal || 0,
-        eftpos_transactions: reconciliationData.eftposTotal || 0,
-        total_collected: reconciliationData.totalCollected || 0,
-        notes: reconciliationData.notes || '',
-        status: 'pending',
-        created_at: new Date().toISOString(),
-      }])
-      .select()
-      .single();
+    const response = await api.post('/cash-reconciliations', {
+      agent_id: reconciliationData.agentId,
+      reconciliation_date: reconciliationData.date,
+      opening_float: reconciliationData.openingFloat || 0,
+      expected_cash: reconciliationData.expectedCash || 0,
+      actual_cash: reconciliationData.actualCash || 0,
+      variance: reconciliationData.variance || 0,
+      cash_denominations: reconciliationData.denominations || {},
+      card_transactions: reconciliationData.cardTotal || 0,
+      bank_transfers: reconciliationData.bankTransferTotal || 0,
+      eftpos_transactions: reconciliationData.eftposTotal || 0,
+      total_collected: reconciliationData.totalCollected || 0,
+      notes: reconciliationData.notes || '',
+      status: 'pending',
+    });
 
-    if (error) throw error;
-    return data;
+    return response.data || response.reconciliation || response;
   } catch (error) {
     console.error('Error creating reconciliation:', error);
     throw error;
@@ -141,25 +98,13 @@ export const createReconciliation = async (reconciliationData) => {
  */
 export const updateReconciliationStatus = async (reconciliationId, status, approvedBy, notes = '') => {
   try {
-    const updateData = {
+    const response = await api.put(`/cash-reconciliations/${reconciliationId}`, {
       status,
       approved_by: approvedBy,
-      approved_at: new Date().toISOString(),
-    };
+      approval_notes: notes,
+    });
 
-    if (notes) {
-      updateData.approval_notes = notes;
-    }
-
-    const { data, error } = await supabase
-      .from('cash_reconciliations')
-      .update(updateData)
-      .eq('id', reconciliationId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    return response.data || response.reconciliation || response;
   } catch (error) {
     console.error('Error updating reconciliation status:', error);
     throw error;

@@ -120,10 +120,33 @@ const CorporateBatchHistory = () => {
 
   const downloadBatchZip = async (batchId) => {
     try {
-      // TODO: Implement API endpoint for batch ZIP download
       toast({
-        title: "Feature Coming Soon",
-        description: "Batch ZIP download will be available soon",
+        title: "Preparing Download",
+        description: "Creating ZIP file with all vouchers...",
+        variant: "default"
+      });
+
+      // Download the ZIP file
+      const response = await api.get(`/vouchers/download-batch/${batchId}`, {
+        responseType: 'blob'
+      });
+
+      // Create blob from response
+      const blob = new Blob([response], { type: 'application/zip' });
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Batch_${batchId}_Vouchers.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download Complete",
+        description: "Batch ZIP file downloaded successfully",
         variant: "default"
       });
     } catch (error) {
@@ -138,17 +161,50 @@ const CorporateBatchHistory = () => {
 
   const emailBatch = async (batchId, companyEmail) => {
     try {
-      // TODO: Implement API endpoint for batch email
+      if (!companyEmail || companyEmail === 'No email') {
+        toast({
+          title: "No Email Address",
+          description: "No email address found for this company",
+          variant: "destructive"
+        });
+        return;
+      }
+
       toast({
-        title: "Feature Coming Soon",
-        description: "Batch email will be available soon",
+        title: "Sending Email",
+        description: `Preparing to send batch vouchers to ${companyEmail}...`,
         variant: "default"
       });
+
+      // Call API to email batch
+      const response = await api.post('/vouchers/email-batch', {
+        batch_id: batchId,
+        recipient_email: companyEmail
+      });
+
+      if (response.success) {
+        toast({
+          title: "Email Sent",
+          description: `Successfully sent ${response.voucher_count} vouchers to ${companyEmail}`,
+          variant: "default"
+        });
+      } else {
+        throw new Error(response.message || 'Failed to send email');
+      }
     } catch (error) {
       console.error('Error emailing batch:', error);
+
+      // Handle specific error messages
+      let errorMessage = error.message || "Failed to send batch email";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+
       toast({
         title: "Email Failed",
-        description: error.message || "Failed to send batch email",
+        description: errorMessage,
         variant: "destructive"
       });
     }

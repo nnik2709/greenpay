@@ -5,6 +5,7 @@ const { auth, checkRole } = require('../middleware/auth');
 const PDFDocument = require('pdfkit');
 const nodemailer = require('nodemailer');
 const QRCode = require('qrcode');
+const archiver = require('archiver');
 
 // Email transporter
 const createTransporter = () => {
@@ -549,6 +550,201 @@ router.post('/email-vouchers', auth, checkRole('Flex_Admin', 'Finance_Manager', 
   } catch (error) {
     console.error('Error emailing vouchers:', error);
     res.status(500).json({ error: 'Failed to email vouchers' });
+  }
+});
+
+/**
+ * Download batch as ZIP file
+ * GET /api/vouchers/download-batch/:batchId
+ */
+router.get('/download-batch/:batchId', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Support', 'Counter_Agent'), async (req, res) => {
+  try {
+    const { batchId } = req.params;
+
+    // Get all vouchers in the batch
+    const result = await db.query(
+      'SELECT * FROM corporate_vouchers WHERE batch_id = $1 ORDER BY voucher_code',
+      [batchId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No vouchers found in this batch' });
+    }
+
+    const vouchers = result.rows;
+    const companyName = vouchers[0].company_name || 'Company';
+    const batchName = `${companyName.replace(/\s+/g, '_')}_Batch_${batchId}`;
+
+    // Set response headers for ZIP download
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${batchName}.zip"`);
+
+    // Create ZIP archive
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Maximum compression
+    });
+
+    // Handle archive errors
+    archive.on('error', (err) => {
+      console.error('Archive error:', err);
+      res.status(500).json({ error: 'Error creating ZIP archive' });
+    });
+
+    // Pipe archive to response
+    archive.pipe(res);
+
+    // Generate and add each voucher as a separate PDF
+    for (let i = 0; i < vouchers.length; i++) {
+      const voucher = vouchers[i];
+      const pdfBuffer = await generateVouchersPDF([voucher], companyName);
+
+      // Add PDF to archive with voucher code as filename
+      archive.append(pdfBuffer, {
+        name: `Voucher_${voucher.voucher_code}.pdf`
+      });
+    }
+
+    // Finalize the archive
+    await archive.finalize();
+
+  } catch (error) {
+    console.error('Error downloading batch:', error);
+    res.status(500).json({ error: 'Failed to download batch' });
+  }
+});
+
+/**
+ * Email entire batch to company
+ * POST /api/vouchers/email-batch
+ */
+router.post('/email-batch', auth, checkRole('Flex_Admin', 'Finance_Manager', 'Counter_Agent'), async (req, res) => {
+  try {
+    const { batch_id, recipient_email } = req.body;
+
+    // Validation
+    if (!batch_id) {
+      return res.status(400).json({ error: 'Batch ID is required' });
+    }
+
+    if (!recipient_email) {
+      return res.status(400).json({ error: 'Recipient email is required' });
+    }
+
+    // Get all vouchers in the batch
+    const result = await db.query(
+      'SELECT * FROM corporate_vouchers WHERE batch_id = $1 ORDER BY voucher_code',
+      [batch_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No vouchers found in this batch' });
+    }
+
+    const vouchers = result.rows;
+    const companyName = vouchers[0].company_name || 'Company';
+
+    // Generate single PDF with all vouchers
+    const pdfBuffer = await generateVouchersPDF(vouchers, companyName);
+
+    // Send email
+    const transporter = createTransporter();
+    if (!transporter) {
+      return res.status(503).json({
+        error: 'Email service not configured',
+        message: 'SMTP settings need to be configured'
+      });
+    }
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #059669 0%, #14b8a6 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
+    .footer { background: #f3f4f6; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-radius: 0 0 8px 8px; }
+    .voucher-summary { background: white; padding: 20px; border-left: 4px solid #059669; margin: 20px 0; }
+    .important { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>PNG Green Fees</h1>
+      <p>Corporate Airport Exit Vouchers - Batch ${batch_id}</p>
+    </div>
+
+    <div class="content">
+      <h2>Dear ${companyName},</h2>
+      <p>Your corporate airport exit vouchers batch is ready! Please find all vouchers attached as a single PDF document.</p>
+
+      <div class="voucher-summary">
+        <strong>Batch Summary:</strong><br>
+        Batch ID: ${batch_id}<br>
+        Total Vouchers: ${vouchers.length}<br>
+        Valid Until: ${new Date(vouchers[0].valid_until).toLocaleDateString()}<br>
+        Amount per Voucher: PGK ${parseFloat(vouchers[0].amount).toFixed(2)}<br>
+        Total Value: PGK ${(parseFloat(vouchers[0].amount) * vouchers.length).toFixed(2)}
+      </div>
+
+      <div class="important">
+        <strong>⚠️ Important Instructions:</strong>
+        <ol>
+          <li><strong>Print the attached PDF</strong> - Each voucher is on a separate page with a large QR code</li>
+          <li><strong>Distribute to employees</strong> - Give each employee their voucher page</li>
+          <li><strong>Present at airport exit</strong> - Show voucher QR code for scanning</li>
+          <li><strong>One-time use only</strong> - Each voucher can only be used ONCE</li>
+          <li><strong>Cannot be reused</strong> - Once scanned, the voucher is permanently deactivated</li>
+        </ol>
+      </div>
+
+      <p><strong>How to Use:</strong></p>
+      <ul>
+        <li>Employee presents voucher at airport exit checkpoint</li>
+        <li>Airport staff scans the QR code</li>
+        <li>System validates the voucher (checks if not already used and not expired)</li>
+        <li>If valid, exit is approved and voucher is marked as used</li>
+      </ul>
+
+      <p>If you have any questions, please contact our support team.</p>
+    </div>
+
+    <div class="footer">
+      <p>&copy; ${new Date().getFullYear()} PNG Green Fees System. All rights reserved.</p>
+      <p>This is an automated email. Please do not reply.</p>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    const mailOptions = {
+      from: process.env.SMTP_FROM || '"PNG Green Fees" <noreply@greenpay.eywademo.cloud>',
+      to: recipient_email,
+      subject: `${companyName} - Batch ${batch_id} Airport Exit Vouchers (${vouchers.length} vouchers)`,
+      html: htmlContent,
+      attachments: [
+        {
+          filename: `${companyName.replace(/\s+/g, '_')}_Batch_${batch_id}_${new Date().toISOString().split('T')[0]}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }
+      ]
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({
+      success: true,
+      message: `Batch ${batch_id} emailed successfully to ${recipient_email}`,
+      voucher_count: vouchers.length
+    });
+
+  } catch (error) {
+    console.error('Error emailing batch:', error);
+    res.status(500).json({ error: 'Failed to email batch' });
   }
 });
 
