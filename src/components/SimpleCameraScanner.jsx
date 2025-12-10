@@ -227,11 +227,23 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
       // Line 2 format: PASSPORTNUMBER(9 chars)<CHECKDIGIT>NATIONALITY(3)DOBYYMMDDSEXEXPIRYYYMMDD
       // Passport number can be digits/letters with optional < padding, followed by check digit
       // Pattern: 9 alphanumeric chars, 1 digit (check), 3 letters (country), 6 digits (DOB)
-      const line2Match = cleanedText.match(/[A-Z0-9<]{9}[0-9][A-Z]{3}[0-9]{6}[0-9][MF<]/);
+      // Be flexible with sex char - OCR might read M as H, or as digits
+      const line2Match = cleanedText.match(/[A-Z0-9<]{9}[0-9][A-Z]{3}[0-9]{6}[0-9][A-Z0-9<]/);
       if (!line2Match) {
+        console.error('Could not find Line 2 with passport number pattern');
+        console.error('Cleaned text:', cleanedText);
         throw new Error('Could not find valid MRZ Line 2 (passport number pattern)');
       }
-      const line2 = line2Match[0].substring(0, 44); // Ensure exactly 44 chars
+      let line2 = line2Match[0];
+
+      // Line 2 should be exactly 44 chars - try to extend it if we found a partial match
+      const line2Start = cleanedText.indexOf(line2);
+      if (line2Start !== -1 && cleanedText.length >= line2Start + 44) {
+        line2 = cleanedText.substring(line2Start, line2Start + 44);
+      } else {
+        // Pad with < if necessary
+        line2 = (line2 + '<'.repeat(44)).substring(0, 44);
+      }
 
       console.log('Found Line 2:', line2);
 
