@@ -503,7 +503,7 @@ const BuyOnline = () => {
       {/* Camera Scanner Modal */}
       {showCameraScanner && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="relative w-full max-w-2xl">
+          <div className="relative w-full max-w-2xl bg-white rounded-lg p-6 max-h-[90vh] overflow-y-auto">
             <CameraMRZScanner
               onScanSuccess={handleCameraScan}
               onClose={() => setShowCameraScanner(false)}
