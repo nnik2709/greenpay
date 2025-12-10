@@ -28,8 +28,8 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
         video: {
           facingMode: 'environment', // Use back camera on mobile
           width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          zoom: { ideal: 2 }, // Request 2x zoom if supported
+          height: { ideal: 1080 }
+          // No zoom - let user position passport naturally
         }
       });
 
@@ -147,25 +147,54 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
 
   const analyzeImageForMrz = (imageData) => {
     const data = imageData.data;
+    const width = imageData.width;
+    const height = imageData.height;
+
     let totalBrightness = 0;
     let darkPixels = 0;
     let brightPixels = 0;
+    let edgeCount = 0;
 
-    // Analyze pixel brightness
+    // Analyze pixel brightness and edge detection
     for (let i = 0; i < data.length; i += 4) {
       const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
       totalBrightness += brightness;
 
-      if (brightness < 100) darkPixels++;
-      if (brightness > 200) brightPixels++;
+      if (brightness < 80) darkPixels++;
+      if (brightness > 220) brightPixels++;
+
+      // Edge detection - check horizontal changes (text has lots of edges)
+      if (i > 4 && i % (width * 4) !== 0) {
+        const prevBrightness = (data[i-4] + data[i-3] + data[i-2]) / 3;
+        if (Math.abs(brightness - prevBrightness) > 60) {
+          edgeCount++;
+        }
+      }
     }
 
-    const avgBrightness = totalBrightness / (data.length / 4);
-    const contrastRatio = Math.abs(darkPixels - brightPixels) / (data.length / 4);
+    const totalPixels = data.length / 4;
+    const avgBrightness = totalBrightness / totalPixels;
+    const darkRatio = darkPixels / totalPixels;
+    const brightRatio = brightPixels / totalPixels;
+    const edgeRatio = edgeCount / totalPixels;
 
-    // MRZ typically has good contrast (dark text on light background)
-    // Look for high contrast and reasonable brightness
-    return contrastRatio > 0.15 && avgBrightness > 100 && avgBrightness < 220;
+    // MRZ should have:
+    // - High edge density (lots of text characters)
+    // - Good amount of dark pixels (text) and bright pixels (background)
+    // - Average brightness suggesting good lighting
+    const hasTextPattern = edgeRatio > 0.25; // Lots of edges from text
+    const hasGoodContrast = darkRatio > 0.1 && brightRatio > 0.3;
+    const hasGoodLighting = avgBrightness > 130 && avgBrightness < 200;
+
+    console.log('MRZ Analysis:', {
+      edgeRatio: edgeRatio.toFixed(3),
+      darkRatio: darkRatio.toFixed(3),
+      brightRatio: brightRatio.toFixed(3),
+      avgBrightness: avgBrightness.toFixed(1),
+      detected: hasTextPattern && hasGoodContrast && hasGoodLighting
+    });
+
+    return hasTextPattern && hasGoodContrast && hasGoodLighting;
   };
 
   // Parse MRZ text extracted from OCR
@@ -225,6 +254,7 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
   };
 
   const processImageWithOCR = async (imageDataUrl) => {
+    console.log('Starting OCR processing...');
     setIsProcessing(true);
     setOcrProgress(0);
 
@@ -234,11 +264,13 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
         description: "Reading MRZ data from passport...",
       });
 
+      console.log('Calling Tesseract.recognize...');
       const result = await Tesseract.recognize(
         imageDataUrl,
         'eng',
         {
           logger: (m) => {
+            console.log('Tesseract:', m);
             if (m.status === 'recognizing text') {
               setOcrProgress(Math.round(m.progress * 100));
             }
@@ -249,11 +281,19 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
       );
 
       const extractedText = result.data.text;
+      console.log('=== OCR COMPLETE ===');
       console.log('OCR Text:', extractedText);
       console.log('OCR Confidence:', result.data.confidence);
+      console.log('Text length:', extractedText.length);
+
+      if (!extractedText || extractedText.length < 20) {
+        throw new Error('No text extracted from image');
+      }
 
       // Parse MRZ from extracted text
+      console.log('Attempting to parse MRZ...');
       const passportData = parseMRZ(extractedText);
+      console.log('MRZ parsed successfully:', passportData);
 
       toast({
         title: "Success!",
@@ -262,24 +302,38 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
 
       // Auto-fill the form
       setTimeout(() => {
+        console.log('Calling onScanSuccess with data:', passportData);
         onScanSuccess(passportData);
-      }, 1000);
+      }, 1500);
 
     } catch (error) {
-      console.error('OCR/Parse error:', error);
+      console.error('=== OCR/Parse ERROR ===');
+      console.error('Error type:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Full error:', error);
+
       toast({
         title: "Could Not Read MRZ",
-        description: "Try again with better lighting, or enter manually. Make sure MRZ lines fill the green guide box.",
+        description: error.message || "Try again with better lighting, or enter manually.",
         variant: "destructive",
       });
-    } finally {
+
+      // Don't clear captured image so user can retry or enter manually
       setIsProcessing(false);
       setOcrProgress(0);
+      return; // Don't reset capturedImage
     }
+
+    setIsProcessing(false);
+    setOcrProgress(0);
   };
 
   const captureImage = () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    console.log('=== CAPTURE IMAGE CALLED ===');
+    if (!videoRef.current || !canvasRef.current) {
+      console.error('Video or canvas ref not available');
+      return;
+    }
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -289,11 +343,15 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
 
+    console.log('Video dimensions:', videoWidth, 'x', videoHeight);
+
     // Calculate MRZ crop area (bottom 30% of frame, centered)
     const cropHeight = videoHeight * 0.3; // MRZ area height
     const cropWidth = videoWidth * 0.9;   // 90% width for margins
     const cropX = (videoWidth - cropWidth) / 2;
     const cropY = videoHeight * 0.35; // Start from 35% down
+
+    console.log('Crop area:', { cropX, cropY, cropWidth, cropHeight });
 
     // Set canvas to cropped size
     canvas.width = cropWidth;
@@ -305,6 +363,8 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
       cropX, cropY, cropWidth, cropHeight,  // Source rectangle (MRZ area)
       0, 0, cropWidth, cropHeight            // Destination rectangle (full canvas)
     );
+
+    console.log('Image drawn to canvas');
 
     // Enhance contrast for better OCR
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
@@ -319,13 +379,20 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
     }
     context.putImageData(imageData, 0, 0);
 
+    console.log('Contrast enhanced');
+
     // Get image data URL
     const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+    console.log('Image data URL created, length:', imageDataUrl.length);
+
     setCapturedImage(imageDataUrl);
+    console.log('Captured image state set');
 
     stopCamera();
+    console.log('Camera stopped');
 
     // Automatically process with OCR
+    console.log('Calling processImageWithOCR...');
     processImageWithOCR(imageDataUrl);
   };
 
