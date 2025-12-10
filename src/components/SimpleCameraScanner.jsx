@@ -452,18 +452,34 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
 
     console.log('Image drawn to canvas');
 
-    // Enhance contrast for better OCR
+    // Convert to grayscale and enhance contrast for better OCR
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
 
-    // Simple contrast enhancement
-    const factor = 1.5;
+    // First pass: convert to grayscale
     for (let i = 0; i < data.length; i += 4) {
-      data[i] = Math.min(255, (data[i] - 128) * factor + 128);     // R
-      data[i + 1] = Math.min(255, (data[i + 1] - 128) * factor + 128); // G
-      data[i + 2] = Math.min(255, (data[i + 2] - 128) * factor + 128); // B
+      const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      data[i] = gray;     // R
+      data[i + 1] = gray; // G
+      data[i + 2] = gray; // B
     }
+
+    // Second pass: adaptive thresholding for better contrast
+    // Make dark pixels darker and light pixels lighter
+    for (let i = 0; i < data.length; i += 4) {
+      const brightness = data[i];
+      // If pixel is darker than middle gray, make it darker
+      // If brighter, make it brighter (high contrast for text)
+      if (brightness < 128) {
+        data[i] = data[i + 1] = data[i + 2] = Math.max(0, brightness * 0.7);
+      } else {
+        data[i] = data[i + 1] = data[i + 2] = Math.min(255, brightness * 1.3);
+      }
+    }
+
     context.putImageData(imageData, 0, 0);
+
+    console.log('Image converted to grayscale with high contrast');
 
     console.log('Contrast enhanced');
 
