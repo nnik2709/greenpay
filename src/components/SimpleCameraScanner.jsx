@@ -287,16 +287,23 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
 
       // Parse date of birth
       let dobYear = parseInt(dobRaw.substring(0, 2), 10);
-      if (isNaN(dobYear)) throw new Error('Invalid birth year');
+      if (isNaN(dobYear)) throw new Error('Invalid birth year - OCR could not read DOB. Please try again with better lighting or enter manually.');
       dobYear += (dobYear > (new Date().getFullYear() % 100)) ? 1900 : 2000;
       const dateOfBirth = `${dobYear}-${dobRaw.substring(2, 4)}-${dobRaw.substring(4, 6)}`;
 
       // Parse sex - be strict about M/F
       const sex = (sexChar === 'M' || sexChar === 'H') ? 'Male' : 'Female';
 
-      // Parse expiry date
+      // Parse expiry date - check if OCR failed to read it (all < characters)
+      if (expiryRaw.replace(/</g, '').length < 3) {
+        console.error('Expiry date not readable (all padding characters)');
+        throw new Error('OCR could not read expiry date clearly. Please try again with better focus on the MRZ area, or enter details manually.');
+      }
+
       let expiryYear = parseInt(expiryRaw.substring(0, 2), 10);
-      if (isNaN(expiryYear)) throw new Error('Invalid expiry year');
+      if (isNaN(expiryYear)) {
+        throw new Error('Invalid expiry year - OCR could not read it. Please try scanning again or enter manually.');
+      }
       expiryYear += (expiryYear > 50) ? 1900 : 2000;
       const dateOfExpiry = `${expiryYear}-${expiryRaw.substring(2, 4)}-${expiryRaw.substring(4, 6)}`;
 
@@ -452,34 +459,40 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
 
     console.log('Image drawn to canvas');
 
-    // Convert to grayscale and enhance contrast for better OCR
+    // Convert to grayscale and apply binary thresholding for better OCR
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
 
     // First pass: convert to grayscale
+    const grayscaleValues = [];
     for (let i = 0; i < data.length; i += 4) {
       const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      grayscaleValues.push(gray);
       data[i] = gray;     // R
       data[i + 1] = gray; // G
       data[i + 2] = gray; // B
     }
 
-    // Second pass: adaptive thresholding for better contrast
-    // Make dark pixels darker and light pixels lighter
+    // Calculate optimal threshold using Otsu-like method (simplified)
+    // Use average brightness as threshold
+    const avgBrightness = grayscaleValues.reduce((a, b) => a + b, 0) / grayscaleValues.length;
+    const threshold = avgBrightness > 140 ? avgBrightness + 10 : 140; // Adjust for passport lighting
+    console.log('Calculated threshold:', threshold);
+
+    // Second pass: binary thresholding (pure black or white)
+    // This works MUCH better for OCR of machine-printed text
     for (let i = 0; i < data.length; i += 4) {
       const brightness = data[i];
-      // If pixel is darker than middle gray, make it darker
-      // If brighter, make it brighter (high contrast for text)
-      if (brightness < 128) {
-        data[i] = data[i + 1] = data[i + 2] = Math.max(0, brightness * 0.7);
-      } else {
-        data[i] = data[i + 1] = data[i + 2] = Math.min(255, brightness * 1.3);
-      }
+      // Convert to pure black or pure white based on threshold
+      const binaryValue = brightness >= threshold ? 255 : 0;
+      data[i] = binaryValue;       // R
+      data[i + 1] = binaryValue;   // G
+      data[i + 2] = binaryValue;   // B
     }
 
     context.putImageData(imageData, 0, 0);
 
-    console.log('Image converted to grayscale with high contrast');
+    console.log('Image converted to binary (black/white) with threshold:', threshold);
 
     console.log('Contrast enhanced');
 
