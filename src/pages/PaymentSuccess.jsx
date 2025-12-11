@@ -293,15 +293,29 @@ const PaymentSuccess = () => {
               <Button
                 onClick={async () => {
                   try {
-                    const url = `/api/buy-online/voucher/${paymentSessionId}/pdf`;
+                    // Fetch PDF as blob for proper iOS Safari download
+                    const response = await fetch(`/api/buy-online/voucher/${paymentSessionId}/pdf`);
+                    const blob = await response.blob();
+
+                    // Create object URL from blob
+                    const blobUrl = window.URL.createObjectURL(blob);
+
+                    // Create temporary link and trigger download
                     const link = document.createElement('a');
-                    link.href = url;
+                    link.href = blobUrl;
                     link.download = `voucher-${voucher?.code}.pdf`;
+                    link.style.display = 'none';
                     document.body.appendChild(link);
                     link.click();
-                    document.body.removeChild(link);
+
+                    // Cleanup
+                    setTimeout(() => {
+                      document.body.removeChild(link);
+                      window.URL.revokeObjectURL(blobUrl);
+                    }, 100);
                   } catch (err) {
                     console.error('Download failed:', err);
+                    alert('Failed to download PDF. Please try the Email option instead.');
                   }
                 }}
                 variant="outline"
