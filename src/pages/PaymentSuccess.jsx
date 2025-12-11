@@ -293,18 +293,39 @@ const PaymentSuccess = () => {
               <Button
                 onClick={async () => {
                   try {
-                    // Fetch PDF as blob for proper iOS Safari download
+                    // Universal PDF download for iOS, Android, and Desktop
                     const response = await fetch(`/api/buy-online/voucher/${paymentSessionId}/pdf`);
+
+                    if (!response.ok) {
+                      throw new Error('Failed to fetch PDF');
+                    }
+
                     const blob = await response.blob();
+                    const filename = `voucher-${voucher?.code}.pdf`;
 
-                    // Create object URL from blob
+                    // Method 1: Try native share API (works on iOS/Android)
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: 'application/pdf' })] })) {
+                      const file = new File([blob], filename, { type: 'application/pdf' });
+                      await navigator.share({
+                        files: [file],
+                        title: 'Green Fee Voucher',
+                        text: `Voucher ${voucher?.code}`
+                      });
+                      return;
+                    }
+
+                    // Method 2: Blob URL download (iOS Safari, modern browsers)
                     const blobUrl = window.URL.createObjectURL(blob);
-
-                    // Create temporary link and trigger download
                     const link = document.createElement('a');
                     link.href = blobUrl;
-                    link.download = `voucher-${voucher?.code}.pdf`;
+                    link.download = filename;
                     link.style.display = 'none';
+
+                    // For iOS: add target="_blank" as fallback
+                    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                      link.target = '_blank';
+                    }
+
                     document.body.appendChild(link);
                     link.click();
 
@@ -315,7 +336,7 @@ const PaymentSuccess = () => {
                     }, 100);
                   } catch (err) {
                     console.error('Download failed:', err);
-                    alert('Failed to download PDF. Please try the Email option instead.');
+                    alert('Unable to download PDF automatically. Please use the "Email Voucher" option to receive your voucher via email.');
                   }
                 }}
                 variant="outline"
