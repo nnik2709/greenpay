@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android Testing Instructions - Green Fee Mobile Scanner</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2c5f2d;
+            font-size: 24pt;
+            margin-bottom: 10px;
+            border-bottom: 3px solid #2c5f2d;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2c5f2d;
+            font-size: 16pt;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        h3 {
+            color: #555;
+            font-size: 13pt;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        p {
+            margin: 10px 0;
+            text-align: justify;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .highlight {
+            background-color: #f0f8f0;
+            padding: 15px;
+            border-left: 4px solid #2c5f2d;
+            margin: 15px 0;
+        }
+        .note {
+            background-color: #fff8dc;
+            padding: 15px;
+            border-left: 4px solid #daa520;
+            margin: 15px 0;
+        }
+        .important {
+            background-color: #ffe6e6;
+            padding: 15px;
+            border-left: 4px solid #d9534f;
+            margin: 15px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #2c5f2d;
+            color: white;
+            font-weight: bold;
+        }
+        .code {
+            background-color: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 11pt;
+        }
+        @media print {
+            body {
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Android Testing Instructions</h1>
+    <p style="font-size: 12pt; color: #666; margin-bottom: 30px;">
+        Mobile Camera Scanner and PDF Download Functionality<br>
+        GreenPay Papua New Guinea - Buy Online Feature
+    </p>
+
+    <div class="section">
+        <h2>Prerequisites</h2>
+        <p>Before beginning the test, please ensure you have the following:</p>
+        <ul>
+            <li>An Android smartphone with a working camera</li>
+            <li>A physical passport containing an MRZ (Machine Readable Zone - the two printed lines at the bottom of the passport)</li>
+            <li>A well-lit environment with minimal shadows</li>
+            <li>Internet connection (WiFi or mobile data)</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Test Procedure</h2>
+
+        <h3>Step 1: Access the Application</h3>
+        <ol>
+            <li>Open your preferred web browser on your Android phone (Chrome, Firefox, or Samsung Internet)</li>
+            <li>Navigate to the following URL: <span class="code">https://greenpay.eywademo.cloud/buy-online</span></li>
+            <li>Wait for the page to load completely</li>
+        </ol>
+
+        <h3>Step 2: Initiate Camera Scanner</h3>
+        <ol>
+            <li>Locate and tap the button labeled "Scan Passport with Camera"</li>
+            <li>When prompted, grant camera permission to your browser</li>
+            <li>The camera interface will open, displaying a live view from your phone's camera</li>
+        </ol>
+
+        <h3>Step 3: Capture Passport Image</h3>
+        <ol>
+            <li>Position the passport in a well-lit area, avoiding direct sunlight that may cause glare</li>
+            <li>Ensure the entire passport is visible within the camera frame</li>
+            <li>Hold the device steady and tap the "Capture Image" button</li>
+            <li>The system will process the image for approximately 5-10 seconds</li>
+        </ol>
+
+        <div class="note">
+            <strong>Note:</strong> The OCR (Optical Character Recognition) technology reads the MRZ lines at the bottom of the passport. These two lines contain encoded information about the passport holder. For best results, ensure these lines are clearly visible and in focus.
+        </div>
+
+        <h3>Step 4: Verify Extracted Information</h3>
+        <p>After processing, the form should automatically populate with the following information. Please verify each field:</p>
+
+        <table>
+            <tr>
+                <th>Field</th>
+                <th>What to Check</th>
+            </tr>
+            <tr>
+                <td>Passport Number</td>
+                <td>Should match the passport exactly (typically 9 digits)</td>
+            </tr>
+            <tr>
+                <td>Surname</td>
+                <td>Should match the family name on the passport</td>
+            </tr>
+            <tr>
+                <td>Given Name</td>
+                <td>Should show first and middle names with proper spacing (e.g., "JOHN DAVID" not "JOHNDAVID"). There should be no random letters at the end.</td>
+            </tr>
+            <tr>
+                <td>Nationality</td>
+                <td>Should display the full country name (e.g., "Bulgaria", "United States", "Denmark") rather than a three-letter code</td>
+            </tr>
+            <tr>
+                <td>Date of Birth</td>
+                <td>Should match the passport in YYYY-MM-DD format</td>
+            </tr>
+            <tr>
+                <td>Sex</td>
+                <td>Should display either "Male" or "Female"</td>
+            </tr>
+        </table>
+
+        <h3>Step 5: Complete Payment Process</h3>
+        <ol>
+            <li>Review all auto-populated information for accuracy</li>
+            <li>Tap the "Continue to Payment" button</li>
+            <li>You will be redirected to the Stripe payment gateway</li>
+            <li>Enter the following test card details:
+                <ul>
+                    <li>Card Number: 4242 4242 4242 4242</li>
+                    <li>Expiry Date: Any future date (example: 12/34)</li>
+                    <li>CVC: Any three digits (example: 123)</li>
+                    <li>ZIP Code: Any five digits (example: 12345)</li>
+                </ul>
+            </li>
+            <li>Complete the payment and wait to be redirected to the success page</li>
+        </ol>
+
+        <h3>Step 6: Test PDF Download Functionality</h3>
+        <p>On the payment success page, you will test the voucher PDF download feature:</p>
+        <ol>
+            <li>Locate and tap the "Download PDF" button</li>
+            <li>Observe the behavior of your device. One of the following should occur:
+                <ul>
+                    <li><strong>Scenario A:</strong> The Android Share Sheet appears, allowing you to choose "Save to Files", "Downloads", or share via other applications</li>
+                    <li><strong>Scenario B:</strong> The PDF downloads directly to your Downloads folder without prompting</li>
+                    <li><strong>Scenario C:</strong> Your browser displays a prompt asking "Download voucher-XXXXX.pdf?"</li>
+                </ul>
+            </li>
+            <li>After the download completes, verify the file:
+                <ul>
+                    <li>Open your Files app or Downloads folder</li>
+                    <li>Locate the file named "voucher-XXXXX.pdf" (where XXXXX is the voucher code)</li>
+                    <li>Open the PDF file and confirm it contains:
+                        <ul>
+                            <li>A QR code</li>
+                            <li>The voucher code</li>
+                            <li>Your passport details</li>
+                            <li>An expiry date</li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>Step 7: Alternative Email Test (Optional)</h3>
+        <p>If PDF download does not work on your device, test the email delivery option:</p>
+        <ol>
+            <li>Tap the "Email Voucher" button on the success page</li>
+            <li>Enter a valid email address in the dialog box</li>
+            <li>Tap "Send" and wait for confirmation</li>
+            <li>Check your email inbox for the voucher PDF attachment</li>
+            <li>Verify the PDF opens correctly and contains all required information</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>Expected Results Summary</h2>
+
+        <h3>Camera Scanner Function</h3>
+        <ul>
+            <li>Given names should display with proper spacing between first and middle names</li>
+            <li>Nationality should show the full country name, not abbreviations</li>
+            <li>No extraneous characters or "garbage" text should appear in any field</li>
+            <li>All passport information should be accurately extracted and populated</li>
+        </ul>
+
+        <h3>PDF Download Function</h3>
+        <ul>
+            <li>The download should work seamlessly on Android Chrome</li>
+            <li>The download should work seamlessly on Android Firefox</li>
+            <li>The downloaded file should be accessible in a standard location</li>
+            <li>The PDF should open without errors and display all content correctly</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Troubleshooting Common Issues</h2>
+
+        <h3>Camera fails to activate</h3>
+        <ul>
+            <li>Check that camera permission has been granted in your browser settings</li>
+            <li>Refresh the page and try again</li>
+            <li>Verify you are accessing the site via HTTPS (secure connection)</li>
+            <li>Try using a different browser</li>
+        </ul>
+
+        <h3>OCR cannot read the passport</h3>
+        <ul>
+            <li>Improve lighting conditions - avoid shadows and excessive glare</li>
+            <li>Hold the passport flat against a contrasting background</li>
+            <li>Ensure the MRZ lines (bottom two lines) are completely visible and in focus</li>
+            <li>Clean the camera lens if it appears smudged</li>
+            <li>Attempt the capture process again</li>
+        </ul>
+
+        <h3>PDF download does not function</h3>
+        <ul>
+            <li>Use the "Email Voucher" option as an alternative</li>
+            <li>The PDF will be delivered to your email inbox</li>
+            <li>This method works reliably regardless of browser or device configuration</li>
+        </ul>
+
+        <h3>Extracted data contains errors</h3>
+        <ul>
+            <li>If given names still contain random letters, please document the exact text displayed</li>
+            <li>Note which fields are incorrect</li>
+            <li>Try scanning the passport again with improved lighting</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Test Environment Information</h2>
+
+        <h3>Recommended Test Devices</h3>
+        <ul>
+            <li>Android Chrome (most widely used browser)</li>
+            <li>Android Firefox (alternative browser)</li>
+            <li>Samsung Internet (pre-installed on Samsung devices)</li>
+            <li>Any device running Android version 8.0 or higher</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Reporting Results</h2>
+        <p>Please document your testing experience with the following information:</p>
+        <ol>
+            <li>Android version (example: Android 13)</li>
+            <li>Browser name and version (example: Chrome 119)</li>
+            <li>Camera scanner result (successful or failed)</li>
+            <li>Given name spacing (correct formatting or issues noted)</li>
+            <li>Nationality field (full name displayed or code displayed)</li>
+            <li>PDF download method observed (share sheet, direct download, or failed)</li>
+            <li>Any errors encountered or additional observations</li>
+        </ol>
+
+        <div class="highlight">
+            <strong>Example Report:</strong><br><br>
+            Android Version: 12<br>
+            Browser: Chrome 119<br>
+            Camera Scanner: Worked perfectly on first attempt<br>
+            Given Name: "JOHN DAVID" (correct spacing observed)<br>
+            Nationality: "United States" (full country name displayed)<br>
+            PDF Download: Share sheet appeared, successfully saved to Downloads folder<br>
+            Issues: None encountered during testing
+        </div>
+    </div>
+
+    <div class="important">
+        <strong>Important Note:</strong> If you encounter any difficulties during testing, the "Email Voucher" function serves as a reliable alternative to the direct PDF download. This feature works consistently across all devices and browsers, ensuring that users can always receive their voucher documentation.
+    </div>
+
+    <div class="section">
+        <h2>Contact and Support</h2>
+        <p>If you experience persistent issues or need clarification on any testing step:</p>
+        <ul>
+            <li>Document the exact step where the issue occurred</li>
+            <li>Capture screenshots of any error messages</li>
+            <li>Note your device model, Android version, and browser details</li>
+            <li>Report these findings to the development team for investigation</li>
+        </ul>
+    </div>
+
+    <p style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; color: #888; font-size: 10pt;">
+        Document Version: 1.0<br>
+        Last Updated: December 2025<br>
+        GreenPay Papua New Guinea - Mobile Testing Documentation
+    </p>
+</body>
+</html>
