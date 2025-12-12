@@ -13,32 +13,8 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
 
   useEffect(() => {
     if (isOpen && voucher && voucher.voucher_code) {
-      console.log('Generating QR code and barcode for:', voucher.voucher_code);
-      setQrError(false);
-      setQrDataUrl('');
+      console.log('Generating barcode for:', voucher.voucher_code);
       setBarcodeDataUrl('');
-
-      // Generate QR Code
-      QRCode.toDataURL(
-        voucher.voucher_code,
-        {
-          width: 200,
-          margin: 2,
-          color: {
-            dark: '#000000',
-            light: '#ffffff'
-          }
-        },
-        (error, url) => {
-          if (error) {
-            console.error('QR Code generation error:', error);
-            setQrError(true);
-          } else {
-            console.log('QR Code generated successfully');
-            setQrDataUrl(url);
-          }
-        }
-      );
 
       // Generate Barcode (CODE-128)
       try {
@@ -46,9 +22,9 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
         JsBarcode(canvas, voucher.voucher_code, {
           format: 'CODE128',
           width: 2,
-          height: 50,
+          height: 60,
           displayValue: true,
-          fontSize: 14,
+          fontSize: 16,
           margin: 10,
           background: '#ffffff',
           lineColor: '#000000'
@@ -60,7 +36,7 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
         console.error('Barcode generation error:', error);
       }
     } else {
-      console.log('QR Code and barcode generation skipped:', { isOpen, hasVoucher: !!voucher, hasCode: !!voucher?.voucher_code });
+      console.log('Barcode generation skipped:', { isOpen, hasVoucher: !!voucher, hasCode: !!voucher?.voucher_code });
     }
   }, [isOpen, voucher]);
 
@@ -132,15 +108,14 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
             </div>
 
             <div class="qr-section">
-              <img src="${qrDataUrl}" alt="QR Code" width="200" height="200" />
-              ${barcodeDataUrl ? `<img src="${barcodeDataUrl}" alt="Barcode" style="margin-top: 10px;" />` : ''}
+              ${barcodeDataUrl ? `<img src="${barcodeDataUrl}" alt="Barcode" style="border: 2px solid #ddd; padding: 10px; background: white; border-radius: 5px;" />` : '<p style="color: #999;">Barcode not available</p>'}
               <div class="voucher-code">${voucher.voucher_code}</div>
               <span class="status-badge">✓ VALID</span>
             </div>
           </div>
 
           <div class="footer">
-            <p><strong>Instructions:</strong> Present this voucher at the airport exit. Scan the QR code or enter the code manually for validation.</p>
+            <p><strong>Instructions:</strong> Present this voucher at the airport exit. Scan the barcode or enter the code manually for validation.</p>
             <p>Issued by Papua New Guinea Department of Environment</p>
             <p>Payment Method: ${voucher.payment_method} | Issued: ${new Date(voucher.created_at).toLocaleDateString()}</p>
           </div>
@@ -230,24 +205,16 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
                 </div>
               </div>
 
-              {/* Right column - QR Code and Barcode */}
+              {/* Right column - Barcode Only */}
               <div className="flex flex-col items-center justify-center space-y-4">
-                {qrError ? (
-                  <div className="w-[200px] h-[200px] border-2 border-red-300 rounded flex items-center justify-center bg-red-50">
-                    <p className="text-red-600 text-sm text-center px-4">QR Code generation failed</p>
-                  </div>
-                ) : qrDataUrl ? (
-                  <img src={qrDataUrl} alt="QR Code" className="w-[200px] h-[200px] border-2 border-gray-200 rounded" />
-                ) : (
-                  <div className="w-[200px] h-[200px] border-2 border-gray-300 rounded flex items-center justify-center bg-gray-50">
-                    <p className="text-gray-500 text-sm">Generating QR Code...</p>
-                  </div>
-                )}
-
                 {/* Barcode */}
-                {barcodeDataUrl && (
-                  <div className="mt-2">
-                    <img src={barcodeDataUrl} alt="Barcode" className="border border-gray-200 rounded" />
+                {barcodeDataUrl ? (
+                  <div className="flex flex-col items-center space-y-3">
+                    <img src={barcodeDataUrl} alt="Barcode" className="border-2 border-gray-200 rounded p-2 bg-white" />
+                  </div>
+                ) : (
+                  <div className="w-full h-[100px] border-2 border-gray-300 rounded flex items-center justify-center bg-gray-50">
+                    <p className="text-gray-500 text-sm">Generating Barcode...</p>
                   </div>
                 )}
 
@@ -268,7 +235,7 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
             <div className="border-t-2 border-gray-200 pt-4 text-center text-sm text-gray-600">
               <p className="mb-2">
                 <strong>Instructions:</strong> Present this voucher at the airport exit.
-                Scan the QR code or enter the code manually for validation.
+                Scan the barcode or enter the code manually for validation.
               </p>
               <p className="mb-1">Issued by Papua New Guinea Department of Environment</p>
               <p className="text-xs">Payment Method: {voucher.payment_method} |

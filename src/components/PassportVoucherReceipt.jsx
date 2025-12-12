@@ -17,34 +17,8 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen && voucher && voucher.voucher_code) {
-      console.log('Generating QR code and barcode for passport voucher:', voucher.voucher_code);
-      setQrError(false);
-      setQrDataUrl('');
+      console.log('Generating barcode for passport voucher:', voucher.voucher_code);
       setBarcodeDataUrl('');
-
-      // Generate QR Code for registration URL
-      const registrationUrl = `${window.location.origin}/register/${voucher.voucher_code}`;
-
-      QRCode.toDataURL(
-        registrationUrl,
-        {
-          width: 150,
-          margin: 2,
-          color: {
-            dark: '#000000',
-            light: '#ffffff'
-          }
-        },
-        (error, url) => {
-          if (error) {
-            console.error('QR Code generation error:', error);
-            setQrError(true);
-          } else {
-            console.log('QR Code generated successfully');
-            setQrDataUrl(url);
-          }
-        }
-      );
 
       // Generate Barcode (CODE-128)
       try {
@@ -52,9 +26,9 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
         JsBarcode(canvas, voucher.voucher_code, {
           format: 'CODE128',
           width: 2,
-          height: 50,
+          height: 60,
           displayValue: true,
-          fontSize: 14,
+          fontSize: 16,
           margin: 10,
           background: '#ffffff',
           lineColor: '#000000'
@@ -201,14 +175,9 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
             </div>
 
             <div class="codes-section">
-              ${barcodeDataUrl ? `<img src="${barcodeDataUrl}" alt="Barcode" />` : ''}
+              ${barcodeDataUrl ? `<img src="${barcodeDataUrl}" alt="Barcode" style="border: 2px solid #ddd; padding: 8px; background: white; border-radius: 5px;" />` : '<p style="color: #999; font-size: 12px;">Barcode not available</p>'}
 
               <div class="voucher-code">Coupon: ${voucher.voucher_code}</div>
-
-              ${qrDataUrl ? `
-                <img src="${qrDataUrl}" alt="QR Code" width="150" height="150" />
-                <div class="qr-label">Scan to Register</div>
-              ` : ''}
             </div>
           </div>
 
@@ -299,9 +268,13 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
           {/* Codes Section */}
           <div className="text-center bg-gray-50 p-4 border-2 border-dashed border-green-800 rounded-lg">
             {/* Barcode */}
-            {barcodeDataUrl && (
+            {barcodeDataUrl ? (
               <div className="mb-3">
-                <img src={barcodeDataUrl} alt="Barcode" className="mx-auto" />
+                <img src={barcodeDataUrl} alt="Barcode" className="mx-auto border-2 border-gray-200 rounded p-2 bg-white" />
+              </div>
+            ) : (
+              <div className="w-full h-[80px] border-2 border-gray-300 rounded flex items-center justify-center bg-white mb-3">
+                <p className="text-gray-500 text-xs">Generating Barcode...</p>
               </div>
             )}
 
@@ -309,22 +282,6 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
             <div className="text-lg font-bold text-green-800 font-mono tracking-wider my-3">
               Coupon: {voucher.voucher_code}
             </div>
-
-            {/* QR Code */}
-            {qrError ? (
-              <div className="w-[150px] h-[150px] mx-auto border-2 border-red-300 rounded flex items-center justify-center bg-red-50">
-                <p className="text-red-600 text-xs text-center px-4">QR Code generation failed</p>
-              </div>
-            ) : qrDataUrl ? (
-              <div>
-                <img src={qrDataUrl} alt="QR Code" className="w-[150px] h-[150px] mx-auto border-2 border-gray-200 rounded" />
-                <p className="text-xs text-gray-600 mt-2">Scan to Register</p>
-              </div>
-            ) : (
-              <div className="w-[150px] h-[150px] mx-auto border-2 border-gray-300 rounded flex items-center justify-center bg-gray-50">
-                <p className="text-gray-500 text-xs">Generating QR Code...</p>
-              </div>
-            )}
           </div>
 
           {/* Footer */}
