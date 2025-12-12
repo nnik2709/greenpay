@@ -19,6 +19,7 @@ const { createCanvas } = require('canvas');
 const PaymentGatewayFactory = require('../services/payment-gateways/PaymentGatewayFactory');
 const { sendVoucherNotification } = require('../services/notificationService');
 const { generateVoucherPDF } = require('../utils/pdfGenerator');
+const voucherConfig = require('../config/voucherConfig');
 
 // Database connection
 const pool = new Pool({
@@ -688,11 +689,10 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
       console.log(`✓ Created new passport: ${passportData.passportNumber} (ID: ${passportId})`);
     }
 
-    // 5. Generate voucher code
-    const voucherCode = `VCH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    // 5. Generate voucher code (8-char alphanumeric)
+    const voucherCode = voucherConfig.helpers.generateVoucherCode('ONL');
     const validFrom = new Date();
-    const validUntil = new Date();
-    validUntil.setDate(validUntil.getDate() + 365); // Valid for 1 year (365 days)
+    const validUntil = voucherConfig.helpers.calculateValidUntil(validFrom);
 
     // 6. Create voucher (linked via passport_number)
     const voucherQuery = `

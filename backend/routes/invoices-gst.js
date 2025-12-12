@@ -4,6 +4,7 @@ const db = require('../config/database');
 const { auth, checkRole } = require('../middleware/auth');
 const { generateInvoicePDF } = require('../utils/pdfGenerator');
 const { sendInvoiceEmail, sendEmailWithAttachments } = require('../services/notificationService');
+const voucherConfig = require('../config/voucherConfig');
 
 // Import voucher PDF generation functions
 const PDFDocument = require('pdfkit');
@@ -425,13 +426,10 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
     const items = Array.isArray(invoice.items) ? invoice.items : JSON.parse(invoice.items);
     const totalVouchers = items.reduce((sum, item) => sum + item.quantity, 0);
 
-    // Generate vouchers (match the pattern used in vouchers.js)
-    // Include invoice number in voucher code for tracking
+    // Generate vouchers (8-character alphanumeric)
     const vouchers = [];
     for (let i = 0; i < totalVouchers; i++) {
-      const timestamp = Date.now();
-      const random = Math.random().toString(36).substring(2, 10).toUpperCase();
-      const voucherCode = `GP-${timestamp}-${random}-${invoice.invoice_number}`;
+      const voucherCode = voucherConfig.helpers.generateVoucherCode('CORP');
 
       const voucherResult = await client.query(
         `INSERT INTO corporate_vouchers (

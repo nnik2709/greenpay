@@ -70,6 +70,7 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [mrzDetected, setMrzDetected] = useState(false);
+  const [successBlink, setSuccessBlink] = useState(false);
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [flashSupported, setFlashSupported] = useState(false);
   const videoRef = useRef(null);
@@ -466,6 +467,10 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
         className: "bg-green-50 border-green-200",
       });
 
+      // Trigger green blink animation on successful capture
+      setSuccessBlink(true);
+      setTimeout(() => setSuccessBlink(false), 500);
+
       // Auto-fill the form
       setTimeout(() => {
         console.log('✅ CALLING onScanSuccess with passport data:', passportData);
@@ -679,23 +684,37 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
         {/* MRZ Guide Overlay - shown when camera is active */}
         {isCameraActive && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            {/* Dark overlay with cutout */}
-            <div className="absolute inset-0 bg-black bg-opacity-50" />
+            {/* Success blink animation overlay */}
+            {successBlink && (
+              <div
+                className="absolute inset-0 bg-green-500 animate-pulse z-50"
+                style={{
+                  animation: 'successBlink 0.5s ease-in-out',
+                  opacity: 0.7
+                }}
+              />
+            )}
 
             {/* MRZ Guide Box - WIDER to capture full MRZ */}
             <div className="relative z-10" style={{ width: '96%', height: '25%' }}>
-              {/* Guide rectangle - changes color when MRZ detected */}
+              {/* Guide rectangle - changes color when MRZ detected or success */}
               <div
                 className={`absolute inset-0 border-4 rounded-lg transition-all duration-300 ${
-                  mrzDetected
+                  successBlink
+                    ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,1)]'
+                    : mrzDetected
                     ? 'border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.6)]'
                     : 'border-emerald-400'
                 }`}
                 style={{
-                  boxShadow: mrzDetected
-                    ? '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(34, 197, 94, 0.6)'
-                    : '0 0 0 9999px rgba(0, 0, 0, 0.5)',
-                  background: mrzDetected ? 'rgba(34, 197, 94, 0.1)' : 'transparent'
+                  boxShadow: successBlink
+                    ? '0 0 0 9999px rgba(0, 0, 0, 1), 0 0 30px rgba(34, 197, 94, 1)'
+                    : mrzDetected
+                    ? '0 0 0 9999px rgba(0, 0, 0, 1), 0 0 20px rgba(34, 197, 94, 0.6)'
+                    : '0 0 0 9999px rgba(0, 0, 0, 1)',
+                  background: successBlink
+                    ? 'rgba(34, 197, 94, 0.3)'
+                    : mrzDetected ? 'rgba(34, 197, 94, 0.1)' : 'transparent'
                 }}
               >
                 {/* Corner markers */}

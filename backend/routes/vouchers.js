@@ -6,6 +6,7 @@ const PDFDocument = require('pdfkit');
 const nodemailer = require('nodemailer');
 const QRCode = require('qrcode');
 const archiver = require('archiver');
+const voucherConfig = require('../config/voucherConfig');
 
 // Email transporter
 const createTransporter = () => {
@@ -370,10 +371,8 @@ router.post('/bulk-corporate', auth, checkRole('Flex_Admin', 'Finance_Manager', 
     const validUntil = valid_until || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
 
     for (let i = 0; i < count; i++) {
-      // Generate unique voucher code
-      const timestamp = Date.now();
-      const random = Math.random().toString(36).substring(2, 10).toUpperCase();
-      const voucherCode = `CORP-${timestamp}-${random}`;
+      // Generate unique voucher code (8-char alphanumeric)
+      const voucherCode = voucherConfig.helpers.generateVoucherCode('CORP');
 
       const result = await client.query(
         `INSERT INTO corporate_vouchers (

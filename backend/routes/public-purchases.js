@@ -3,6 +3,7 @@ const router = express.Router();
 const { Pool } = require('pg');
 const PaymentGatewayFactory = require('../services/payment-gateways/PaymentGatewayFactory');
 const { sendVoucherNotification } = require('../services/notificationService');
+const voucherConfig = require('../config/voucherConfig');
 
 // Database connection
 const pool = new Pool({
@@ -301,10 +302,9 @@ router.post('/complete', async (req, res) => {
     // Generate vouchers
     const vouchers = [];
     for (let i = 0; i < session.quantity; i++) {
-      const voucherCode = `VCH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      const voucherCode = voucherConfig.helpers.generateVoucherCode('ONL');
       const validFrom = new Date();
-      const validUntil = new Date();
-      validUntil.setDate(validUntil.getDate() + 30); // Valid for 30 days
+      const validUntil = voucherConfig.helpers.calculateValidUntil(validFrom);
 
       const voucherQuery = `
         INSERT INTO individual_purchases (
@@ -860,10 +860,9 @@ async function completeVoucherPurchase(sessionId, paymentData) {
     // Generate vouchers
     const vouchers = [];
     for (let i = 0; i < session.quantity; i++) {
-      const voucherCode = `VCH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      const voucherCode = voucherConfig.helpers.generateVoucherCode('ONL');
       const validFrom = new Date();
-      const validUntil = new Date();
-      validUntil.setDate(validUntil.getDate() + 30); // Valid for 30 days
+      const validUntil = voucherConfig.helpers.calculateValidUntil(validFrom);
 
       const voucherQuery = `
         INSERT INTO individual_purchases (

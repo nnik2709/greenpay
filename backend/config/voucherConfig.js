@@ -163,16 +163,20 @@ module.exports = {
     },
 
     /**
-     * Generate voucher code
-     * @param {string} type - Voucher type code (IND, CORP, ONL)
-     * @returns {string} Generated voucher code
+     * Generate voucher code - 8-character alphanumeric (e.g., 3IEW5268)
+     * @param {string} type - Voucher type code (IND, CORP, ONL) - not used, kept for compatibility
+     * @returns {string} Generated voucher code (8 chars, uppercase alphanumeric)
      */
     generateVoucherCode(type = 'VCH') {
-      const config = module.exports.display.codeFormat;
-      const timestamp = Date.now();
-      const random = Math.random().toString(36).substr(2, 9);
-      const code = `${config.prefix}${config.separator}${timestamp}${config.separator}${random}`;
-      return config.uppercase ? code.toUpperCase() : code;
+      const crypto = require('crypto');
+      // Generate 8 random alphanumeric characters
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let code = '';
+      const randomBytes = crypto.randomBytes(8);
+      for (let i = 0; i < 8; i++) {
+        code += chars[randomBytes[i] % chars.length];
+      }
+      return code;
     },
 
     /**

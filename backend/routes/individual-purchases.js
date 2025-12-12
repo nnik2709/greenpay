@@ -2,16 +2,14 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { auth, checkRole } = require('../middleware/auth');
+const voucherConfig = require('../config/voucherConfig');
 
 /**
- * Generate a unique voucher code
- * Format: IND-YYYYMMDD-XXXXX (IND = Individual)
+ * Generate a unique voucher code - 8-character alphanumeric
+ * Uses centralized config for consistency
  */
 function generateVoucherCode(prefix = 'IND') {
-  const date = new Date();
-  const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-  const random = Math.floor(10000 + Math.random() * 90000);
-  return `${prefix}-${dateStr}-${random}`;
+  return voucherConfig.helpers.generateVoucherCode(prefix);
 }
 
 /**
