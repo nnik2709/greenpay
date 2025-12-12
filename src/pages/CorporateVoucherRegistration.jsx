@@ -50,10 +50,10 @@ const CorporateVoucherRegistration = () => {
    * Step 1: Look up voucher by code
    */
   const handleVoucherLookup = async () => {
-    if (!voucherCode || voucherCode.length !== 8) {
+    if (!voucherCode || voucherCode.trim().length < 5) {
       toast({
         title: "Invalid Code",
-        description: "Please enter a valid 8-character voucher code",
+        description: "Please enter a valid voucher code",
         variant: "destructive"
       });
       return;
@@ -255,18 +255,18 @@ const CorporateVoucherRegistration = () => {
                 id="voucherCode"
                 value={voucherCode}
                 onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                placeholder="e.g., 3IEW5268"
-                maxLength={8}
+                placeholder="e.g., CORP-1764568399743-A0KPSHFZ"
+                maxLength={50}
                 className="text-lg font-mono tracking-wider"
               />
               <p className="text-sm text-gray-500 mt-1">
-                Example: 3IEW5268 (8 characters)
+                Enter the full corporate voucher code
               </p>
             </div>
 
             <Button
               onClick={handleVoucherLookup}
-              disabled={loading || voucherCode.length !== 8}
+              disabled={loading || voucherCode.trim().length < 5}
               className="w-full"
               size="lg"
             >
