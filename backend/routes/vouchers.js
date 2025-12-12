@@ -211,8 +211,7 @@ router.get('/validate/:code', async (req, res) => {
         cv.created_at,
         cv.amount,
         cv.status,
-        p.surname,
-        p.given_name,
+        p.full_name,
         p.nationality,
         CASE
           WHEN cv.status = 'pending_passport' THEN 'pending_passport'
@@ -282,8 +281,7 @@ router.get('/validate/:code', async (req, res) => {
         voucherType,
         passportInfo: voucherData.passport_number ? {
           passportNumber: voucherData.passport_number,
-          surname: voucherData.surname,
-          givenName: voucherData.given_name,
+          fullName: voucherData.full_name,
           nationality: voucherData.nationality
         } : null
       }

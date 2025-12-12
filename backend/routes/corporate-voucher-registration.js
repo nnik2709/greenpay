@@ -140,24 +140,23 @@ router.post('/register', async (req, res) => {
       passportId = existingPassport.rows[0].id;
     } else {
       // Create new passport record
+      // Production schema uses full_name, expiry_date (not surname/given_name, date_of_expiry)
+      const fullName = `${surname} ${givenName}`.trim();
+
       const newPassport = await client.query(
         `INSERT INTO passports (
           passport_number,
-          surname,
-          given_name,
+          full_name,
           nationality,
           date_of_birth,
-          sex,
-          date_of_expiry
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+          expiry_date
+        ) VALUES ($1, $2, $3, $4, $5)
         RETURNING id`,
         [
           passportNumber,
-          surname,
-          givenName,
-          nationality || 'Unknown',
+          fullName,
+          nationality || null,
           dateOfBirth || null,
-          sex || 'U',
           dateOfExpiry || null
         ]
       );
@@ -314,11 +313,13 @@ router.post('/bulk-register', async (req, res) => {
         if (existingPassport.rows.length > 0) {
           passportId = existingPassport.rows[0].id;
         } else {
+          // Production schema uses full_name, expiry_date
+          const fullName = `${surname} ${givenName}`.trim();
           const newPassport = await client.query(
-            `INSERT INTO passports (passport_number, surname, given_name, nationality, date_of_birth, sex, date_of_expiry)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `INSERT INTO passports (passport_number, full_name, nationality, date_of_birth, expiry_date)
+             VALUES ($1, $2, $3, $4, $5)
              RETURNING id`,
-            [passportNumber, surname, givenName, nationality || 'Unknown', dateOfBirth || null, sex || 'U', dateOfExpiry || null]
+            [passportNumber, fullName, nationality || null, dateOfBirth || null, dateOfExpiry || null]
           );
           passportId = newPassport.rows[0].id;
         }
