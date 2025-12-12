@@ -1,15 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
-import QRCode from 'qrcode';
+import React, { useEffect, useState } from 'react';
 import JsBarcode from 'jsbarcode';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Printer, X } from 'lucide-react';
 
 const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
-  const [qrError, setQrError] = useState(false);
-  const [qrDataUrl, setQrDataUrl] = useState('');
   const [barcodeDataUrl, setBarcodeDataUrl] = useState('');
-  const barcodeCanvasRef = useRef(null);
 
   useEffect(() => {
     if (isOpen && voucher && voucher.voucher_code) {
@@ -21,10 +17,9 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
         const canvas = document.createElement('canvas');
         JsBarcode(canvas, voucher.voucher_code, {
           format: 'CODE128',
-          width: 2,
-          height: 60,
-          displayValue: true,
-          fontSize: 16,
+          width: 3,
+          height: 80,
+          displayValue: false, // We'll show the code separately
           margin: 10,
           background: '#ffffff',
           lineColor: '#000000'
@@ -35,12 +30,16 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
       } catch (error) {
         console.error('Barcode generation error:', error);
       }
-    } else {
-      console.log('Barcode generation skipped:', { isOpen, hasVoucher: !!voucher, hasCode: !!voucher?.voucher_code });
     }
   }, [isOpen, voucher]);
 
   if (!voucher) return null;
+
+  // Registration URL
+  const registrationUrl = `https://pnggreenfees.gov.pg/voucher/register/${voucher.voucher_code}`;
+
+  // Get current user (authorizing officer) from context or default
+  const authorizingOfficer = voucher.created_by_name || 'AUTHORIZED OFFICER';
 
   const handlePrint = () => {
     // Create a new window for printing
@@ -49,75 +48,205 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Voucher - ${voucher.voucher_code}</title>
+        <title>Green Card - ${voucher.voucher_code}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          .voucher { max-width: 800px; margin: 0 auto; border: 2px solid #ccc; padding: 40px; }
-          .header { text-align: center; border-bottom: 4px solid #10b981; padding-bottom: 20px; margin-bottom: 30px; }
-          .header h1 { font-size: 32px; color: #10b981; margin-bottom: 5px; }
-          .header p { font-size: 16px; color: #666; }
-          .content { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
-          .info-section { display: flex; flex-direction: column; gap: 15px; }
-          .info-box { background: #f9fafb; padding: 12px; border-radius: 5px; }
-          .info-label { font-size: 11px; color: #666; text-transform: uppercase; margin-bottom: 5px; }
-          .info-value { font-size: 18px; font-weight: bold; color: #111; }
-          .qr-section { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; }
-          .qr-section img { border: 2px solid #ddd; border-radius: 5px; }
-          .voucher-code { font-size: 24px; font-weight: bold; color: #10b981; font-family: 'Courier New', monospace; letter-spacing: 2px; word-break: break-all; text-align: center; }
-          .status-badge { display: inline-block; padding: 8px 16px; background: #10b981; color: white; border-radius: 20px; font-size: 14px; font-weight: bold; margin-top: 10px; }
-          .footer { border-top: 2px solid #e5e7eb; padding-top: 20px; text-align: center; font-size: 12px; color: #666; }
-          .footer p { margin-bottom: 8px; }
+          body {
+            font-family: 'Times New Roman', Times, serif;
+            background: #f5f5f5;
+            padding: 40px 20px;
+          }
+          .page {
+            background: white;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+          }
+
+          /* Header with logos */
+          .logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 100px;
+            margin-bottom: 40px;
+          }
+          .logo-placeholder {
+            width: 120px;
+            height: 120px;
+            border: 2px dashed #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #999;
+            text-align: center;
+            border-radius: 50%;
+          }
+
+          /* Title */
+          .title {
+            text-align: center;
+            margin-bottom: 10px;
+          }
+          .title h1 {
+            font-size: 42px;
+            font-weight: bold;
+            color: #4CAF50;
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+          }
+          .title-underline {
+            width: 100%;
+            height: 3px;
+            background: #4CAF50;
+            margin: 15px 0 25px 0;
+          }
+
+          /* Subtitle */
+          .subtitle {
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 40px;
+          }
+
+          /* Coupon number */
+          .coupon-number {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 40px;
+            padding: 0 20px;
+          }
+          .coupon-label {
+            font-size: 18px;
+            font-weight: bold;
+            color: #000;
+          }
+          .coupon-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #000;
+            letter-spacing: 2px;
+          }
+
+          /* Barcode section */
+          .barcode-section {
+            text-align: center;
+            margin: 50px 0;
+          }
+          .barcode-section img {
+            max-width: 400px;
+            height: auto;
+            margin: 0 auto 20px auto;
+          }
+          .scan-instruction {
+            font-size: 18px;
+            font-weight: 500;
+            color: #000;
+            margin-top: 20px;
+            margin-bottom: 15px;
+          }
+          .registration-url {
+            font-size: 13px;
+            color: #666;
+            margin-top: 10px;
+          }
+
+          /* Footer */
+          .footer-line {
+            width: 100%;
+            height: 1px;
+            background: #ccc;
+            margin: 60px 0 25px 0;
+          }
+          .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+          }
+          .officer-info {
+            text-align: left;
+          }
+          .officer-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #000;
+            text-transform: uppercase;
+          }
+          .officer-title {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+          }
+          .generation-info {
+            text-align: right;
+            font-size: 11px;
+            color: #666;
+          }
+
           @media print {
-            body { padding: 0; }
-            .voucher { border: none; }
+            body {
+              padding: 0;
+              background: white;
+            }
+            .page {
+              box-shadow: none;
+              padding: 40px;
+            }
           }
         </style>
       </head>
       <body>
-        <div class="voucher">
-          <div class="header">
-            <h1>🌿 PNG Green Fees</h1>
-            <p>Environmental Exit Voucher</p>
+        <div class="page">
+          <!-- Logos -->
+          <div class="logos">
+            <div class="logo-placeholder">PNG Govt Logo</div>
+            <div class="logo-placeholder">National Emblem</div>
           </div>
 
-          <div class="content">
-            <div class="info-section">
-              <div class="info-box">
-                <div class="info-label">Voucher Type</div>
-                <div class="info-value">${voucherType}</div>
-              </div>
-              <div class="info-box">
-                <div class="info-label">Passport Number</div>
-                <div class="info-value">${voucher.passport_number}</div>
-              </div>
-              ${voucher.company_name ? `
-              <div class="info-box">
-                <div class="info-label">Company Name</div>
-                <div class="info-value">${voucher.company_name}</div>
-              </div>
-              ` : ''}
-              <div class="info-box">
-                <div class="info-label">Valid Until</div>
-                <div class="info-value">${new Date(voucher.valid_until).toLocaleDateString()}</div>
-              </div>
-              <div class="info-box">
-                <div class="info-label">Amount</div>
-                <div class="info-value">PGK ${voucher.amount}</div>
-              </div>
-            </div>
+          <!-- Title -->
+          <div class="title">
+            <h1>GREEN CARD</h1>
+          </div>
+          <div class="title-underline"></div>
 
-            <div class="qr-section">
-              ${barcodeDataUrl ? `<img src="${barcodeDataUrl}" alt="Barcode" style="border: 2px solid #ddd; padding: 10px; background: white; border-radius: 5px;" />` : '<p style="color: #999;">Barcode not available</p>'}
-              <div class="voucher-code">${voucher.voucher_code}</div>
-              <span class="status-badge">✓ VALID</span>
-            </div>
+          <!-- Subtitle -->
+          <div class="subtitle">Foreign Passport Holder</div>
+
+          <!-- Coupon Number -->
+          <div class="coupon-number">
+            <span class="coupon-label">Coupon Number:</span>
+            <span class="coupon-value">${voucher.voucher_code}</span>
           </div>
 
+          <!-- Barcode -->
+          <div class="barcode-section">
+            ${barcodeDataUrl ? `<img src="${barcodeDataUrl}" alt="Barcode" />` : '<p style="color: #999;">Barcode not available</p>'}
+            <div class="scan-instruction">Scan to Register</div>
+            <div class="registration-url">${registrationUrl}</div>
+          </div>
+
+          <!-- Footer -->
+          <div class="footer-line"></div>
           <div class="footer">
-            <p><strong>Instructions:</strong> Present this voucher at the airport exit. Scan the barcode or enter the code manually for validation.</p>
-            <p>Issued by Papua New Guinea Department of Environment</p>
-            <p>Payment Method: ${voucher.payment_method} | Issued: ${new Date(voucher.created_at).toLocaleDateString()}</p>
+            <div class="officer-info">
+              <div class="officer-name">${authorizingOfficer}</div>
+              <div class="officer-title">Authorizing Officer</div>
+            </div>
+            <div class="generation-info">
+              Generated on ${new Date(voucher.created_at || new Date()).toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })}
+            </div>
           </div>
         </div>
       </body>
@@ -136,9 +265,9 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="no-print">
-          <DialogTitle>Print Voucher</DialogTitle>
+          <DialogTitle>Print Green Card Voucher</DialogTitle>
         </DialogHeader>
 
         <style>{`
@@ -163,83 +292,69 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
         `}</style>
 
         <div className="print-area">
+          <div className="voucher-printable bg-white p-12 rounded-lg border-2 border-gray-300">
 
-          <div className="voucher-printable bg-white p-8 rounded-lg border-2 border-gray-200">
-            {/* Header */}
-            <div className="text-center border-b-4 border-green-600 pb-6 mb-6">
-              <h1 className="text-4xl font-bold text-green-600 mb-2">🌿 PNG Green Fees</h1>
-              <p className="text-lg text-gray-600">Environmental Exit Voucher</p>
+            {/* Logos */}
+            <div className="flex justify-center items-center gap-24 mb-10">
+              <div className="w-28 h-28 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center text-xs text-gray-400 text-center">
+                PNG Govt<br/>Logo
+              </div>
+              <div className="w-28 h-28 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center text-xs text-gray-400 text-center">
+                National<br/>Emblem
+              </div>
             </div>
 
-            {/* Body - Two columns */}
-            <div className="grid grid-cols-2 gap-8 mb-6">
-              {/* Left column - Info */}
-              <div className="space-y-4">
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-xs text-gray-500 uppercase mb-1">Voucher Type</div>
-                  <div className="text-lg font-bold text-gray-900">{voucherType}</div>
+            {/* Title */}
+            <div className="text-center mb-3">
+              <h1 className="text-5xl font-bold text-green-600 tracking-widest">GREEN CARD</h1>
+            </div>
+            <div className="w-full h-1 bg-green-600 mb-8"></div>
+
+            {/* Subtitle */}
+            <div className="text-center mb-10">
+              <p className="text-2xl font-bold text-black">Foreign Passport Holder</p>
+            </div>
+
+            {/* Coupon Number */}
+            <div className="flex justify-between items-baseline px-4 mb-12">
+              <span className="text-xl font-bold text-black">Coupon Number:</span>
+              <span className="text-2xl font-bold text-black tracking-wider">{voucher.voucher_code}</span>
+            </div>
+
+            {/* Barcode */}
+            <div className="text-center my-12">
+              {barcodeDataUrl ? (
+                <img src={barcodeDataUrl} alt="Barcode" className="mx-auto max-w-md" />
+              ) : (
+                <div className="w-full h-24 border-2 border-gray-300 rounded flex items-center justify-center bg-gray-50">
+                  <p className="text-gray-500 text-sm">Generating Barcode...</p>
                 </div>
-
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-xs text-gray-500 uppercase mb-1">Passport Number</div>
-                  <div className="text-lg font-bold text-gray-900">{voucher.passport_number}</div>
-                </div>
-
-                {voucher.company_name && (
-                  <div className="bg-gray-50 p-3 rounded">
-                    <div className="text-xs text-gray-500 uppercase mb-1">Company Name</div>
-                    <div className="text-lg font-bold text-gray-900">{voucher.company_name}</div>
-                  </div>
-                )}
-
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-xs text-gray-500 uppercase mb-1">Valid Until</div>
-                  <div className="text-lg font-bold text-gray-900">
-                    {new Date(voucher.valid_until).toLocaleDateString()}
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-xs text-gray-500 uppercase mb-1">Amount</div>
-                  <div className="text-lg font-bold text-gray-900">PGK {voucher.amount}</div>
-                </div>
-              </div>
-
-              {/* Right column - Barcode Only */}
-              <div className="flex flex-col items-center justify-center space-y-4">
-                {/* Barcode */}
-                {barcodeDataUrl ? (
-                  <div className="flex flex-col items-center space-y-3">
-                    <img src={barcodeDataUrl} alt="Barcode" className="border-2 border-gray-200 rounded p-2 bg-white" />
-                  </div>
-                ) : (
-                  <div className="w-full h-[100px] border-2 border-gray-300 rounded flex items-center justify-center bg-gray-50">
-                    <p className="text-gray-500 text-sm">Generating Barcode...</p>
-                  </div>
-                )}
-
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600 font-mono tracking-wider break-all">
-                    {voucher.voucher_code}
-                  </div>
-                  <div className="mt-2">
-                    <span className="inline-block px-4 py-2 bg-green-600 text-white rounded-full text-sm font-bold">
-                      ✓ VALID
-                    </span>
-                  </div>
-                </div>
-              </div>
+              )}
+              <p className="text-xl font-medium text-black mt-6 mb-4">Scan to Register</p>
+              <p className="text-sm text-gray-600">{registrationUrl}</p>
             </div>
 
             {/* Footer */}
-            <div className="border-t-2 border-gray-200 pt-4 text-center text-sm text-gray-600">
-              <p className="mb-2">
-                <strong>Instructions:</strong> Present this voucher at the airport exit.
-                Scan the barcode or enter the code manually for validation.
-              </p>
-              <p className="mb-1">Issued by Papua New Guinea Department of Environment</p>
-              <p className="text-xs">Payment Method: {voucher.payment_method} |
-                Issued: {new Date(voucher.created_at).toLocaleDateString()}</p>
+            <div className="mt-16">
+              <div className="w-full h-px bg-gray-400 mb-6"></div>
+              <div className="flex justify-between items-end">
+                <div className="text-left">
+                  <p className="text-sm font-bold text-black uppercase">{authorizingOfficer}</p>
+                  <p className="text-xs text-gray-600 mt-1">Authorizing Officer</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-600">
+                    Generated on {new Date(voucher.created_at || new Date()).toLocaleString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true
+                    })}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -247,11 +362,11 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
         {/* Print button */}
         <div className="flex justify-end gap-2 mt-4 no-print">
           <Button variant="outline" onClick={onClose}>
-            <X className="w-4 h-4 mr-2" />
+            <X className="mr-2 h-4 w-4" />
             Close
           </Button>
-          <Button onClick={handlePrint}>
-            <Printer className="w-4 h-4 mr-2" />
+          <Button onClick={handlePrint} className="bg-green-600 hover:bg-green-700">
+            <Printer className="mr-2 h-4 w-4" />
             Print Voucher
           </Button>
         </div>

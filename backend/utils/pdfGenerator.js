@@ -143,142 +143,163 @@ async function generateInvoicePDF(invoice, customer, supplier) {
 async function generateVoucherPDF(voucher) {
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const doc = new PDFDocument({ size: 'A4', margin: 60 });
       const buffers = [];
 
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => resolve(Buffer.concat(buffers)));
       doc.on('error', reject);
 
-      // Header with gradient background (simulated with lines)
-      doc.rect(0, 0, 612, 100).fill('#059669');
+      const pageWidth = 595.28; // A4 width in points
+      const pageHeight = 841.89; // A4 height in points
+      const margin = 60;
+      const contentWidth = pageWidth - (margin * 2);
 
-      // Title
-      doc.fillColor('#ffffff')
-         .fontSize(28)
-         .font('Helvetica-Bold')
-         .text('PNG Green Fees System', 50, 30, { align: 'center' });
+      // Logo placeholders (circles at top)
+      const logoY = 80;
+      const logoRadius = 50;
+      const logoSpacing = 120;
+      const leftLogoX = (pageWidth / 2) - logoSpacing;
+      const rightLogoX = (pageWidth / 2) + logoSpacing;
 
-      doc.fontSize(14)
+      // Left logo placeholder
+      doc.circle(leftLogoX, logoY, logoRadius)
+         .lineWidth(1)
+         .dash(5, { space: 3 })
+         .stroke('#cccccc');
+
+      doc.fontSize(8)
+         .fillColor('#999999')
          .font('Helvetica')
-         .text('Green Fee Voucher', 50, 65, { align: 'center' });
+         .text('PNG Govt Logo', leftLogoX - 30, logoY - 5, { width: 60, align: 'center' });
 
-      // Reset color for body
-      doc.fillColor('#000000');
+      // Right logo placeholder
+      doc.circle(rightLogoX, logoY, logoRadius)
+         .lineWidth(1)
+         .dash(5, { space: 3 })
+         .stroke('#cccccc');
 
-      // Voucher Code Section
-      doc.fontSize(12)
+      doc.fontSize(8)
+         .fillColor('#999999')
          .font('Helvetica')
-         .text('Voucher Code', 50, 130);
+         .text('National Emblem', rightLogoX - 30, logoY - 5, { width: 60, align: 'center' });
 
-      doc.fontSize(32)
+      // Reset dash
+      doc.undash();
+
+      // GREEN CARD title
+      let yPos = 200;
+      doc.fontSize(44)
+         .fillColor('#4CAF50')
          .font('Helvetica-Bold')
-         .fillColor('#059669')
-         .text(voucher.voucher_code || voucher.code, 50, 150);
+         .text('GREEN CARD', margin, yPos, { width: contentWidth, align: 'center' });
 
-      // QR Code (if provided as data URL)
-      if (voucher.qrCode) {
+      // Green line under title
+      yPos += 60;
+      doc.moveTo(margin, yPos)
+         .lineTo(pageWidth - margin, yPos)
+         .lineWidth(3)
+         .stroke('#4CAF50');
+
+      // Subtitle: Foreign Passport Holder
+      yPos += 30;
+      doc.fontSize(22)
+         .fillColor('#000000')
+         .font('Helvetica-Bold')
+         .text('Foreign Passport Holder', margin, yPos, { width: contentWidth, align: 'center' });
+
+      // Coupon Number (label on left, value on right)
+      yPos += 60;
+      doc.fontSize(18)
+         .fillColor('#000000')
+         .font('Helvetica-Bold')
+         .text('Coupon Number:', margin + 20, yPos, { continued: false });
+
+      // Get the voucher code
+      const voucherCode = voucher.voucher_code || voucher.code || 'UNKNOWN';
+
+      doc.fontSize(22)
+         .fillColor('#000000')
+         .font('Helvetica-Bold')
+         .text(voucherCode, 0, yPos, { width: pageWidth - margin - 20, align: 'right' });
+
+      // Barcode (if provided as data URL)
+      yPos += 60;
+      if (voucher.barcode) {
         try {
           // Extract base64 data from data URL
-          const base64Data = voucher.qrCode.replace(/^data:image\/png;base64,/, '');
+          const base64Data = voucher.barcode.replace(/^data:image\/png;base64,/, '');
           const imageBuffer = Buffer.from(base64Data, 'base64');
-          doc.image(imageBuffer, 400, 130, { width: 150, height: 150 });
 
-          doc.fontSize(9)
-             .fillColor('#6b7280')
-             .text('Scan at gate', 400, 285, { width: 150, align: 'center' });
+          // Center the barcode
+          const barcodeWidth = 350;
+          const barcodeX = (pageWidth - barcodeWidth) / 2;
+          doc.image(imageBuffer, barcodeX, yPos, { width: barcodeWidth, height: 90 });
+
+          yPos += 110;
         } catch (err) {
-          console.error('Error adding QR code to PDF:', err);
+          console.error('Error adding barcode to PDF:', err);
+          yPos += 20;
         }
+      } else {
+        yPos += 20;
       }
 
-      // Reset color
-      doc.fillColor('#000000');
-
-      // Details Section
-      doc.fontSize(12).font('Helvetica');
-      let yPos = 220;
-
-      // Passport Number
-      doc.fillColor('#6b7280')
-         .fontSize(10)
-         .text('Passport Number', 50, yPos);
-      doc.fillColor('#000000')
-         .fontSize(12)
-         .font('Helvetica-Bold')
-         .text(voucher.passport_number || voucher.passportNumber, 50, yPos + 15);
-
-      // Amount
-      doc.fillColor('#6b7280')
-         .fontSize(10)
+      // "Scan to Register" instruction
+      doc.fontSize(18)
+         .fillColor('#000000')
          .font('Helvetica')
-         .text('Amount Paid', 250, yPos);
-      doc.fillColor('#000000')
-         .fontSize(12)
-         .font('Helvetica-Bold')
-         .text('PGK ' + (voucher.amount || '50.00'), 250, yPos + 15);
+         .text('Scan to Register', margin, yPos, { width: contentWidth, align: 'center' });
 
-      yPos += 50;
-
-      // Valid From
-      doc.fillColor('#6b7280')
-         .fontSize(10)
+      // Registration URL
+      yPos += 30;
+      const registrationUrl = `https://pnggreenfees.gov.pg/voucher/register/${voucherCode}`;
+      doc.fontSize(12)
+         .fillColor('#666666')
          .font('Helvetica')
-         .text('Valid From', 50, yPos);
-      doc.fillColor('#000000')
-         .fontSize(12)
+         .text(registrationUrl, margin, yPos, { width: contentWidth, align: 'center' });
+
+      // Footer separator line
+      yPos = pageHeight - 130;
+      doc.moveTo(margin, yPos)
+         .lineTo(pageWidth - margin, yPos)
+         .lineWidth(1)
+         .stroke('#cccccc');
+
+      // Footer content
+      yPos += 20;
+
+      // Left side: Authorizing Officer
+      const authorizingOfficer = voucher.created_by_name || 'AUTHORIZED OFFICER';
+      doc.fontSize(14)
+         .fillColor('#000000')
          .font('Helvetica-Bold')
-         .text(voucher.valid_from ? new Date(voucher.valid_from).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'), 50, yPos + 15);
+         .text(authorizingOfficer.toUpperCase(), margin, yPos);
 
-      // Valid Until
-      doc.fillColor('#6b7280')
-         .fontSize(10)
+      doc.fontSize(11)
+         .fillColor('#666666')
          .font('Helvetica')
-         .text('Valid Until', 250, yPos);
-      doc.fillColor('#000000')
-         .fontSize(12)
-         .font('Helvetica-Bold')
-         .text(voucher.valid_until ? new Date(voucher.valid_until).toLocaleDateString('en-GB') : 'N/A', 250, yPos + 15);
+         .text('Authorizing Officer', margin, yPos + 18);
 
-      yPos += 60;
+      // Right side: Generation timestamp
+      const generationDate = new Date(voucher.created_at || new Date());
+      const dateOptions = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      };
+      const dateString = generationDate.toLocaleString('en-US', dateOptions);
 
-      // Instructions Box
-      doc.rect(50, yPos, 512, 140).fillAndStroke('#dcfce7', '#10b981');
-
-      doc.fillColor('#065f46')
-         .fontSize(14)
-         .font('Helvetica-Bold')
-         .text('How to Use This Voucher', 70, yPos + 20);
-
-      doc.fillColor('#047857')
-         .fontSize(11)
+      doc.fontSize(10)
+         .fillColor('#666666')
          .font('Helvetica')
-         .text('1. Present this voucher at the entry checkpoint', 70, yPos + 50)
-         .text('2. Show the voucher code or QR code for scanning', 70, yPos + 70)
-         .text('3. Keep your passport with you for verification', 70, yPos + 90)
-         .text('4. This voucher is valid for a single entry', 70, yPos + 110);
-
-      yPos += 160;
-
-      // Registered Notice
-      doc.rect(50, yPos, 512, 60).fillAndStroke('#f0fdf4', '#22c55e');
-
-      doc.fillColor('#166534')
-         .fontSize(12)
-         .font('Helvetica-Bold')
-         .text('✓ Your passport is already registered', 70, yPos + 15);
-
-      doc.fillColor('#15803d')
-         .fontSize(10)
-         .font('Helvetica')
-         .text('You\'re all set! Just present this voucher when you travel.', 70, yPos + 35);
-
-      // Footer
-      doc.fillColor('#6b7280')
-         .fontSize(8)
-         .font('Helvetica')
-         .text('PNG Green Fees System - Official Voucher', 50, 750, { align: 'center', width: 512 })
-         .text('For support, contact: support@greenpay.gov.pg', 50, 765, { align: 'center', width: 512 });
+         .text(`Generated on ${dateString}`, 0, yPos + 10, {
+           width: pageWidth - margin,
+           align: 'right'
+         });
 
       doc.end();
     } catch (error) {
