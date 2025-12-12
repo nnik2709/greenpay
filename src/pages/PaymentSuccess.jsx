@@ -12,7 +12,7 @@ import api from '@/lib/api/client';
  * Payment Success Page - Enhanced Flow
  *
  * After successful payment:
- * 1. Display voucher immediately with QR code
+ * 1. Display voucher immediately with barcode
  * 2. Show Print and Download PDF buttons
  * 3. Show "Email Voucher" button that opens dialog for email input
  */
@@ -223,7 +223,7 @@ const PaymentSuccess = () => {
             <CardTitle className="text-2xl text-emerald-800">Voucher Details</CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
-            {/* Voucher Code + QR Code */}
+            {/* Voucher Code + Barcode */}
             <div className="bg-white rounded-lg p-6 border-2 border-emerald-200">
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
@@ -236,15 +236,15 @@ const PaymentSuccess = () => {
                   </p>
                 </div>
                 <div className="flex items-center justify-center">
-                  {voucher?.qrCode && (
+                  {(voucher?.qrCode || voucher?.barcode) && (
                     <div className="bg-white p-4 rounded-lg border-2 border-slate-200">
                       <img
-                        src={voucher.qrCode}
-                        alt="QR Code"
-                        className="w-48 h-48"
+                        src={voucher.qrCode || voucher.barcode}
+                        alt="Barcode"
+                        className="w-full max-w-[300px] h-auto"
                       />
                       <p className="text-xs text-center text-slate-500 mt-2">
-                        Scan at gate
+                        Scan barcode at gate
                       </p>
                     </div>
                   )}
@@ -273,7 +273,7 @@ const PaymentSuccess = () => {
               <div className="bg-slate-50 rounded-lg p-4">
                 <p className="text-xs text-slate-600 mb-1">Valid Until</p>
                 <p className="font-semibold text-slate-800">
-                  {voucher?.validUntil ? new Date(voucher.validUntil).toLocaleDateString() : '30 days'}
+                  {voucher?.validUntil ? new Date(voucher.validUntil).toLocaleDateString() : '1 year'}
                 </p>
               </div>
             </div>

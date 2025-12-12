@@ -14,6 +14,8 @@ const express = require('express');
 const router = express.Router();
 const { Pool } = require('pg');
 const QRCode = require('qrcode');
+const JsBarcode = require('jsbarcode');
+const { createCanvas } = require('canvas');
 const PaymentGatewayFactory = require('../services/payment-gateways/PaymentGatewayFactory');
 const { sendVoucherNotification } = require('../services/notificationService');
 const { generateVoucherPDF } = require('../utils/pdfGenerator');
@@ -26,6 +28,30 @@ const pool = new Pool({
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD,
 });
+
+/**
+ * Generate Barcode (CODE-128) as Data URL
+ * Replaces QR code for voucher scanning
+ */
+function generateBarcodeDataURL(code) {
+  try {
+    const canvas = createCanvas(400, 120);
+    JsBarcode(canvas, code, {
+      format: 'CODE128',
+      width: 2,
+      height: 60,
+      displayValue: true,
+      fontSize: 16,
+      margin: 10,
+      background: '#ffffff',
+      lineColor: '#000000'
+    });
+    return canvas.toDataURL('image/png');
+  } catch (error) {
+    console.error('Barcode generation error:', error);
+    return null;
+  }
+}
 
 /**
  * Create Payment Session with Passport Data
@@ -284,12 +310,8 @@ router.get('/voucher/:sessionId', async (req, res) => {
 
     const voucher = voucherResult.rows[0];
 
-    // Generate QR code for voucher
-    const qrCodeDataUrl = await QRCode.toDataURL(voucher.voucher_code, {
-      width: 300,
-      margin: 2,
-      errorCorrectionLevel: 'M'
-    });
+    // Generate barcode for voucher (replaces QR code)
+    const barcodeDataUrl = generateBarcodeDataURL(voucher.voucher_code);
 
     res.json({
       success: true,
@@ -299,7 +321,8 @@ router.get('/voucher/:sessionId', async (req, res) => {
         amount: voucher.amount,
         validFrom: voucher.valid_from,
         validUntil: voucher.valid_until,
-        qrCode: qrCodeDataUrl,
+        barcode: barcodeDataUrl,
+        qrCode: barcodeDataUrl, // Keep 'qrCode' key for backward compatibility, but send barcode
         passportNumber: voucher.passport_number,
         customerName: voucher.customer_name,
         customerEmail: voucher.customer_email,
@@ -371,17 +394,14 @@ router.get('/voucher/:sessionId/pdf', async (req, res) => {
 
     const voucher = result.rows[0];
 
-    // Generate QR code
-    const qrCodeDataUrl = await QRCode.toDataURL(voucher.voucher_code, {
-      width: 200,
-      margin: 2,
-      errorCorrectionLevel: 'M'
-    });
+    // Generate barcode (replaces QR code)
+    const barcodeDataUrl = generateBarcodeDataURL(voucher.voucher_code);
 
     // Generate PDF
     const pdfBuffer = await generateVoucherPDF({
       ...voucher,
-      qrCode: qrCodeDataUrl
+      barcode: barcodeDataUrl,
+      qrCode: barcodeDataUrl // Keep for backward compatibility with PDF generator
     });
 
     // Send PDF
@@ -446,17 +466,14 @@ router.post('/voucher/:sessionId/email', async (req, res) => {
       return res.status(400).json({ error: 'Email address required' });
     }
 
-    // Generate QR code
-    const qrCodeDataUrl = await QRCode.toDataURL(voucher.voucher_code, {
-      width: 200,
-      margin: 2,
-      errorCorrectionLevel: 'M'
-    });
+    // Generate barcode (replaces QR code)
+    const barcodeDataUrl = generateBarcodeDataURL(voucher.voucher_code);
 
     // Generate PDF with voucher details
     const pdfBuffer = await generateVoucherPDF({
       ...voucher,
-      qrCode: qrCodeDataUrl
+      barcode: barcodeDataUrl,
+      qrCode: barcodeDataUrl // Keep for backward compatibility with PDF generator
     });
 
     // Send email with PDF attachment
@@ -675,7 +692,7 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
     const voucherCode = `VCH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     const validFrom = new Date();
     const validUntil = new Date();
-    validUntil.setDate(validUntil.getDate() + 30); // Valid for 30 days
+    validUntil.setDate(validUntil.getDate() + 365); // Valid for 1 year (365 days)
 
     // 6. Create voucher (linked via passport_number)
     const voucherQuery = `
