@@ -518,16 +518,6 @@ const BuyOnline = () => {
           }}
         >
           <div className="p-4">
-            <div className="mb-4 p-4 bg-green-100 border-4 border-green-500">
-              <p className="text-green-800 font-bold text-2xl">✅ Modal is visible!</p>
-              <p className="text-green-700">If you see this, the modal works.</p>
-              <button
-                onClick={() => setShowCameraScanner(false)}
-                className="mt-2 px-4 py-2 bg-red-500 text-white rounded"
-              >
-                Close Modal (Test)
-              </button>
-            </div>
             <SimpleCameraScanner
               onScanSuccess={handleCameraScan}
               onClose={() => setShowCameraScanner(false)}

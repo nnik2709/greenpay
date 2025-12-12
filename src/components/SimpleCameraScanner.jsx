@@ -534,7 +534,7 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
 
     console.log('Image drawn to canvas');
 
-    // Convert to grayscale and apply binary thresholding for better OCR
+    // Convert to grayscale and enhance contrast for better OCR
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
 
@@ -548,39 +548,70 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
       data[i + 2] = gray; // B
     }
 
-    // Calculate optimal threshold using median brightness (more robust than average)
-    // Sort grayscale values and find median
+    // Calculate brightness statistics
     const sortedValues = [...grayscaleValues].sort((a, b) => a - b);
     const medianBrightness = sortedValues[Math.floor(sortedValues.length / 2)];
     const avgBrightness = grayscaleValues.reduce((a, b) => a + b, 0) / grayscaleValues.length;
 
-    // Use median with NO offset for better preservation of all characters
-    // For MRZ, we want to preserve ALL dark text characters, especially at edges
-    // Changed from +5 to 0 to prevent losing ANY edge characters
-    let threshold = medianBrightness;
+    console.log('Brightness stats - Avg:', Math.round(avgBrightness), 'Median:', Math.round(medianBrightness));
 
-    // Clamp threshold to reasonable range for passport images
-    // Widened range to handle different passport types (PNG, European, etc.)
-    threshold = Math.max(110, Math.min(180, threshold));
-
-    console.log('Brightness stats - Avg:', Math.round(avgBrightness), 'Median:', Math.round(medianBrightness), 'Threshold:', threshold);
-
-    // Second pass: binary thresholding (pure black or white)
-    // This works MUCH better for OCR of machine-printed text
+    // Enhanced contrast stretching for better OCR
+    // Find actual min/max values in the image
+    let minVal = 255, maxVal = 0;
     for (let i = 0; i < data.length; i += 4) {
-      const brightness = data[i];
-      // Convert to pure black or pure white based on threshold
-      const binaryValue = brightness >= threshold ? 255 : 0;
-      data[i] = binaryValue;       // R
-      data[i + 1] = binaryValue;   // G
-      data[i + 2] = binaryValue;   // B
+      const val = data[i];
+      if (val < minVal) minVal = val;
+      if (val > maxVal) maxVal = val;
     }
 
+    console.log('Value range:', minVal, '-', maxVal);
+
+    // Stretch contrast to full 0-255 range for maximum clarity
+    const range = maxVal - minVal;
+    if (range > 0) {
+      for (let i = 0; i < data.length; i += 4) {
+        const normalized = ((data[i] - minVal) / range) * 255;
+        data[i] = normalized;
+        data[i + 1] = normalized;
+        data[i + 2] = normalized;
+      }
+      console.log('Contrast stretched from', minVal + '-' + maxVal, 'to 0-255');
+    }
+
+    // Apply sharpening to make text edges crisp
+    // This helps OCR detect character boundaries
+    const tempData = new Uint8ClampedArray(data);
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Simple 3x3 sharpening kernel
+    const sharpenKernel = [
+      0, -1,  0,
+     -1,  5, -1,
+      0, -1,  0
+    ];
+
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        let sum = 0;
+        for (let ky = -1; ky <= 1; ky++) {
+          for (let kx = -1; kx <= 1; kx++) {
+            const idx = ((y + ky) * width + (x + kx)) * 4;
+            const kernelIdx = (ky + 1) * 3 + (kx + 1);
+            sum += tempData[idx] * sharpenKernel[kernelIdx];
+          }
+        }
+        const idx = (y * width + x) * 4;
+        const sharpened = Math.max(0, Math.min(255, sum));
+        data[idx] = sharpened;
+        data[idx + 1] = sharpened;
+        data[idx + 2] = sharpened;
+      }
+    }
+
+    console.log('Applied contrast stretching and sharpening');
+
     context.putImageData(imageData, 0, 0);
-
-    console.log('Image converted to binary (black/white) with threshold:', threshold);
-
-    console.log('Contrast enhanced');
 
     // Get image data URL
     const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
