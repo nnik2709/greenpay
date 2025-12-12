@@ -1,255 +1,118 @@
-/**
- * Rate Limiting Middleware for PNG Green Fees API
- *
- * Protects against:
- * - Brute force attacks on login
- * - API abuse
- * - DDoS attempts
- * - Credential stuffing
- *
- * Uses express-rate-limit with Redis store for distributed rate limiting
- */
-
 const rateLimit = require('express-rate-limit');
-const RedisStore = require('rate-limit-redis');
-const redis = require('redis');
-
-// Redis client for distributed rate limiting (optional)
-let redisClient;
-if (process.env.REDIS_URL) {
-  redisClient = redis.createClient({
-    url: process.env.REDIS_URL,
-    socket: {
-      reconnectStrategy: (retries) => {
-        if (retries > 10) {
-          console.error('❌ Redis connection failed after 10 retries');
-          return new Error('Redis connection failed');
-        }
-        return retries * 100; // Exponential backoff
-      }
-    }
-  });
-
-  redisClient.on('error', (err) => {
-    console.error('Redis Client Error:', err);
-  });
-
-  redisClient.connect().catch(console.error);
-}
 
 /**
- * Strict rate limiter for authentication endpoints
- * Prevents brute force attacks on login
+ * RATE LIMITING & BOT PROTECTION
+ *
+ * Protects public endpoints from:
+ * - Brute force attacks
+ * - Voucher code enumeration
+ * - DDoS attacks
+ * - Automated scraping
  */
-const loginRateLimiter = rateLimit({
+
+/**
+ * Strict rate limit for voucher validation
+ * Prevents hackers from trying many voucher codes
+ *
+ * Limits: 20 requests per 15 minutes per IP
+ */
+const voucherValidationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
+  max: 20, // Limit each IP to 20 requests per window
   message: {
-    error: 'Too many login attempts. Please try again in 15 minutes.',
+    error: 'Too many validation attempts. Please try again in 15 minutes.',
     retryAfter: '15 minutes'
   },
-  standardHeaders: true, // Return rate limit info in headers
+  standardHeaders: true,
   legacyHeaders: false,
-  // Use Redis for distributed rate limiting if available
-  store: redisClient ? new RedisStore({
-    client: redisClient,
-    prefix: 'rl:login:'
-  }) : undefined,
-  // Custom key generator (use IP + user agent for better accuracy)
-  keyGenerator: (req) => {
-    return `${req.ip}-${req.get('user-agent')}`;
-  },
-  // Handler for rate limit exceeded
   handler: (req, res) => {
-    console.warn(`⚠️ Rate limit exceeded for login: ${req.ip}`);
+    console.warn(`⚠️  Rate limit exceeded for IP: ${req.ip} on ${req.path}`);
     res.status(429).json({
-      error: 'Too many login attempts',
-      message: 'Your account has been temporarily locked due to multiple failed login attempts. Please try again in 15 minutes.',
-      retryAfter: 900 // seconds
+      error: 'Too many requests',
+      message: 'You have exceeded the maximum number of validation attempts. Please try again later.',
+      retryAfter: 900
     });
   }
 });
 
 /**
- * Moderate rate limiter for password reset
- * Prevents abuse of password reset functionality
+ * Rate limit for voucher registration
+ * Limits: 10 registrations per hour per IP
  */
-const passwordResetRateLimiter = rateLimit({
+const voucherRegistrationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // 3 attempts per hour
-  message: {
-    error: 'Too many password reset requests. Please try again later.',
-    retryAfter: '1 hour'
-  },
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  store: redisClient ? new RedisStore({
-    client: redisClient,
-    prefix: 'rl:reset:'
-  }) : undefined,
-  keyGenerator: (req) => {
-    // Rate limit by email being reset
-    return req.body.email || req.ip;
-  }
-});
-
-/**
- * API rate limiter for general endpoints
- * Prevents API abuse and DDoS
- */
-const apiRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
-  message: {
-    error: 'Too many requests. Please slow down.',
-    retryAfter: '15 minutes'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  store: redisClient ? new RedisStore({
-    client: redisClient,
-    prefix: 'rl:api:'
-  }) : undefined,
-  skip: (req) => {
-    // Don't rate limit health checks
-    return req.path === '/health';
-  }
-});
-
-/**
- * Strict rate limiter for public purchase endpoints
- * Prevents abuse of payment functionality
- */
-const publicPurchaseRateLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // 10 purchases per hour per IP
-  message: {
-    error: 'Too many purchase attempts. Please try again later.',
-    retryAfter: '1 hour'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  store: redisClient ? new RedisStore({
-    client: redisClient,
-    prefix: 'rl:purchase:'
-  }) : undefined,
-  keyGenerator: (req) => {
-    // Rate limit by IP and email
-    const email = req.body.customerEmail || req.body.email || '';
-    return `${req.ip}-${email}`;
-  },
   handler: (req, res) => {
-    console.warn(`⚠️ Rate limit exceeded for public purchase: ${req.ip}, email: ${req.body.customerEmail}`);
+    console.warn(`⚠️  Registration rate limit exceeded for IP: ${req.ip}`);
     res.status(429).json({
-      error: 'Too many purchase attempts',
-      message: 'You have exceeded the maximum number of purchase attempts. Please try again later or contact support.',
+      error: 'Too many registration attempts',
+      message: 'You have exceeded the maximum number of registrations allowed. Please try again in 1 hour.',
       retryAfter: 3600
     });
   }
 });
 
 /**
- * Very strict rate limiter for registration endpoints
- * Prevents spam account creation
+ * Strict rate limit for voucher lookup
+ * Limits: 15 lookups per 10 minutes per IP
  */
-const registrationRateLimiter = rateLimit({
-  windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 3, // 3 registrations per day per IP
-  message: {
-    error: 'Too many registration attempts. Please try again tomorrow.',
-    retryAfter: '24 hours'
-  },
+const voucherLookupLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 15,
   standardHeaders: true,
   legacyHeaders: false,
-  store: redisClient ? new RedisStore({
-    client: redisClient,
-    prefix: 'rl:register:'
-  }) : undefined,
-  skipSuccessfulRequests: false, // Count all attempts
-  skipFailedRequests: false
-});
-
-/**
- * Moderate rate limiter for file uploads
- * Prevents abuse of bulk upload functionality
- */
-const uploadRateLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // 20 uploads per hour
-  message: {
-    error: 'Too many file uploads. Please try again later.',
-    retryAfter: '1 hour'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  store: redisClient ? new RedisStore({
-    client: redisClient,
-    prefix: 'rl:upload:'
-  }) : undefined
-});
-
-/**
- * Custom rate limiter factory
- * Create custom rate limiters with specific settings
- *
- * @param {Object} options - Rate limiter options
- * @returns {Function} Express middleware
- */
-function createRateLimiter(options) {
-  const defaults = {
-    standardHeaders: true,
-    legacyHeaders: false,
-    store: redisClient ? new RedisStore({
-      client: redisClient,
-      prefix: `rl:${options.name || 'custom'}:`
-    }) : undefined
-  };
-
-  return rateLimit({ ...defaults, ...options });
-}
-
-/**
- * Dynamic rate limiting based on user role
- * Higher privileges = higher rate limits
- */
-function roleBasedRateLimiter(req, res, next) {
-  const userRole = req.user?.role || 'public';
-
-  const limits = {
-    'Flex_Admin': 1000,      // Very high limit for admins
-    'Finance_Manager': 500,   // High limit for managers
-    'Counter_Agent': 300,     // Moderate limit for agents
-    'IT_Support': 500,        // High limit for IT
-    'public': 50              // Low limit for unauthenticated
-  };
-
-  const limiter = createRateLimiter({
-    windowMs: 15 * 60 * 1000,
-    max: limits[userRole] || 50,
-    name: `role-${userRole}`
-  });
-
-  return limiter(req, res, next);
-}
-
-/**
- * Cleanup function for graceful shutdown
- */
-async function cleanup() {
-  if (redisClient && redisClient.isOpen) {
-    await redisClient.quit();
-    console.log('✅ Redis connection closed');
+  handler: (req, res) => {
+    console.warn(`⚠️  Voucher lookup rate limit for IP: ${req.ip}`);
+    res.status(429).json({
+      error: 'Too many lookup attempts',
+      message: 'Please wait before trying again.',
+      retryAfter: 600
+    });
   }
-}
+});
+
+/**
+ * Additional security: Block suspicious patterns
+ */
+const suspiciousActivityDetector = (req, res, next) => {
+  const suspiciousPatterns = [
+    /(\bOR\b.*=.*|UNION.*SELECT|DROP.*TABLE|INSERT.*INTO)/i,
+    /<script|javascript:|onerror=/i,
+    /\.\.\//,
+    /[;&|`$]/
+  ];
+
+  const checkValue = (value) => {
+    if (typeof value === 'string') {
+      return suspiciousPatterns.some(pattern => pattern.test(value));
+    }
+    if (typeof value === 'object' && value !== null) {
+      return Object.values(value).some(v => checkValue(v));
+    }
+    return false;
+  };
+
+  const isSuspicious =
+    checkValue(req.query) ||
+    checkValue(req.body) ||
+    checkValue(req.params);
+
+  if (isSuspicious) {
+    console.error(`🚨 SECURITY ALERT: Suspicious activity from IP: ${req.ip}, Path: ${req.path}`);
+    return res.status(403).json({
+      error: 'Forbidden',
+      message: 'Suspicious activity detected'
+    });
+  }
+
+  next();
+};
 
 module.exports = {
-  loginRateLimiter,
-  passwordResetRateLimiter,
-  apiRateLimiter,
-  publicPurchaseRateLimiter,
-  registrationRateLimiter,
-  uploadRateLimiter,
-  roleBasedRateLimiter,
-  createRateLimiter,
-  cleanup
+  voucherValidationLimiter,
+  voucherRegistrationLimiter,
+  voucherLookupLimiter,
+  suspiciousActivityDetector
 };
