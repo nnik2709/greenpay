@@ -82,8 +82,8 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
         video: {
           facingMode: 'environment', // Use back camera on mobile
           width: { ideal: 1920 },
-          height: { ideal: 1080 }
-          // No zoom - let user position passport naturally
+          height: { ideal: 1080 },
+          zoom: { ideal: 1.0 } // No digital zoom - use optical distance
         }
       });
 
@@ -107,8 +107,8 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
 
       toast({
         title: "📷 Camera Active",
-        description: "Position passport MRZ (bottom 2 lines) in the guide box",
-        duration: 3000,
+        description: "Hold phone 15-20cm away. Fit FULL MRZ width (both lines) in guide box",
+        duration: 4000,
       });
     } catch (error) {
       console.error('Camera error:', error);
@@ -177,11 +177,11 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
 
     if (!videoWidth || !videoHeight) return;
 
-    // Sample the MRZ area
-    const cropHeight = videoHeight * 0.3;
-    const cropWidth = videoWidth * 0.9;
+    // Sample the MRZ area - WIDER to capture full MRZ width
+    const cropHeight = videoHeight * 0.25;  // Narrower height (MRZ is 2 lines)
+    const cropWidth = videoWidth * 0.96;    // Much wider (was 0.9, now 0.96)
     const cropX = (videoWidth - cropWidth) / 2;
-    const cropY = videoHeight * 0.35;
+    const cropY = videoHeight * 0.375;      // Centered vertically
 
     // Draw small sample to canvas
     canvas.width = 200; // Small sample for quick analysis
@@ -513,11 +513,11 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
 
     console.log('Video dimensions:', videoWidth, 'x', videoHeight);
 
-    // Calculate MRZ crop area (bottom 30% of frame, centered)
-    const cropHeight = videoHeight * 0.3; // MRZ area height
-    const cropWidth = videoWidth * 0.9;   // 90% width for margins
+    // Calculate MRZ crop area - WIDER to capture full MRZ width
+    const cropHeight = videoHeight * 0.25;  // Narrower height (MRZ is 2 lines, was 0.3)
+    const cropWidth = videoWidth * 0.96;    // Much wider (was 0.9, now 0.96)
     const cropX = (videoWidth - cropWidth) / 2;
-    const cropY = videoHeight * 0.35; // Start from 35% down
+    const cropY = videoHeight * 0.375;      // Centered vertically (was 0.35)
 
     console.log('Crop area:', { cropX, cropY, cropWidth, cropHeight });
 
@@ -554,14 +554,14 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
     const medianBrightness = sortedValues[Math.floor(sortedValues.length / 2)];
     const avgBrightness = grayscaleValues.reduce((a, b) => a + b, 0) / grayscaleValues.length;
 
-    // Use median with small offset for better separation of text from background
+    // Use median with NO offset for better preservation of all characters
     // For MRZ, we want to preserve ALL dark text characters, especially at edges
-    // Reduced from +15 to +5 to prevent losing edge characters
-    let threshold = medianBrightness + 5;
+    // Changed from +5 to 0 to prevent losing ANY edge characters
+    let threshold = medianBrightness;
 
     // Clamp threshold to reasonable range for passport images
-    // Lowered max from 180 to 170 to preserve more characters
-    threshold = Math.max(120, Math.min(170, threshold));
+    // Widened range to handle different passport types (PNG, European, etc.)
+    threshold = Math.max(110, Math.min(180, threshold));
 
     console.log('Brightness stats - Avg:', Math.round(avgBrightness), 'Median:', Math.round(medianBrightness), 'Threshold:', threshold);
 
@@ -651,8 +651,8 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
             {/* Dark overlay with cutout */}
             <div className="absolute inset-0 bg-black bg-opacity-50" />
 
-            {/* MRZ Guide Box */}
-            <div className="relative z-10" style={{ width: '90%', height: '30%' }}>
+            {/* MRZ Guide Box - WIDER to capture full MRZ */}
+            <div className="relative z-10" style={{ width: '96%', height: '25%' }}>
               {/* Guide rectangle - changes color when MRZ detected */}
               <div
                 className={`absolute inset-0 border-4 rounded-lg transition-all duration-300 ${
@@ -683,10 +683,10 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose }) => {
 
                 {/* Instructions */}
                 <div className="absolute -top-16 left-0 right-0 text-center">
-                  <p className={`text-white text-base font-bold px-4 py-2 rounded-lg inline-block transition-all shadow-lg ${
+                  <p className={`text-white text-sm font-bold px-4 py-2 rounded-lg inline-block transition-all shadow-lg ${
                     mrzDetected ? 'bg-green-500 animate-pulse scale-110' : 'bg-slate-700'
                   }`}>
-                    {mrzDetected ? '✅ READY - TAP CAPTURE NOW!' : 'Align MRZ (bottom 2 lines)'}
+                    {mrzDetected ? '✅ READY - TAP CAPTURE NOW!' : '📏 Hold 15-20cm away • Fit FULL MRZ width'}
                   </p>
                 </div>
 
