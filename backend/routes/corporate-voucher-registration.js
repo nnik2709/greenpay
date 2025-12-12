@@ -42,7 +42,7 @@ router.get('/voucher/:code',
         passport_number,
         valid_from,
         valid_until,
-        created_at
+        issued_date
       FROM corporate_vouchers
       WHERE voucher_code = $1`,
       [code]
