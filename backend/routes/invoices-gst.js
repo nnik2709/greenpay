@@ -437,15 +437,19 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
           company_name,
           amount,
           valid_from,
-          valid_until
-        ) VALUES ($1, $2, $3, $4, $5)
+          valid_until,
+          status,
+          payment_method
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *`,
         [
           voucherCode,
           invoice.customer_name,
           items[0].unitPrice,
           new Date(),
-          new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // Valid for 1 year
+          new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Valid for 1 year
+          'pending_passport', // Requires passport registration
+          invoice.payment_method || 'Bank Transfer'
         ]
       );
 

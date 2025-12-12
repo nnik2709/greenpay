@@ -39,6 +39,7 @@ const quotationRoutes = require('./routes/quotations');
 const customerRoutes = require('./routes/customers'); // Customer management for PNG invoices
 const ticketRoutes = require('./routes/tickets');
 const voucherRoutes = require('./routes/vouchers');
+const corporateVoucherRegistrationRoutes = require('./routes/corporate-voucher-registration');
 const paymentModeRoutes = require('./routes/payment-modes');
 const transactionRoutes = require('./routes/transactions');
 const loginEventsRoutes = require('./routes/login-events');
@@ -55,6 +56,7 @@ app.use('/api/quotations', quotationRoutes);
 app.use('/api/customers', customerRoutes); // Customer management
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/vouchers', voucherRoutes);
+app.use('/api/corporate-voucher-registration', corporateVoucherRegistrationRoutes); // Corporate voucher passport registration
 app.use('/api/payment-modes', paymentModeRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/login-events', loginEventsRoutes);

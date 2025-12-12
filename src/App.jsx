@@ -37,6 +37,7 @@ const PaymentCallback = lazy(() => import('@/pages/PaymentCallback'));
 const BulkPassportUpload = lazy(() => import('@/pages/BulkPassportUpload'));
 const CorporateExitPass = lazy(() => import('@/pages/CorporateExitPass'));
 const CorporateBatchHistory = lazy(() => import('@/pages/CorporateBatchHistory'));
+const CorporateVoucherRegistration = lazy(() => import('@/pages/CorporateVoucherRegistration'));
 const CreateQuotation = lazy(() => import('@/pages/CreateQuotation'));
 const OfflineTemplate = lazy(() => import('@/pages/OfflineTemplate'));
 const OfflineUpload = lazy(() => import('@/pages/OfflineUpload'));
@@ -142,6 +143,7 @@ const AppRoutes = () => {
         <Route path="/mock-bsp-payment" element={<MockBSPPayment />} />
         <Route path="/register/:voucherCode" element={<PublicRegistration />} />
         <Route path="/register/success/:voucherCode" element={<PublicRegistrationSuccess />} />
+        <Route path="/corporate-voucher-registration" element={<CorporateVoucherRegistration />} />
 
         {/* All authenticated routes under MainLayout */}
         <Route path="/app" element={

@@ -202,20 +202,28 @@ router.get('/validate/:code', async (req, res) => {
     // Try corporate vouchers if not found in individual purchases
     const corporateResult = await db.query(
       `SELECT
-        id,
-        voucher_code,
-        company_name,
-        valid_until,
-        redeemed_date as used_at,
-        issued_date as created_at,
-        amount,
+        cv.id,
+        cv.voucher_code,
+        cv.company_name,
+        cv.passport_number,
+        cv.valid_until,
+        cv.used_at,
+        cv.created_at,
+        cv.amount,
+        cv.status,
+        p.surname,
+        p.given_name,
+        p.nationality,
         CASE
-          WHEN redeemed_date IS NOT NULL THEN 'used'
-          WHEN valid_until < NOW() THEN 'expired'
-          ELSE 'active'
-        END as status
-      FROM corporate_vouchers
-      WHERE voucher_code = $1`,
+          WHEN cv.status = 'pending_passport' THEN 'pending_passport'
+          WHEN cv.used_at IS NOT NULL THEN 'used'
+          WHEN cv.valid_until < NOW() THEN 'expired'
+          WHEN cv.status = 'active' AND cv.passport_number IS NOT NULL THEN 'active'
+          ELSE 'invalid'
+        END as computed_status
+      FROM corporate_vouchers cv
+      LEFT JOIN passports p ON cv.passport_id = p.id
+      WHERE cv.voucher_code = $1`,
       [trimmedCode]
     );
 
@@ -227,6 +235,17 @@ router.get('/validate/:code', async (req, res) => {
         type: 'error',
         status: 'error',
         message: 'Voucher code not found.'
+      });
+    }
+
+    // Check if corporate voucher is pending passport registration
+    const actualStatus = voucherData.computed_status || voucherData.status;
+    if (actualStatus === 'pending_passport') {
+      return res.json({
+        type: 'voucher',
+        status: 'error',
+        message: `Corporate voucher requires passport registration. Please visit /corporate-voucher-registration to register this voucher.`,
+        data: { ...voucherData, voucherType, requiresRegistration: true }
       });
     }
 
@@ -258,7 +277,16 @@ router.get('/validate/:code', async (req, res) => {
       type: 'voucher',
       status: 'success',
       message: `${voucherType} voucher is valid and ready to use!`,
-      data: { ...voucherData, voucherType }
+      data: {
+        ...voucherData,
+        voucherType,
+        passportInfo: voucherData.passport_number ? {
+          passportNumber: voucherData.passport_number,
+          surname: voucherData.surname,
+          givenName: voucherData.given_name,
+          nationality: voucherData.nationality
+        } : null
+      }
     });
 
   } catch (error) {
@@ -380,15 +408,19 @@ router.post('/bulk-corporate', auth, checkRole('Flex_Admin', 'Finance_Manager', 
           company_name,
           amount,
           valid_from,
-          valid_until
-        ) VALUES ($1, $2, $3, $4, $5)
+          valid_until,
+          status,
+          payment_method
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *`,
         [
           voucherCode,
           company_name,
           amount,
           validFrom,
-          validUntil
+          validUntil,
+          'pending_passport', // Requires passport registration
+          'Cash' // Default payment method
         ]
       );
 
