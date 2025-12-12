@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { auth, checkRole } = require('../middleware/auth');
+const {
+  voucherLookupLimiter,
+  voucherRegistrationLimiter,
+  suspiciousActivityDetector
+} = require('../middleware/rateLimiter');
 
 /**
  * CORPORATE VOUCHER REGISTRATION ROUTES
@@ -18,8 +23,12 @@ const { auth, checkRole } = require('../middleware/auth');
 /**
  * GET /api/corporate-voucher-registration/voucher/:code
  * Get voucher details by code (for registration page)
+ * PROTECTED: Rate limited to prevent enumeration attacks
  */
-router.get('/voucher/:code', async (req, res) => {
+router.get('/voucher/:code',
+  suspiciousActivityDetector,
+  voucherLookupLimiter,
+  async (req, res) => {
   try {
     const { code } = req.params;
 
@@ -73,8 +82,12 @@ router.get('/voucher/:code', async (req, res) => {
 /**
  * POST /api/corporate-voucher-registration/register
  * Register passport to a corporate voucher
+ * PROTECTED: Rate limited to prevent abuse
  */
-router.post('/register', async (req, res) => {
+router.post('/register',
+  suspiciousActivityDetector,
+  voucherRegistrationLimiter,
+  async (req, res) => {
   const client = await db.getClient();
 
   try {

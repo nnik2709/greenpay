@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { auth, checkRole } = require('../middleware/auth');
+const {
+  voucherValidationLimiter,
+  suspiciousActivityDetector
+} = require('../middleware/rateLimiter');
 const PDFDocument = require('pdfkit');
 const nodemailer = require('nodemailer');
 const QRCode = require('qrcode');
@@ -163,8 +167,12 @@ router.get('/corporate-vouchers', auth, async (req, res) => {
 /**
  * Validate a voucher code (PUBLIC - no auth required for customer self-registration)
  * GET /api/vouchers/validate/:code
+ * PROTECTED: Rate limited to prevent brute force enumeration
  */
-router.get('/validate/:code', async (req, res) => {
+router.get('/validate/:code',
+  suspiciousActivityDetector,
+  voucherValidationLimiter,
+  async (req, res) => {
   try {
     const { code } = req.params;
 
