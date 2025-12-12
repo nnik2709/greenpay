@@ -175,8 +175,7 @@ router.post('/register', async (req, res) => {
          passport_number = $2,
          status = 'active',
          registered_at = NOW(),
-         registered_by = $3,
-         updated_at = NOW()
+         registered_by = $3
        WHERE voucher_code = $4
        RETURNING *`,
       [passportId, passportNumber, userId, voucherCode]
@@ -327,7 +326,7 @@ router.post('/bulk-register', async (req, res) => {
         // Update voucher
         await client.query(
           `UPDATE corporate_vouchers
-           SET passport_id = $1, passport_number = $2, status = 'active', registered_at = NOW(), updated_at = NOW()
+           SET passport_id = $1, passport_number = $2, status = 'active', registered_at = NOW()
            WHERE voucher_code = $3`,
           [passportId, passportNumber, voucherCode]
         );
