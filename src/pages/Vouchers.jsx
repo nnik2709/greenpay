@@ -6,7 +6,7 @@ const Vouchers = () => {
   const navigate = useNavigate();
   
   React.useEffect(() => {
-    navigate('/scan');
+    navigate('/app/scan');
   }, [navigate]);
 
   return (

@@ -67,7 +67,7 @@ router.get('/:id', auth, param('id').isInt(), validate, async (req, res) => {
 // Create passport
 router.post('/',
   auth,
-  checkRole('Admin', 'Manager', 'Agent', 'Flex_Admin', 'Counter_Agent'),
+  checkRole('Admin', 'Manager', 'Agent', 'Flex_Admin', 'Counter_Agent', 'Finance_Manager'),
   [
     body('passportNo').notEmpty().withMessage('Passport number is required')
     // All other fields are optional

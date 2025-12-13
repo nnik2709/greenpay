@@ -169,7 +169,7 @@ const LoginHistoryRPC = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/users')}
+            onClick={() => navigate('/app/users')}
             className="text-slate-600 hover:text-slate-800"
           >
             ← Back to Users

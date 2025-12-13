@@ -67,7 +67,7 @@ const OfflineUpload = () => {
         </div>
         <p className="text-sm text-slate-500 mt-2">Choose the Excel file with offline transaction data.</p>
         <div className="flex justify-end items-center gap-4 mt-8">
-          <Button variant="outline" onClick={() => navigate('/purchases/offline-template')}>
+          <Button variant="outline" onClick={() => navigate('/app/payments/offline-template')}>
             Download Template
           </Button>
           <Button onClick={handleUpload} className="bg-emerald-600 hover:bg-emerald-700 text-white">

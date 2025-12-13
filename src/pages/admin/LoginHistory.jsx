@@ -111,7 +111,7 @@ const LoginHistory = () => {
         <div className="flex gap-2">
           {filteredUserName && (
             <Button
-              onClick={() => navigate('/users')}
+              onClick={() => navigate('/app/users')}
               variant="outline"
               className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
             >

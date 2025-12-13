@@ -79,7 +79,7 @@ function Users() {
 
   const handleViewLoginHistory = (user) => {
     // Navigate to login history page with user filter
-    navigate('/admin/login-history', {
+    navigate('/app/admin/login-history', {
       state: {
         userFilter: user.id,
         userName: user.email

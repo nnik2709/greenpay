@@ -70,7 +70,7 @@ const CreateQuotation = () => {
       });
 
       // Navigate back to quotations list
-      navigate('/quotations');
+      navigate('/app/quotations');
     } catch (error) {
       console.error('Error creating quotation:', error);
       toast({
@@ -234,7 +234,7 @@ const CreateQuotation = () => {
                 type="button"
                 variant="outline"
                 size="lg"
-                onClick={() => navigate('/quotations')}
+                onClick={() => navigate('/app/quotations')}
                 disabled={isSubmitting}
               >
                 Cancel

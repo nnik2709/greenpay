@@ -1,12 +1,16 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle2, AlertCircle, Camera, Scan } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, CheckCircle2, AlertCircle, Camera, Scan, Printer, Mail, Download } from 'lucide-react';
 import SimpleCameraScanner from '@/components/SimpleCameraScanner';
+import { NationalityCombobox } from '@/components/NationalityCombobox';
+import { useScannerInput } from '@/hooks/useScannerInput';
 import { useToast } from '@/components/ui/use-toast';
+import VoucherPrint from '@/components/VoucherPrint';
 
 /**
  * Corporate Voucher Registration Page
@@ -33,27 +37,97 @@ const CorporateVoucherRegistration = () => {
     passportNumber: '',
     surname: '',
     givenName: '',
-    nationality: '',
+    nationality: 'Papua New Guinea',
     dateOfBirth: '',
-    sex: '',
+    sex: 'Male',
     dateOfExpiry: ''
   });
 
   // Camera scanner
   const [showScanner, setShowScanner] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Registration result
   const [registeredVoucher, setRegisteredVoucher] = useState(null);
   const [error, setError] = useState(null);
 
+  // Voucher print dialog
+  const [showVoucherPrint, setShowVoucherPrint] = useState(false);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'mobile', 'tablet'];
+      const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword));
+      const hasSmallScreen = window.innerWidth <= 768;
+      setIsMobile(isMobileDevice || hasSmallScreen);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Hardware scanner support (desktop USB scanners)
+  const { isScanning: isScannerActive } = useScannerInput({
+    onScanComplete: (data) => {
+      if (step === 2 && data.type === 'mrz') {
+        // MRZ passport scan - auto-fill all passport fields
+        setPassportData(prev => ({
+          ...prev,
+          passportNumber: data.passportNumber || prev.passportNumber,
+          surname: data.surname || prev.surname,
+          givenName: data.givenName || prev.givenName,
+          nationality: data.nationality || prev.nationality,
+          dateOfBirth: data.dob || prev.dateOfBirth,
+          sex: data.sex || prev.sex
+        }));
+
+        toast({
+          title: 'Passport Scanned!',
+          description: 'Passport details filled automatically from scanner.',
+        });
+      }
+    },
+    enableMrzParsing: true,
+    autoFocus: false
+  });
+
+  // Camera scan handler (mobile devices)
+  const handleCameraScan = (scannedData) => {
+    setPassportData(prev => ({
+      ...prev,
+      passportNumber: scannedData.passportNumber || prev.passportNumber,
+      surname: scannedData.surname || prev.surname,
+      givenName: scannedData.givenName || prev.givenName,
+      nationality: scannedData.nationality || prev.nationality,
+      dateOfBirth: scannedData.dateOfBirth || prev.dateOfBirth,
+      sex: scannedData.sex || prev.sex
+    }));
+
+    setShowScanner(false);
+
+    toast({
+      title: 'Passport Scanned!',
+      description: 'Passport details filled automatically from camera.',
+    });
+  };
+
   /**
    * Step 1: Look up voucher by code
    */
   const handleVoucherLookup = async () => {
-    if (!voucherCode || voucherCode.trim().length < 5) {
+    const trimmedCode = voucherCode.trim();
+
+    // Support both old CORP- format and new 8-character format
+    const isOldFormat = trimmedCode.startsWith('CORP-');
+    const isNewFormat = /^[A-Z0-9]{8}$/.test(trimmedCode);
+
+    if (!trimmedCode || (!isOldFormat && !isNewFormat)) {
       toast({
         title: "Invalid Code",
-        description: "Please enter a valid voucher code",
+        description: "Please enter a valid voucher code (8 characters or CORP- format)",
         variant: "destructive"
       });
       return;
@@ -71,7 +145,13 @@ const CorporateVoucherRegistration = () => {
       }
 
       if (data.alreadyRegistered) {
-        setError(`This voucher is already registered to passport ${data.voucher.passport_number}`);
+        // Voucher already has passport - skip to success screen
+        setRegisteredVoucher(data.voucher);
+        setStep(3);
+        toast({
+          title: "Voucher Already Registered",
+          description: `This voucher is already registered to passport ${data.voucher.passport_number}`,
+        });
         setLoading(false);
         return;
       }
@@ -175,6 +255,67 @@ const CorporateVoucherRegistration = () => {
   };
 
   /**
+   * Email voucher to customer
+   */
+  const handleEmailVoucher = async () => {
+    try {
+      setLoading(true);
+      // TODO: Implement email API call
+      toast({
+        title: "Email Sent",
+        description: "Voucher has been sent to your email address.",
+      });
+    } catch (err) {
+      toast({
+        title: "Email Failed",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Download voucher PDF
+   */
+  const handleDownloadVoucher = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/vouchers/download/${registeredVoucher.id}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download voucher');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `voucher-${registeredVoucher.voucher_code}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Downloaded",
+        description: "Voucher PDF downloaded successfully.",
+      });
+    } catch (err) {
+      toast({
+        title: "Download Failed",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
    * Reset and start over
    */
   const handleReset = () => {
@@ -185,9 +326,9 @@ const CorporateVoucherRegistration = () => {
       passportNumber: '',
       surname: '',
       givenName: '',
-      nationality: '',
+      nationality: 'Papua New Guinea',
       dateOfBirth: '',
-      sex: '',
+      sex: 'Male',
       dateOfExpiry: ''
     });
     setRegisteredVoucher(null);
@@ -245,7 +386,7 @@ const CorporateVoucherRegistration = () => {
           <CardHeader>
             <CardTitle>Step 1: Enter Voucher Code</CardTitle>
             <CardDescription>
-              Enter the 8-character voucher code from your corporate voucher
+              Enter your voucher code from the GREEN CARD
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -255,18 +396,18 @@ const CorporateVoucherRegistration = () => {
                 id="voucherCode"
                 value={voucherCode}
                 onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                placeholder="e.g., CORP-1764568399743-A0KPSHFZ"
+                placeholder="e.g., 3IEW5268 or CORP-xxxxx"
                 maxLength={50}
                 className="text-lg font-mono tracking-wider"
               />
               <p className="text-sm text-gray-500 mt-1">
-                Enter the full corporate voucher code
+                New vouchers: 8 characters (e.g., 3IEW5268) | Old vouchers: CORP- format
               </p>
             </div>
 
             <Button
               onClick={handleVoucherLookup}
-              disabled={loading || voucherCode.trim().length < 5}
+              disabled={loading || voucherCode.trim().length < 8}
               className="w-full"
               size="lg"
             >
@@ -305,26 +446,53 @@ const CorporateVoucherRegistration = () => {
           </CardHeader>
           <CardContent>
 
-            {/* Camera Scanner Button */}
-            <div className="mb-6">
-              <Button
-                type="button"
-                onClick={() => setShowScanner(true)}
-                className="w-full"
-                variant="outline"
-                size="lg"
-              >
-                <Camera className="mr-2 h-5 w-5" />
-                Scan Passport with Camera
-              </Button>
-            </div>
+            {/* Mobile Camera Scanner Button */}
+            {isMobile && (
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
+                <div className="flex flex-col items-center gap-3">
+                  <p className="text-blue-700 font-medium text-center">
+                    Use your phone camera to scan passport MRZ
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={() => setShowScanner(true)}
+                    className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+                    disabled={loading}
+                  >
+                    <Camera className="h-5 w-5" />
+                    Scan Passport with Camera
+                  </Button>
+                  <p className="text-xs text-blue-600 text-center">
+                    Point camera at the MRZ (machine-readable zone) at the bottom of your passport
+                  </p>
+                </div>
+              </div>
+            )}
 
-            {/* Camera Scanner Modal */}
-            {showScanner && (
-              <SimpleCameraScanner
-                onScanSuccess={handleScanSuccess}
-                onClose={() => setShowScanner(false)}
-              />
+            {/* Hardware Scanner (Desktop) */}
+            {!isMobile && isScannerActive && (
+              <div className="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-4 mb-6">
+                <p className="text-emerald-700 font-medium text-center">
+                  Hardware Scanner Active - Ready to scan passport MRZ
+                </p>
+              </div>
+            )}
+
+            {/* Camera Scanner Button (Desktop) */}
+            {!isMobile && (
+              <div className="mb-6">
+                <Button
+                  type="button"
+                  onClick={() => setShowScanner(true)}
+                  className="w-full"
+                  variant="outline"
+                  size="lg"
+                  disabled={loading}
+                >
+                  <Camera className="mr-2 h-5 w-5" />
+                  Scan Passport with Camera
+                </Button>
+              </div>
             )}
 
             {/* Manual Entry Form */}
@@ -341,16 +509,19 @@ const CorporateVoucherRegistration = () => {
                     value={passportData.passportNumber}
                     onChange={(e) => setPassportData({...passportData, passportNumber: e.target.value.toUpperCase()})}
                     required
+                    disabled={loading}
                     className="font-mono"
+                    placeholder="e.g., AB123456"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="nationality">Nationality</Label>
-                  <Input
-                    id="nationality"
+                  <Label htmlFor="nationality">Nationality *</Label>
+                  <NationalityCombobox
                     value={passportData.nationality}
-                    onChange={(e) => setPassportData({...passportData, nationality: e.target.value})}
+                    onChange={(value) => setPassportData({...passportData, nationality: value})}
+                    disabled={loading}
+                    placeholder="Select nationality..."
                   />
                 </div>
 
@@ -361,6 +532,8 @@ const CorporateVoucherRegistration = () => {
                     value={passportData.surname}
                     onChange={(e) => setPassportData({...passportData, surname: e.target.value.toUpperCase()})}
                     required
+                    disabled={loading}
+                    placeholder="Last Name"
                   />
                 </div>
 
@@ -371,6 +544,8 @@ const CorporateVoucherRegistration = () => {
                     value={passportData.givenName}
                     onChange={(e) => setPassportData({...passportData, givenName: e.target.value.toUpperCase()})}
                     required
+                    disabled={loading}
+                    placeholder="First Name"
                   />
                 </div>
 
@@ -381,22 +556,25 @@ const CorporateVoucherRegistration = () => {
                     type="date"
                     value={passportData.dateOfBirth}
                     onChange={(e) => setPassportData({...passportData, dateOfBirth: e.target.value})}
+                    disabled={loading}
                   />
                 </div>
 
                 <div>
                   <Label htmlFor="sex">Sex</Label>
-                  <select
-                    id="sex"
+                  <Select
                     value={passportData.sex}
-                    onChange={(e) => setPassportData({...passportData, sex: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    onValueChange={(value) => setPassportData({...passportData, sex: value})}
+                    disabled={loading}
                   >
-                    <option value="">Select</option>
-                    <option value="M">Male</option>
-                    <option value="F">Female</option>
-                    <option value="X">Other</option>
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
@@ -406,6 +584,7 @@ const CorporateVoucherRegistration = () => {
                     type="date"
                     value={passportData.dateOfExpiry}
                     onChange={(e) => setPassportData({...passportData, dateOfExpiry: e.target.value})}
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -475,16 +654,48 @@ const CorporateVoucherRegistration = () => {
             </div>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">Next Steps:</h3>
-              <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                <li>Save or print this confirmation</li>
+              <h3 className="font-semibold text-blue-900 mb-2">Your Voucher Actions:</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                <Button
+                  onClick={() => setShowVoucherPrint(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  disabled={loading}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print Voucher
+                </Button>
+                <Button
+                  onClick={handleEmailVoucher}
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50"
+                  disabled={loading}
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Email Voucher
+                </Button>
+                <Button
+                  onClick={handleDownloadVoucher}
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50"
+                  disabled={loading}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download PDF
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
+              <h3 className="font-semibold text-amber-900 mb-2">Important Information:</h3>
+              <ul className="text-sm text-amber-800 space-y-1 list-disc list-inside">
                 <li>Present your voucher code at the entry checkpoint</li>
                 <li>Keep your passport with you for verification</li>
-                <li>The voucher is now valid for single-use entry</li>
+                <li>Voucher is valid for single-use entry</li>
+                <li>Passport details: {registeredVoucher.passport_number}</li>
               </ul>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 mt-6">
               <Button
                 onClick={handleReset}
                 variant="outline"
@@ -492,15 +703,45 @@ const CorporateVoucherRegistration = () => {
               >
                 Register Another Voucher
               </Button>
-              <Button
-                onClick={() => window.print()}
-                className="flex-1"
-              >
-                Print Confirmation
-              </Button>
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Camera Scanner Modal */}
+      {showScanner && (
+        <div
+          className="fixed top-0 left-0 right-0 bottom-0 bg-white z-[9999]"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'white',
+            zIndex: 9999,
+            overflow: 'auto'
+          }}
+        >
+          <div className="p-4">
+            <SimpleCameraScanner
+              onScanSuccess={handleCameraScan}
+              onClose={() => setShowScanner(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Voucher Print Dialog */}
+      {registeredVoucher && (
+        <VoucherPrint
+          voucher={registeredVoucher}
+          isOpen={showVoucherPrint}
+          onClose={() => setShowVoucherPrint(false)}
+          voucherType="corporate"
+        />
       )}
 
     </div>

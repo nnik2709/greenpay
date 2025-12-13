@@ -1,0 +1,25 @@
+{
+  "name": "greenpay-test-suite",
+  "version": "1.0.0",
+  "description": "Comprehensive Playwright test suite for GreenPay application",
+  "scripts": {
+    "test": "playwright test --config=../../playwright.config.production.ts",
+    "test:headed": "playwright test --headed --config=../../playwright.config.production.ts",
+    "test:ui": "playwright test --ui --config=../../playwright.config.production.ts",
+    "test:debug": "playwright test --debug --config=../../playwright.config.production.ts",
+    "test:smoke": "playwright test 01-authentication.smoke.spec.ts --config=../../playwright.config.production.ts",
+    "test:auth": "playwright test auth*.setup.ts --config=../../playwright.config.production.ts",
+    "test:flex-admin": "playwright test --project=flex-admin --config=../../playwright.config.production.ts",
+    "test:finance": "playwright test --project=finance-manager --config=../../playwright.config.production.ts",
+    "test:counter-agent": "playwright test --project=counter-agent --config=../../playwright.config.production.ts",
+    "test:it-support": "playwright test --project=it-support --config=../../playwright.config.production.ts",
+    "report": "playwright show-report ../../reports/html"
+  },
+  "keywords": ["playwright", "testing", "greenpay", "e2e"],
+  "author": "GreenPay Team",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "dotenv": "^16.3.1"
+  }
+}

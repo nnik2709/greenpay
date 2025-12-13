@@ -106,6 +106,8 @@ router.post('/register',
 
     // Validate required fields
     if (!voucherCode || !passportNumber || !surname || !givenName) {
+      await client.query('ROLLBACK');
+      client.release();
       return res.status(400).json({
         error: 'Missing required fields: voucherCode, passportNumber, surname, givenName'
       });
@@ -121,6 +123,7 @@ router.post('/register',
 
     if (voucherResult.rows.length === 0) {
       await client.query('ROLLBACK');
+      client.release();
       return res.status(404).json({ error: 'Voucher not found' });
     }
 
@@ -129,6 +132,7 @@ router.post('/register',
     // Check if already registered
     if (voucher.status === 'active' && voucher.passport_number) {
       await client.query('ROLLBACK');
+      client.release();
       return res.status(400).json({
         error: 'Voucher already registered',
         passport: voucher.passport_number
@@ -138,6 +142,7 @@ router.post('/register',
     // Check if expired
     if (new Date(voucher.valid_until) < new Date()) {
       await client.query('ROLLBACK');
+      client.release();
       return res.status(400).json({ error: 'Voucher has expired' });
     }
 

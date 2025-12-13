@@ -64,7 +64,7 @@ const ViewQuotation = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <h2 className="text-2xl font-bold text-slate-800 mb-4">Quotation Not Found</h2>
-        <Button onClick={() => navigate('/quotations')} className="bg-emerald-600 hover:bg-emerald-700">
+        <Button onClick={() => navigate('/app/quotations')} className="bg-emerald-600 hover:bg-emerald-700">
           Back to Quotations
         </Button>
       </div>
@@ -91,7 +91,7 @@ const ViewQuotation = () => {
       <div className="flex items-center justify-between no-print">
         <Button
           variant="outline"
-          onClick={() => navigate('/quotations')}
+          onClick={() => navigate('/app/quotations')}
           className="gap-2"
         >
           <ArrowLeft className="h-4 w-4" />

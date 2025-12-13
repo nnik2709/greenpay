@@ -169,7 +169,7 @@ const AppRoutes = () => {
             </PrivateRoute>
           } />
           <Route path="passports/create" element={
-            <PrivateRoute roles={['Flex_Admin', 'Counter_Agent']}>
+            <PrivateRoute roles={['Flex_Admin', 'Counter_Agent', 'Finance_Manager']}>
               <IndividualPurchase />
             </PrivateRoute>
           } />

@@ -1,0 +1,1748 @@
+{
+  "config": {
+    "configFile": "/Users/nikolay/github/greenpay/playwright.config.production.ts",
+    "rootDir": "/Users/nikolay/github/greenpay/tests/production",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "open": "never",
+          "outputFolder": "reports/html"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "reports/results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "reports/junit.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/nikolay/github/greenpay/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup-flex-admin",
+        "name": "setup-flex-admin",
+        "testDir": "/Users/nikolay/github/greenpay/tests/production",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*auth-flex-admin\\.setup\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/nikolay/github/greenpay/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup-finance-manager",
+        "name": "setup-finance-manager",
+        "testDir": "/Users/nikolay/github/greenpay/tests/production",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*auth-finance-manager\\.setup\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/nikolay/github/greenpay/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup-counter-agent",
+        "name": "setup-counter-agent",
+        "testDir": "/Users/nikolay/github/greenpay/tests/production",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*auth-counter-agent\\.setup\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/nikolay/github/greenpay/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup-it-support",
+        "name": "setup-it-support",
+        "testDir": "/Users/nikolay/github/greenpay/tests/production",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*auth-it-support\\.setup\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/nikolay/github/greenpay/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "flex-admin",
+        "name": "flex-admin",
+        "testDir": "/Users/nikolay/github/greenpay/tests/production",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.flex-admin\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/nikolay/github/greenpay/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "finance-manager",
+        "name": "finance-manager",
+        "testDir": "/Users/nikolay/github/greenpay/tests/production",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.finance-manager\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/nikolay/github/greenpay/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "counter-agent",
+        "name": "counter-agent",
+        "testDir": "/Users/nikolay/github/greenpay/tests/production",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.counter-agent\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/nikolay/github/greenpay/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "it-support",
+        "name": "it-support",
+        "testDir": "/Users/nikolay/github/greenpay/tests/production",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.it-support\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/nikolay/github/greenpay/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "smoke",
+        "name": "smoke",
+        "testDir": "/Users/nikolay/github/greenpay/tests/production",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.smoke\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.55.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "04-support-tickets.smoke.spec.ts",
+      "file": "04-support-tickets.smoke.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Support Tickets - IT_Support Role",
+          "file": "04-support-tickets.smoke.spec.ts",
+          "line": 30,
+          "column": 6,
+          "specs": [
+            {
+              "title": "IT_Support can access tickets page",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 65090,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:35:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:35:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-13T14:07:48.723Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d9b20-ort-can-access-tickets-page-smoke/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d9b20-ort-can-access-tickets-page-smoke/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d9b20-ort-can-access-tickets-page-smoke/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d9b20-ort-can-access-tickets-page-smoke/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    },
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 65340,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:35:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:35:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-12-13T14:08:55.583Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d9b20-ort-can-access-tickets-page-smoke-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d9b20-ort-can-access-tickets-page-smoke-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d9b20-ort-can-access-tickets-page-smoke-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d9b20-ort-can-access-tickets-page-smoke-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3519756d1908034352db-8f45380946975a2d2da1",
+              "file": "04-support-tickets.smoke.spec.ts",
+              "line": 32,
+              "column": 7
+            },
+            {
+              "title": "IT_Support can create a new ticket",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 65206,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:52:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:52:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-13T14:10:01.916Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-c13ad-ort-can-create-a-new-ticket-smoke/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-c13ad-ort-can-create-a-new-ticket-smoke/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-c13ad-ort-can-create-a-new-ticket-smoke/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-c13ad-ort-can-create-a-new-ticket-smoke/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    },
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 65686,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:52:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:52:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-12-13T14:11:08.346Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-c13ad-ort-can-create-a-new-ticket-smoke-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-c13ad-ort-can-create-a-new-ticket-smoke-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-c13ad-ort-can-create-a-new-ticket-smoke-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-c13ad-ort-can-create-a-new-ticket-smoke-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3519756d1908034352db-b08f81c3812f2f171cc0",
+              "file": "04-support-tickets.smoke.spec.ts",
+              "line": 49,
+              "column": 7
+            },
+            {
+              "title": "IT_Support can view all tickets",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 65110,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:187:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:187:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-13T14:12:16.191Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-107eb-upport-can-view-all-tickets-smoke/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-107eb-upport-can-view-all-tickets-smoke/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-107eb-upport-can-view-all-tickets-smoke/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-107eb-upport-can-view-all-tickets-smoke/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    },
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 64497,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:187:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:187:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-12-13T14:13:25.260Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-107eb-upport-can-view-all-tickets-smoke-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-107eb-upport-can-view-all-tickets-smoke-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-107eb-upport-can-view-all-tickets-smoke-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-107eb-upport-can-view-all-tickets-smoke-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3519756d1908034352db-9dbe03a0c9f512e50559",
+              "file": "04-support-tickets.smoke.spec.ts",
+              "line": 184,
+              "column": 7
+            },
+            {
+              "title": "IT_Support can update ticket status",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 64439,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:212:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:212:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-13T14:14:30.977Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-82774-rt-can-update-ticket-status-smoke/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-82774-rt-can-update-ticket-status-smoke/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-82774-rt-can-update-ticket-status-smoke/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-82774-rt-can-update-ticket-status-smoke/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    },
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 64368,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:212:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:212:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-12-13T14:15:36.572Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-82774-rt-can-update-ticket-status-smoke-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-82774-rt-can-update-ticket-status-smoke-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-82774-rt-can-update-ticket-status-smoke-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-82774-rt-can-update-ticket-status-smoke-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3519756d1908034352db-652146bb64358a761993",
+              "file": "04-support-tickets.smoke.spec.ts",
+              "line": 209,
+              "column": 7
+            },
+            {
+              "title": "IT_Support can add comments to tickets",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 65748,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:288:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:288:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-13T14:16:42.048Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-95056-can-add-comments-to-tickets-smoke/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-95056-can-add-comments-to-tickets-smoke/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-95056-can-add-comments-to-tickets-smoke/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-95056-can-add-comments-to-tickets-smoke/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    },
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 65177,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:288:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:288:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-12-13T14:17:48.782Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-95056-can-add-comments-to-tickets-smoke-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-95056-can-add-comments-to-tickets-smoke-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-95056-can-add-comments-to-tickets-smoke-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-95056-can-add-comments-to-tickets-smoke-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3519756d1908034352db-7cbe629ff9ae83adb9ff",
+              "file": "04-support-tickets.smoke.spec.ts",
+              "line": 285,
+              "column": 7
+            },
+            {
+              "title": "IT_Support can delete tickets",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 10,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 64804,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:362:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:362:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-13T14:18:56.531Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-fbb5e--Support-can-delete-tickets-smoke/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-fbb5e--Support-can-delete-tickets-smoke/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-fbb5e--Support-can-delete-tickets-smoke/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-fbb5e--Support-can-delete-tickets-smoke/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    },
+                    {
+                      "workerIndex": 11,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 64495,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:362:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:362:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-12-13T14:20:02.841Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-fbb5e--Support-can-delete-tickets-smoke-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-fbb5e--Support-can-delete-tickets-smoke-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-fbb5e--Support-can-delete-tickets-smoke-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-fbb5e--Support-can-delete-tickets-smoke-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3519756d1908034352db-f7f22320a855e57ceed7",
+              "file": "04-support-tickets.smoke.spec.ts",
+              "line": 359,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "Support Tickets - Counter_Agent Role",
+          "file": "04-support-tickets.smoke.spec.ts",
+          "line": 403,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Counter_Agent can create tickets for their own issues",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 12,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 65371,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:408:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:408:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-13T14:21:08.524Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-0a999-ickets-for-their-own-issues-smoke/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-0a999-ickets-for-their-own-issues-smoke/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-0a999-ickets-for-their-own-issues-smoke/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-0a999-ickets-for-their-own-issues-smoke/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    },
+                    {
+                      "workerIndex": 13,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 64468,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:408:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:408:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-12-13T14:22:14.993Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-0a999-ickets-for-their-own-issues-smoke-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-0a999-ickets-for-their-own-issues-smoke-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-0a999-ickets-for-their-own-issues-smoke-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-0a999-ickets-for-their-own-issues-smoke-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3519756d1908034352db-71592c57c3bf18f8bb84",
+              "file": "04-support-tickets.smoke.spec.ts",
+              "line": 405,
+              "column": 7
+            },
+            {
+              "title": "Counter_Agent can only see their own tickets",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 14,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 64656,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:432:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:432:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-13T14:23:20.469Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d4ec2--only-see-their-own-tickets-smoke/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d4ec2--only-see-their-own-tickets-smoke/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d4ec2--only-see-their-own-tickets-smoke/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d4ec2--only-see-their-own-tickets-smoke/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    },
+                    {
+                      "workerIndex": 15,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 64671,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:432:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:432:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-12-13T14:24:26.425Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d4ec2--only-see-their-own-tickets-smoke-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d4ec2--only-see-their-own-tickets-smoke-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d4ec2--only-see-their-own-tickets-smoke-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-d4ec2--only-see-their-own-tickets-smoke-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3519756d1908034352db-bde74fd8df34ff9e1e96",
+              "file": "04-support-tickets.smoke.spec.ts",
+              "line": 429,
+              "column": 7
+            },
+            {
+              "title": "Counter_Agent cannot delete tickets",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 16,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 65517,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:455:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:455:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-13T14:25:32.121Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-631d8-Agent-cannot-delete-tickets-smoke/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-631d8-Agent-cannot-delete-tickets-smoke/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-631d8-Agent-cannot-delete-tickets-smoke/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-631d8-Agent-cannot-delete-tickets-smoke/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    },
+                    {
+                      "workerIndex": 17,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 64421,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:455:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:455:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-12-13T14:26:38.769Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-631d8-Agent-cannot-delete-tickets-smoke-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-631d8-Agent-cannot-delete-tickets-smoke-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-631d8-Agent-cannot-delete-tickets-smoke-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-631d8-Agent-cannot-delete-tickets-smoke-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3519756d1908034352db-6df726b098a71a05c381",
+              "file": "04-support-tickets.smoke.spec.ts",
+              "line": 452,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "Support Tickets - Flex_Admin Role",
+          "file": "04-support-tickets.smoke.spec.ts",
+          "line": 477,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Flex_Admin can access and manage all tickets",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 18,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 63589,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:482:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:482:5"
+                        },
+                        {
+                          "message": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/Users/nikolay/github/greenpay/test-results/.playwright-artifacts-18/traces/3519756d1908034352db-cfecd0bacbe30523e929.trace'"
+                        },
+                        {
+                          "message": "Error: ENOENT: no such file or directory, open '/Users/nikolay/github/greenpay/test-results/.playwright-artifacts-18/6469070dbc6aacfcc0527ce9e22c042a.zip'"
+                        },
+                        {
+                          "message": "\u001b[31mTest timeout of 120000ms exceeded.\u001b[39m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-13T14:27:44.426Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-53223-cess-and-manage-all-tickets-smoke/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-53223-cess-and-manage-all-tickets-smoke/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    },
+                    {
+                      "workerIndex": 19,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 64907,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:482:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:482:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-12-13T14:30:48.845Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-53223-cess-and-manage-all-tickets-smoke-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-53223-cess-and-manage-all-tickets-smoke-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-53223-cess-and-manage-all-tickets-smoke-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-53223-cess-and-manage-all-tickets-smoke-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3519756d1908034352db-cfecd0bacbe30523e929",
+              "file": "04-support-tickets.smoke.spec.ts",
+              "line": 479,
+              "column": 7
+            },
+            {
+              "title": "Flex_Admin can delete any ticket",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 20,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 63110,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:507:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:507:5"
+                        },
+                        {
+                          "message": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/Users/nikolay/github/greenpay/test-results/.playwright-artifacts-20/traces/3519756d1908034352db-4a02aa792e8d0a067bb2.trace'"
+                        },
+                        {
+                          "message": "Error: ENOENT: no such file or directory, open '/Users/nikolay/github/greenpay/test-results/.playwright-artifacts-20/9abd8f38b087cbb1e4ed73622c21f122.zip'"
+                        },
+                        {
+                          "message": "\u001b[31mTest timeout of 120000ms exceeded.\u001b[39m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-13T14:31:54.637Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-f1955-Admin-can-delete-any-ticket-smoke/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-f1955-Admin-can-delete-any-ticket-smoke/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    },
+                    {
+                      "workerIndex": 21,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 63144,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:507:5",
+                        "location": {
+                          "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                          "column": 21,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mpages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                            "column": 21,
+                            "line": 37
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/app/**\" until \"commit\"\n============================================================\n\n   at pages/LoginPage.ts:37\n\n  35 |     // Wait for navigation (increased timeout for slow backend - can take 4-5 seconds for login)\n  36 |     // Use 'commit' instead of 'load' to not wait for all resources\n> 37 |     await this.page.waitForURL('**/app/**', { timeout: 60000, waitUntil: 'commit' });\n     |                     ^\n  38 |     await this.waitForPageReady();\n  39 |   }\n  40 |\n    at LoginPage.login (/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts:37:21)\n    at /Users/nikolay/github/greenpay/tests/production/04-support-tickets.smoke.spec.ts:507:5"
+                        },
+                        {
+                          "message": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/Users/nikolay/github/greenpay/test-results/.playwright-artifacts-21/traces/3519756d1908034352db-4a02aa792e8d0a067bb2-retry1.trace'"
+                        },
+                        {
+                          "message": "Error: ENOENT: no such file or directory, open '/Users/nikolay/github/greenpay/test-results/.playwright-artifacts-21/f62f405a828fbce17fdc38ac6d26ffcf.zip'"
+                        },
+                        {
+                          "message": "\u001b[31mTest timeout of 120000ms exceeded.\u001b[39m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-12-13T14:34:58.575Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-f1955-Admin-can-delete-any-ticket-smoke-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/nikolay/github/greenpay/test-results/04-support-tickets.smoke-S-f1955-Admin-can-delete-any-ticket-smoke-retry1/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/nikolay/github/greenpay/tests/production/pages/LoginPage.ts",
+                        "column": 21,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3519756d1908034352db-4a02aa792e8d0a067bb2",
+              "file": "04-support-tickets.smoke.spec.ts",
+              "line": 504,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-12-13T14:07:48.022Z",
+    "duration": 1814296.097,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 11,
+    "flaky": 0
+  }
+}

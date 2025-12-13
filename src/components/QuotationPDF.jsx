@@ -105,9 +105,14 @@ const QuotationPDF = ({ quotation, onEmailClick }) => {
     doc.text('Phone: +675 323 0111', leftColX + 3, colStartY + 24);
     doc.text('Port Moresby, Papua New Guinea', leftColX + 3, colStartY + 30);
 
+    // Issuing Officer (more prominent)
     if (quotation.creator_name || quotation.created_by_name) {
-      doc.setFont('helvetica', 'italic');
-      doc.text(`Contact: ${quotation.creator_name || quotation.created_by_name}`, leftColX + 3, colStartY + 36);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...greenDark);
+      doc.text('Issued By:', leftColX + 3, colStartY + 36);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...gray);
+      doc.text(quotation.creator_name || quotation.created_by_name, leftColX + 20, colStartY + 36);
     }
 
     // TO Section
@@ -271,22 +276,32 @@ const QuotationPDF = ({ quotation, onEmailClick }) => {
     doc.text('Thank you for your business!', margin, yPos);
 
     // Signature box (right)
-    doc.setDrawColor(...gray);
-    doc.setLineWidth(0.3);
-    doc.rect(pageWidth - margin - 60, yPos - 10, 60, 25);
+    doc.setDrawColor(...greenDark);
+    doc.setLineWidth(0.5);
+    doc.rect(pageWidth - margin - 60, yPos - 10, 60, 30);
 
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...greenDark);
     doc.text('Authorized Signature:', pageWidth - margin - 58, yPos - 7);
 
+    doc.setDrawColor(...gray);
+    doc.setLineWidth(0.3);
+    doc.line(pageWidth - margin - 58, yPos + 5, pageWidth - margin - 10, yPos + 5);
+
+    // Issuing Officer Name (below signature line)
     if (quotation.creator_name || quotation.created_by_name) {
-      doc.setFont('helvetica', 'normal');
-      doc.text(quotation.creator_name || quotation.created_by_name, pageWidth - margin - 58, yPos + 8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...greenDark);
+      doc.setFontSize(8);
+      doc.text(quotation.creator_name || quotation.created_by_name, pageWidth - margin - 35, yPos + 10, { align: 'center' });
     }
 
     doc.setFont('helvetica', 'italic');
+    doc.setTextColor(...gray);
     doc.setFontSize(6);
-    doc.text('Climate Change & Development Authority', pageWidth - margin - 58, yPos + 12);
+    doc.text('Issuing Officer', pageWidth - margin - 35, yPos + 14, { align: 'center' });
+    doc.text('Climate Change & Development Authority', pageWidth - margin - 35, yPos + 17, { align: 'center' });
 
     // Save PDF
     doc.save(`Quotation_${quotation.quotation_number || 'DRAFT'}.pdf`);

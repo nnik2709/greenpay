@@ -209,7 +209,7 @@ const CorporateExitPass = () => {
           Corporate Exit Pass
         </h1>
         <Button
-          onClick={() => navigate('/corporate-batch-history')}
+          onClick={() => navigate('/app/corporate-batch-history')}
           variant="outline"
           className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
         >

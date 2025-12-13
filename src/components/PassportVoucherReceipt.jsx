@@ -17,13 +17,13 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
       console.log('Generating barcode for passport voucher:', voucher.voucher_code);
       setBarcodeDataUrl('');
 
-      // Generate Barcode (CODE-128)
+      // Generate Barcode (CODE-128) - LARGER for easier scanning
       try {
         const canvas = document.createElement('canvas');
         JsBarcode(canvas, voucher.voucher_code, {
           format: 'CODE128',
-          width: 3,
-          height: 80,
+          width: 5,        // Increased from 3 to 5
+          height: 120,     // Increased from 80 to 120
           displayValue: false, // We'll show the code separately
           margin: 10,
           background: '#ffffff',
@@ -43,8 +43,12 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
   // Registration URL
   const registrationUrl = `https://pnggreenfees.gov.pg/voucher/register/${voucher.voucher_code}`;
 
-  // Get authorizing officer
-  const authorizingOfficer = voucher.created_by_name || 'AUTHORIZED OFFICER';
+  // Show authorized officer only if voucher was issued at desk/corporate (has created_by_name)
+  const showAuthorizingOfficer = voucher.created_by_name && voucher.created_by_name !== 'AUTHORIZED OFFICER';
+  const authorizingOfficer = voucher.created_by_name;
+
+  // Get passport info
+  const passportNumber = passport?.passport_number || voucher.passport_number || null;
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -75,6 +79,11 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
             align-items: center;
             gap: 100px;
             margin-bottom: 40px;
+          }
+          .logo-image {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
           }
           .logo-placeholder {
             width: 120px;
@@ -137,13 +146,36 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
             letter-spacing: 2px;
           }
 
+          /* Passport Info */
+          .passport-info {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f9fafb;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+          }
+          .passport-label {
+            font-size: 14px;
+            color: #666;
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          .passport-value {
+            font-size: 20px;
+            color: #000;
+            font-weight: bold;
+            letter-spacing: 2px;
+            font-family: 'Courier New', monospace;
+          }
+
           /* Barcode section */
           .barcode-section {
             text-align: center;
             margin: 50px 0;
           }
           .barcode-section img {
-            max-width: 400px;
+            max-width: 600px;
             height: auto;
             margin: 0 auto 20px auto;
           }
@@ -208,7 +240,7 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
         <div class="page">
           <!-- Logos -->
           <div class="logos">
-            <div class="logo-placeholder">PNG Govt Logo</div>
+            <img src="https://ccda.gov.pg/wp-content/uploads/2025/01/ccda-logo.jpeg" alt="CCDA Logo" class="logo-image" />
             <div class="logo-placeholder">National Emblem</div>
           </div>
 
@@ -227,6 +259,14 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
             <span class="coupon-value">${voucher.voucher_code}</span>
           </div>
 
+          <!-- Passport Info (if registered) -->
+          ${passportNumber ? `
+          <div class="passport-info">
+            <div class="passport-label">REGISTERED PASSPORT</div>
+            <div class="passport-value">${passportNumber}</div>
+          </div>
+          ` : ''}
+
           <!-- Barcode -->
           <div class="barcode-section">
             ${barcodeDataUrl ? `<img src="${barcodeDataUrl}" alt="Barcode" />` : '<p style="color: #999;">Barcode not available</p>'}
@@ -237,12 +277,14 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
           <!-- Footer -->
           <div class="footer-line"></div>
           <div class="footer">
+            ${showAuthorizingOfficer ? `
             <div class="officer-info">
               <div class="officer-name">${authorizingOfficer}</div>
               <div class="officer-title">Authorizing Officer</div>
             </div>
+            ` : '<div></div>'}
             <div class="generation-info">
-              Generated on ${new Date(voucher.created_at || new Date()).toLocaleString('en-US', {
+              Generated on ${new Date(voucher.created_at || voucher.issued_date || new Date()).toLocaleString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -300,9 +342,11 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
 
             {/* Logos */}
             <div className="flex justify-center items-center gap-24 mb-10">
-              <div className="w-28 h-28 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center text-xs text-gray-400 text-center">
-                PNG Govt<br/>Logo
-              </div>
+              <img
+                src="https://ccda.gov.pg/wp-content/uploads/2025/01/ccda-logo.jpeg"
+                alt="CCDA Logo"
+                className="w-28 h-28 object-contain"
+              />
               <div className="w-28 h-28 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center text-xs text-gray-400 text-center">
                 National<br/>Emblem
               </div>
@@ -325,12 +369,20 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
               <span className="text-2xl font-bold text-black tracking-wider">{voucher.voucher_code}</span>
             </div>
 
-            {/* Barcode */}
+            {/* Passport Info (if registered) */}
+            {passportNumber && (
+              <div className="text-center mb-8 p-5 bg-gray-50 border-2 border-green-600 rounded-lg">
+                <p className="text-sm font-bold text-gray-600 mb-2">REGISTERED PASSPORT</p>
+                <p className="text-2xl font-bold text-black tracking-widest font-mono">{passportNumber}</p>
+              </div>
+            )}
+
+            {/* Barcode - BIGGER for easier scanning */}
             <div className="text-center my-12">
               {barcodeDataUrl ? (
-                <img src={barcodeDataUrl} alt="Barcode" className="mx-auto max-w-md" />
+                <img src={barcodeDataUrl} alt="Barcode" className="mx-auto max-w-2xl w-full" />
               ) : (
-                <div className="w-full h-24 border-2 border-gray-300 rounded flex items-center justify-center bg-gray-50">
+                <div className="w-full h-32 border-2 border-gray-300 rounded flex items-center justify-center bg-gray-50">
                   <p className="text-gray-500 text-sm">Generating Barcode...</p>
                 </div>
               )}
@@ -342,13 +394,17 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
             <div className="mt-16">
               <div className="w-full h-px bg-gray-400 mb-6"></div>
               <div className="flex justify-between items-end">
-                <div className="text-left">
-                  <p className="text-sm font-bold text-black uppercase">{authorizingOfficer}</p>
-                  <p className="text-xs text-gray-600 mt-1">Authorizing Officer</p>
-                </div>
+                {showAuthorizingOfficer ? (
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-black uppercase">{authorizingOfficer}</p>
+                    <p className="text-xs text-gray-600 mt-1">Authorizing Officer</p>
+                  </div>
+                ) : (
+                  <div></div>
+                )}
                 <div className="text-right">
                   <p className="text-xs text-gray-600">
-                    Generated on {new Date(voucher.created_at || new Date()).toLocaleString('en-US', {
+                    Generated on {new Date(voucher.created_at || voucher.issued_date || new Date()).toLocaleString('en-US', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',

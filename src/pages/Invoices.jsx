@@ -56,6 +56,7 @@ const Invoices = () => {
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
+  const [selectedAction, setSelectedAction] = useState('');
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
@@ -311,25 +312,48 @@ const Invoices = () => {
     }
   };
 
-  const handleAction = (action) => {
+  const getSelectedInvoice = () => {
+    return invoices.find(inv => inv.id === selectedInvoiceId);
+  };
+
+  const handleActionChange = (value) => {
+    setSelectedAction(value);
+  };
+
+  const handlePerformAction = () => {
     if (!selectedInvoiceId) {
       toast({
         variant: 'destructive',
-        title: 'No Invoice Selected',
-        description: 'Please select an invoice first by clicking the radio button'
+        title: 'No Selection',
+        description: 'Please select an invoice first'
       });
       return;
     }
 
-    const invoice = invoices.find(inv => inv.id === selectedInvoiceId);
+    const invoice = getSelectedInvoice();
     if (!invoice) return;
 
-    switch (action) {
-      case 'download':
-        handleDownloadPDF(invoice);
+    switch (selectedAction) {
+      case 'view':
+        // Navigate to view invoice details (can implement later)
+        toast({
+          title: 'View Invoice',
+          description: `Viewing invoice ${invoice.invoice_number}`
+        });
         break;
       case 'email':
         openEmailModal(invoice);
+        break;
+      case 'register_payment':
+        if (canRecordPayment(invoice)) {
+          openPaymentModal(invoice);
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Cannot Record Payment',
+            description: 'Invoice is already fully paid'
+          });
+        }
         break;
       case 'generate':
         if (canGenerateVouchers(invoice)) {
@@ -339,17 +363,6 @@ const Invoices = () => {
             variant: 'destructive',
             title: 'Cannot Generate Vouchers',
             description: 'Invoice must be fully paid to generate vouchers'
-          });
-        }
-        break;
-      case 'email-vouchers':
-        if (canGenerateVouchers(invoice)) {
-          openEmailVouchersModal(invoice);
-        } else {
-          toast({
-            variant: 'destructive',
-            title: 'Cannot Email Vouchers',
-            description: 'Generate vouchers first or ensure invoice is paid'
           });
         }
         break;
@@ -470,33 +483,56 @@ const Invoices = () => {
           </div>
         </div>
 
-        {/* Invoices Table */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-100">
-          {/* Action Dropdown */}
-          <div className="mb-4 flex items-center gap-4">
-            <Label className="font-semibold text-slate-700">Action:</Label>
-            <Select onValueChange={handleAction}>
-              <SelectTrigger className="w-[250px]">
-                <SelectValue placeholder="Select an action..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="download">Download PDF</SelectItem>
-                <SelectItem value="email">Email Invoice</SelectItem>
-                <SelectItem value="generate">Generate Vouchers</SelectItem>
-                <SelectItem value="email-vouchers">Email Vouchers</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Action Bar */}
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-4 mb-6 border border-emerald-200">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="invoice-action-select" className="text-sm font-semibold text-slate-700">
+                  Select Action:
+                </Label>
+                <Select value={selectedAction} onValueChange={handleActionChange}>
+                  <SelectTrigger id="invoice-action-select" className="w-full sm:w-64 bg-white">
+                    <SelectValue placeholder="Choose an action..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="view">View Invoice</SelectItem>
+                    <SelectItem value="email">Email Invoice</SelectItem>
+                    <SelectItem value="register_payment">Register Payment</SelectItem>
+                    <SelectItem value="generate">Generate Vouchers</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handlePerformAction}
+                  disabled={!selectedInvoiceId || !selectedAction}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  Perform Action
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedInvoiceId(null);
+                    setSelectedAction('');
+                  }}
+                  className="border-slate-300"
+                >
+                  Clear Selection
+                </Button>
+              </div>
+            </div>
             {selectedInvoiceId && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setSelectedInvoiceId(null)}
-                className="text-slate-600"
-              >
-                Clear Selection
-              </Button>
+              <div className="text-sm text-emerald-700 font-medium">
+                Selected: {getSelectedInvoice()?.invoice_number} - {getSelectedInvoice()?.customer_name}
+              </div>
             )}
           </div>
+        </div>
+
+        {/* Invoices Table */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-100">
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left text-slate-600">
@@ -539,7 +575,10 @@ const Invoices = () => {
                     return (
                       <tr
                         key={invoice.id}
-                        className={`bg-white border-b hover:bg-slate-50 ${selectedInvoiceId === invoice.id ? 'bg-emerald-50' : ''}`}
+                        className={`border-b hover:bg-emerald-50 cursor-pointer ${
+                          selectedInvoiceId === invoice.id ? 'bg-emerald-100 border-emerald-300' : 'bg-white'
+                        }`}
+                        onClick={() => setSelectedInvoiceId(invoice.id)}
                       >
                         <td className="px-6 py-4">
                           <input
@@ -547,7 +586,7 @@ const Invoices = () => {
                             name="selectedInvoice"
                             checked={selectedInvoiceId === invoice.id}
                             onChange={() => setSelectedInvoiceId(invoice.id)}
-                            className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                            className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
                           />
                         </td>
                         <td className="px-6 py-4 font-medium text-slate-900">

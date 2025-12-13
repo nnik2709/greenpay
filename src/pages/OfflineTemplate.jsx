@@ -132,7 +132,7 @@ const OfflineTemplate = () => {
         </div>
       </div>
       <div className="text-right">
-        <Button variant="outline" onClick={() => navigate('/purchases/offline-upload')}>Go to Upload Page</Button>
+        <Button variant="outline" onClick={() => navigate('/app/payments/offline-upload')}>Go to Upload Page</Button>
       </div>
     </motion.div>
   );

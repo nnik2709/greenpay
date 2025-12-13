@@ -77,12 +77,12 @@ router.post('/', auth, async (req, res) => {
       });
     }
 
-    // Check user role (only Counter_Agent and Flex_Admin can create vouchers)
-    if (!['Counter_Agent', 'Flex_Admin'].includes(req.user.role)) {
+    // Check user role (Counter_Agent, Finance_Manager, and Flex_Admin can create vouchers)
+    if (!['Counter_Agent', 'Finance_Manager', 'Flex_Admin'].includes(req.user.role)) {
       return res.status(403).json({
         type: 'error',
         status: 'error',
-        message: 'Insufficient permissions. Only Counter_Agent and Flex_Admin can create vouchers.'
+        message: 'Insufficient permissions. Only Counter_Agent, Finance_Manager, and Flex_Admin can create vouchers.'
       });
     }
 

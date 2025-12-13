@@ -112,14 +112,14 @@ const PaymentCallback = () => {
       }
     } else {
       // For failed payments, go back to purchase page
-      navigate('/individual-purchase', {
+      navigate('/app/passports/create', {
         state: { message: 'Payment failed. Please try again.' }
       });
     }
   };
 
   const handleRetry = () => {
-    navigate('/individual-purchase', {
+    navigate('/app/passports/create', {
       state: { retryPayment: true }
     });
   };

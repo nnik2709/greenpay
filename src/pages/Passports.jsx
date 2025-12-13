@@ -136,7 +136,7 @@ const Passports = () => {
   };
 
   const handleCreateNew = () => {
-    navigate('/passports/create');
+    navigate('/app/passports/create');
   };
 
   const containerVariants = {
@@ -418,7 +418,7 @@ const Passports = () => {
           <CameraMRZScanner 
             onScanSuccess={(passportData) => {
               // Navigate to create passport with pre-filled data
-              navigate('/passports/create', { 
+              navigate('/app/passports/create', { 
                 state: { 
                   prefillData: passportData,
                   fromScan: true 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -8,10 +7,11 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getQuotations } from '@/lib/quotationsService';
-import { getQuotationStatistics, markQuotationAsSent, approveQuotation, convertQuotationToVoucherBatch, canConvertQuotation, canApproveQuotation } from '@/lib/quotationWorkflowService';
+import { getQuotationStatistics, markQuotationAsSent } from '@/lib/quotationWorkflowService';
 import { convertQuotationToInvoice } from '@/lib/invoiceService';
-import { formatPGK, calculateTotals } from '@/lib/gstUtils';
+import { formatPGK } from '@/lib/gstUtils';
 import QuotationPDF from '@/components/QuotationPDF';
 
 const StatCard = ({ title, value }) => {
@@ -31,20 +31,18 @@ const Quotations = () => {
   const [quotations, setQuotations] = useState([]);
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [sendOpen, setSendOpen] = useState(false);
-  const [convertOpen, setConvertOpen] = useState(false);
-  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
-  const [selectedQuotation, setSelectedQuotation] = useState(null);
-  const [quotationId, setQuotationId] = useState('');
-  const [recipient, setRecipient] = useState('');
-  const [sending, setSending] = useState(false);
-  const [converting, setConverting] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('CASH');
-  const [collectedAmount, setCollectedAmount] = useState('');
+  const [selectedQuotationId, setSelectedQuotationId] = useState(null);
+  const [selectedAction, setSelectedAction] = useState('');
+
+  // Dialog states
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+
+  // Action states
   const [dueDays, setDueDays] = useState(30);
   const [convertingToInvoice, setConvertingToInvoice] = useState(false);
 
-  // Load quotations and statistics on mount
   useEffect(() => {
     loadQuotations();
     loadStatistics();
@@ -76,6 +74,123 @@ const Quotations = () => {
     }
   };
 
+  const getSelectedQuotation = () => {
+    return quotations.find(q => q.id === selectedQuotationId);
+  };
+
+  const handleActionChange = (value) => {
+    setSelectedAction(value);
+  };
+
+  const handlePerformAction = () => {
+    if (!selectedQuotationId) {
+      toast({
+        variant: 'destructive',
+        title: 'No Selection',
+        description: 'Please select a quotation first'
+      });
+      return;
+    }
+
+    const quotation = getSelectedQuotation();
+    if (!quotation) return;
+
+    switch (selectedAction) {
+      case 'view':
+        navigate(`/app/quotations/${quotation.id}`);
+        break;
+      case 'download_pdf':
+        setPdfDialogOpen(true);
+        break;
+      case 'email':
+        setEmailDialogOpen(true);
+        break;
+      case 'convert_invoice':
+        if (quotation.status !== 'approved' && quotation.status !== 'sent') {
+          toast({
+            variant: 'destructive',
+            title: 'Cannot Convert',
+            description: 'Quotation must be approved or sent before converting to invoice'
+          });
+          return;
+        }
+        if (quotation.converted_to_invoice) {
+          toast({
+            variant: 'destructive',
+            title: 'Already Converted',
+            description: 'This quotation has already been converted to an invoice'
+          });
+          return;
+        }
+        setInvoiceDialogOpen(true);
+        break;
+      default:
+        toast({
+          variant: 'destructive',
+          title: 'No Action',
+          description: 'Please select an action from the dropdown'
+        });
+    }
+  };
+
+  const handleEmailQuotation = async () => {
+    const quotation = getSelectedQuotation();
+    if (!quotation) return;
+
+    try {
+      await markQuotationAsSent(quotation.id);
+      toast({
+        title: 'Quotation Sent',
+        description: `Quotation ${quotation.quotation_number} has been emailed to ${quotation.customer_email}`
+      });
+      setEmailDialogOpen(false);
+      await loadQuotations();
+      await loadStatistics();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to send quotation'
+      });
+    }
+  };
+
+  const handleConvertToInvoice = async () => {
+    const quotation = getSelectedQuotation();
+    if (!quotation) return;
+
+    try {
+      setConvertingToInvoice(true);
+      const result = await convertQuotationToInvoice({
+        quotation_id: quotation.id,
+        due_days: dueDays
+      });
+
+      setInvoiceDialogOpen(false);
+      setSelectedQuotationId(null);
+      setSelectedAction('');
+      setDueDays(30);
+
+      await loadQuotations();
+      await loadStatistics();
+
+      toast({
+        title: 'Invoice Created!',
+        description: `Invoice ${result.invoice?.invoice_number || 'INV-XXXXX'} created successfully`
+      });
+
+      navigate('/app/invoices');
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Conversion Failed',
+        description: error.response?.data?.error || 'Failed to create invoice'
+      });
+    } finally {
+      setConvertingToInvoice(false);
+    }
+  };
+
   const stats = statistics ? [
     { title: 'Total', value: statistics.total_count || '0' },
     { title: 'Draft', value: statistics.draft_count || '0' },
@@ -83,24 +198,13 @@ const Quotations = () => {
     { title: 'Approved', value: statistics.approved_count || '0' },
     { title: 'Converted', value: statistics.converted_count || '0' },
     { title: 'Expired', value: statistics.expired_count || '0' },
-  ] : [
-    { title: 'Total', value: '0' },
-    { title: 'Draft', value: '0' },
-    { title: 'Sent', value: '0' },
-    { title: 'Approved', value: '0' },
-    { title: 'Converted', value: '0' },
-    { title: 'Expired', value: '0' },
-  ];
+  ] : [];
 
   const summaryStats = statistics ? [
     { title: 'Total Value', value: `PGK ${parseFloat(statistics.total_value || 0).toFixed(2)}` },
     { title: 'Converted Value', value: `PGK ${parseFloat(statistics.converted_value || 0).toFixed(2)}` },
     { title: 'Conversion Rate', value: `${parseFloat(statistics.conversion_rate || 0).toFixed(1)}%` },
-  ] : [
-    { title: 'Total Value', value: 'PGK 0.00' },
-    { title: 'Total Vouchers', value: '0' },
-    { title: 'This Month', value: '0' },
-  ];
+  ] : [];
 
   return (
     <main>
@@ -115,16 +219,12 @@ const Quotations = () => {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
           Quotations Management
         </h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setSendOpen(true)}>
-            Send Quotation
-          </Button>
-          <Button onClick={() => navigate('/quotations/create')} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-            Create New Quotation
-          </Button>
-        </div>
+        <Button onClick={() => navigate('/app/quotations/create')} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          Create New Quotation
+        </Button>
       </div>
 
+      {/* Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {stats.map(stat => <StatCard key={stat.title} {...stat} />)}
       </div>
@@ -132,62 +232,114 @@ const Quotations = () => {
         {summaryStats.map(stat => <StatCard key={stat.title} {...stat} />)}
       </div>
 
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-          <Input placeholder="QUOTATION #, CLIENT NAME, EMAIL" className="lg:col-span-2" />
-          <Input placeholder="Status: All Status" />
-          <Input type="date" placeholder="Start Date" />
-          <Input type="date" placeholder="End Date" />
-          <div className="flex gap-2">
-            <Button variant="outline" className="w-full">Filter</Button>
-            <Button variant="ghost" className="w-full">Clear</Button>
+      {/* Action Bar */}
+      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-4 border border-emerald-200">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="action-select" className="text-sm font-semibold text-slate-700">
+                Select Action:
+              </Label>
+              <Select value={selectedAction} onValueChange={handleActionChange}>
+                <SelectTrigger id="action-select" className="w-full sm:w-64 bg-white">
+                  <SelectValue placeholder="Choose an action..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="view">View Quotation</SelectItem>
+                  <SelectItem value="download_pdf">Download PDF</SelectItem>
+                  <SelectItem value="email">Email Quotation</SelectItem>
+                  <SelectItem value="convert_invoice">Convert to Invoice</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handlePerformAction}
+                disabled={!selectedQuotationId || !selectedAction}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                Perform Action
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedQuotationId(null);
+                  setSelectedAction('');
+                }}
+                className="border-slate-300"
+              >
+                Clear Selection
+              </Button>
+            </div>
           </div>
+          {selectedQuotationId && (
+            <div className="text-sm text-emerald-700 font-medium">
+              Selected: {getSelectedQuotation()?.quotation_number} - {getSelectedQuotation()?.customer_name}
+            </div>
+          )}
         </div>
+      </div>
 
+      {/* Quotations Table */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left text-slate-600">
             <thead className="text-xs text-slate-700 uppercase bg-slate-50">
               <tr>
+                <th scope="col" className="px-6 py-3 w-12">Select</th>
                 <th scope="col" className="px-6 py-3">Quotation #</th>
                 <th scope="col" className="px-6 py-3">Client</th>
-                <th scope="col" className="px-6 py-3">Subject</th>
+                <th scope="col" className="px-6 py-3">Issued By</th>
                 <th scope="col" className="px-6 py-3">Vouchers</th>
                 <th scope="col" className="px-6 py-3">Amount</th>
                 <th scope="col" className="px-6 py-3">Status</th>
-                <th scope="col" className="px-6 py-3">Due Date</th>
                 <th scope="col" className="px-6 py-3">Valid Until</th>
                 <th scope="col" className="px-6 py-3">Created</th>
-                <th scope="col" className="px-6 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="10" className="text-center py-8">
+                  <td colSpan="9" className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
                   </td>
                 </tr>
               ) : quotations.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="text-center py-16">
+                  <td colSpan="9" className="text-center py-16">
                     <h3 className="mt-2 text-lg font-medium text-slate-800">No quotations found</h3>
                     <p className="mt-1 text-sm text-slate-500">Create your first quotation to get started.</p>
-                    <Button onClick={() => navigate('/quotations/create')} className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white">
+                    <Button onClick={() => navigate('/app/quotations/create')} className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white">
                       Create Quotation
                     </Button>
                   </td>
                 </tr>
               ) : (
                 quotations.map((quotation) => (
-                  <tr key={quotation.id} className="bg-white border-b hover:bg-slate-50">
+                  <tr
+                    key={quotation.id}
+                    className={`border-b hover:bg-emerald-50 cursor-pointer ${
+                      selectedQuotationId === quotation.id ? 'bg-emerald-100 border-emerald-300' : 'bg-white'
+                    }`}
+                    onClick={() => setSelectedQuotationId(quotation.id)}
+                  >
+                    <td className="px-6 py-4">
+                      <input
+                        type="radio"
+                        name="quotation-selection"
+                        checked={selectedQuotationId === quotation.id}
+                        onChange={() => setSelectedQuotationId(quotation.id)}
+                        className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                      />
+                    </td>
                     <td className="px-6 py-4 font-medium text-slate-900">{quotation.quotation_number}</td>
                     <td className="px-6 py-4">
                       <div>{quotation.customer_name}</div>
                       <div className="text-xs text-slate-500">{quotation.customer_email}</div>
                     </td>
-                    <td className="px-6 py-4">{quotation.description || '-'}</td>
+                    <td className="px-6 py-4">{quotation.created_by_name || '-'}</td>
                     <td className="px-6 py-4 text-right">{quotation.number_of_vouchers || '-'}</td>
-                    <td className="px-6 py-4 text-right">PGK {parseFloat(quotation.total_amount || 0).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-right font-medium">PGK {parseFloat(quotation.total_amount || 0).toFixed(2)}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                         quotation.status === 'draft' ? 'bg-gray-100 text-gray-700' :
@@ -200,247 +352,54 @@ const Quotations = () => {
                         {quotation.status?.toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-6 py-4">{quotation.due_date || '-'}</td>
                     <td className="px-6 py-4">{new Date(quotation.valid_until).toLocaleDateString()}</td>
                     <td className="px-6 py-4 text-xs text-slate-500">{new Date(quotation.created_at).toLocaleDateString()}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2 flex-wrap">
-                        {/* Mark as Sent button */}
-                        {(quotation.status === 'draft' || quotation.status === 'pending') && !quotation.sent_at && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            data-testid={`quotation-mark-sent-${quotation.id}`}
-                            onClick={async () => {
-                              const result = await markQuotationAsSent(quotation.id);
-                              if (result.success) {
-                                toast({ title: 'Quotation Marked as Sent' });
-                                loadQuotations();
-                                loadStatistics();
-                              } else {
-                                toast({ variant: 'destructive', title: 'Error', description: result.error });
-                              }
-                            }}
-                          >
-                            Mark Sent
-                          </Button>
-                        )}
-
-                        {/* Approve button */}
-                        {canApproveQuotation(quotation) && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-green-500 text-green-600 hover:bg-green-50"
-                            data-testid={`quotation-approve-${quotation.id}`}
-                            onClick={async () => {
-                              const result = await approveQuotation(quotation.id, user?.id);
-                              if (result.success) {
-                                toast({ title: 'Quotation Approved!' });
-                                loadQuotations();
-                                loadStatistics();
-                              } else {
-                                toast({ variant: 'destructive', title: 'Error', description: result.error });
-                              }
-                            }}
-                          >
-                            Approve
-                          </Button>
-                        )}
-
-                        {/* Convert to Invoice button */}
-                        {(quotation.status === 'approved' || quotation.status === 'sent') && !quotation.converted_to_invoice && (
-                          <Button
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700"
-                            onClick={() => {
-                              setSelectedQuotation(quotation);
-                              setInvoiceModalOpen(true);
-                            }}
-                          >
-                            Convert to Invoice
-                          </Button>
-                        )}
-
-                        {/* Convert to Vouchers button (direct conversion) */}
-                        {canConvertQuotation(quotation) && !quotation.converted_to_invoice && (
-                          <Button
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700"
-                            data-testid={`quotation-convert-${quotation.id}`}
-                            onClick={() => {
-                              setSelectedQuotation(quotation);
-                              setConvertOpen(true);
-                            }}
-                          >
-                            Convert to Vouchers
-                          </Button>
-                        )}
-
-                        {/* Show if already converted */}
-                        {quotation.converted_to_invoice && (
-                          <span className="text-xs text-blue-600 font-semibold px-2 py-1 bg-blue-50 rounded">
-                            ✓ Converted to Invoice
-                          </span>
-                        )}
-
-                        {/* Download PDF button */}
-                        <QuotationPDF
-                          quotation={quotation}
-                          onEmailClick={() => {
-                            setQuotationId(quotation.quotation_number);
-                            setRecipient(quotation.contact_email || quotation.customer_email);
-                            setSendOpen(true);
-                          }}
-                        />
-
-                        {/* View/Edit button */}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          data-testid={`quotation-view-${quotation.id}`}
-                          onClick={() => navigate(`/quotations/${quotation.id}`)}
-                        >
-                          View
-                        </Button>
-                      </div>
-                    </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
-        <p className="text-sm text-slate-500 mt-4 text-center">
-          Showing all {quotations.length} quotation{quotations.length !== 1 ? 's' : ''}
-        </p>
       </div>
 
-      {/* Conversion Dialog */}
-      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+      {/* Email Quotation Dialog */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Convert Quotation to Voucher Batch</DialogTitle>
+            <DialogTitle>Email Quotation</DialogTitle>
             <DialogDescription>
-              Convert approved quotation to corporate voucher batch. This will generate {selectedQuotation?.number_of_vouchers || 0} vouchers.
+              Send quotation {getSelectedQuotation()?.quotation_number} to customer
             </DialogDescription>
           </DialogHeader>
 
-          {selectedQuotation && (
+          {getSelectedQuotation() && (
             <div className="space-y-4">
-              <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-600">Company:</span>
-                  <span className="text-sm font-semibold">{selectedQuotation.customer_name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-600">Vouchers:</span>
-                  <span className="text-sm font-semibold">{selectedQuotation.number_of_vouchers || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-600">Total Amount:</span>
-                  <span className="text-sm font-semibold">PGK {parseFloat(selectedQuotation.total_amount || 0).toFixed(2)}</span>
-                </div>
+              <div className="bg-slate-50 p-4 rounded-lg">
+                <p className="text-sm text-slate-600 mb-2">Customer Details:</p>
+                <p className="font-semibold">{getSelectedQuotation().customer_name}</p>
+                <p className="text-sm text-slate-600">{getSelectedQuotation().customer_email}</p>
               </div>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium">Payment Method</label>
-                  <select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-md"
-                    data-testid="conversion-payment-method"
-                  >
-                    <option value="CASH">Cash</option>
-                    <option value="CARD">Card</option>
-                    <option value="BANK TRANSFER">Bank Transfer</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Collected Amount (PGK)</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={collectedAmount}
-                    onChange={(e) => setCollectedAmount(e.target.value)}
-                    placeholder={parseFloat(selectedQuotation.total_amount || 0).toFixed(2)}
-                    data-testid="conversion-collected-amount"
-                  />
-                </div>
-
-                {parseFloat(collectedAmount) > parseFloat(selectedQuotation.total_amount || 0) && (
-                  <div className="text-sm text-emerald-600">
-                    Change: PGK {(parseFloat(collectedAmount) - parseFloat(selectedQuotation.total_amount || 0)).toFixed(2)}
-                  </div>
-                )}
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-800">
+                  This quotation will be emailed as a PDF attachment to the customer.
+                </p>
               </div>
             </div>
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConvertOpen(false)} disabled={converting}>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={async () => {
-                if (!collectedAmount || parseFloat(collectedAmount) < (selectedQuotation?.total_amount || 0)) {
-                  toast({
-                    variant: 'destructive',
-                    title: 'Invalid Amount',
-                    description: 'Collected amount must be at least the total amount'
-                  });
-                  return;
-                }
-
-                setConverting(true);
-                try {
-                  const result = await convertQuotationToVoucherBatch(selectedQuotation.id, {
-                    paymentMethod,
-                    collectedAmount,
-                    createdBy: user?.id
-                  });
-
-                  if (result.success) {
-                    toast({
-                      title: 'Conversion Successful!',
-                      description: `Generated ${result.vouchers?.length} vouchers in batch ${result.batchId}`
-                    });
-                    setConvertOpen(false);
-                    loadQuotations();
-                    loadStatistics();
-
-                    // Navigate to corporate vouchers to view the batch
-                    navigate('/purchases/corporate-exit-pass');
-                  } else {
-                    toast({
-                      variant: 'destructive',
-                      title: 'Conversion Failed',
-                      description: result.error
-                    });
-                  }
-                } catch (error) {
-                  toast({
-                    variant: 'destructive',
-                    title: 'Error',
-                    description: error.message
-                  });
-                } finally {
-                  setConverting(false);
-                }
-              }}
-              disabled={converting}
-              data-testid="conversion-confirm-button"
-            >
-              {converting ? 'Converting...' : 'Convert to Vouchers'}
+            <Button onClick={handleEmailQuotation} className="bg-emerald-600 hover:bg-emerald-700">
+              Send Email
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Convert to Invoice Dialog */}
-      <Dialog open={invoiceModalOpen} onOpenChange={setInvoiceModalOpen}>
+      <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Convert to PNG Tax Invoice</DialogTitle>
@@ -449,7 +408,7 @@ const Quotations = () => {
             </DialogDescription>
           </DialogHeader>
 
-          {selectedQuotation && (
+          {getSelectedQuotation() && (
             <div className="space-y-4">
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <p className="text-sm text-blue-800 mb-2">
@@ -463,18 +422,18 @@ const Quotations = () => {
               <div className="bg-slate-50 p-4 rounded-lg space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">Company:</span>
-                  <span className="text-sm font-semibold">{selectedQuotation.customer_name}</span>
+                  <span className="text-sm font-semibold">{getSelectedQuotation().customer_name}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">Passports:</span>
-                  <span className="text-sm font-semibold">{selectedQuotation.number_of_vouchers || '-'}</span>
+                  <span className="text-sm font-semibold">{getSelectedQuotation().number_of_vouchers || '-'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">Subtotal:</span>
                   <span className="text-sm font-semibold">
                     {(() => {
-                      const total = parseFloat(selectedQuotation.total_amount) || 0;
-                      const subtotal = parseFloat(selectedQuotation.subtotal) || (total / 1.10);
+                      const total = parseFloat(getSelectedQuotation().total_amount) || 0;
+                      const subtotal = parseFloat(getSelectedQuotation().subtotal) || (total / 1.10);
                       return formatPGK(subtotal);
                     })()}
                   </span>
@@ -483,8 +442,8 @@ const Quotations = () => {
                   <span className="text-sm text-slate-600">GST (10%):</span>
                   <span className="text-sm font-semibold">
                     {(() => {
-                      const total = parseFloat(selectedQuotation.total_amount) || 0;
-                      const gst = parseFloat(selectedQuotation.gst_amount) || (total - total / 1.10);
+                      const total = parseFloat(getSelectedQuotation().total_amount) || 0;
+                      const gst = parseFloat(getSelectedQuotation().gst_amount) || (total - total / 1.10);
                       return formatPGK(gst);
                     })()}
                   </span>
@@ -492,7 +451,7 @@ const Quotations = () => {
                 <div className="flex justify-between border-t pt-2">
                   <span className="text-sm font-bold">Total Amount:</span>
                   <span className="text-sm font-bold text-emerald-600">
-                    {formatPGK(parseFloat(selectedQuotation.total_amount) || 0)}
+                    {formatPGK(parseFloat(getSelectedQuotation().total_amount) || 0)}
                   </span>
                 </div>
               </div>
@@ -519,8 +478,7 @@ const Quotations = () => {
             <Button
               variant="outline"
               onClick={() => {
-                setInvoiceModalOpen(false);
-                setSelectedQuotation(null);
+                setInvoiceDialogOpen(false);
                 setDueDays(30);
               }}
               disabled={convertingToInvoice}
@@ -528,42 +486,7 @@ const Quotations = () => {
               Cancel
             </Button>
             <Button
-              onClick={async () => {
-                try {
-                  setConvertingToInvoice(true);
-
-                  const result = await convertQuotationToInvoice({
-                    quotation_id: selectedQuotation.id,
-                    due_days: dueDays
-                  });
-
-                  // Close modal first
-                  setInvoiceModalOpen(false);
-                  setSelectedQuotation(null);
-                  setDueDays(30);
-
-                  // Reload data
-                  await loadQuotations();
-                  await loadStatistics();
-
-                  // Show success message
-                  toast({
-                    title: 'Invoice Created!',
-                    description: `Invoice ${result.invoice?.invoice_number || 'INV-XXXXX'} created successfully`
-                  });
-
-                  // Navigate to invoices page
-                  navigate('/invoices');
-                } catch (error) {
-                  toast({
-                    variant: 'destructive',
-                    title: 'Conversion Failed',
-                    description: error.response?.data?.error || 'Failed to create invoice'
-                  });
-                } finally {
-                  setConvertingToInvoice(false);
-                }
-              }}
+              onClick={handleConvertToInvoice}
               disabled={convertingToInvoice}
               className="bg-blue-600 hover:bg-blue-700"
             >
@@ -573,80 +496,14 @@ const Quotations = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Send Quotation Dialog (existing) */}
-      <Dialog open={sendOpen} onOpenChange={setSendOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Send Quotation</DialogTitle>
-            <DialogDescription>Enter the quotation ID and recipient email address.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3">
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Quotation ID</label>
-              <Input value={quotationId} onChange={(e) => setQuotationId(e.target.value)} placeholder="e.g. 1024" />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Recipient Email</label>
-              <Input type="email" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="client@example.com" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSendOpen(false)} disabled={sending}>Cancel</Button>
-            <Button
-              disabled={sending}
-              onClick={async () => {
-                if (!quotationId || !recipient) {
-                  toast({ variant: 'destructive', title: 'Missing data', description: 'Provide quotation ID and recipient email.' });
-                  return;
-                }
-                setSending(true);
-                try {
-                  // Call backend API to send quotation email
-                  const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://greenpay.eywademo.cloud/api'}/quotations/send-email`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${localStorage.getItem('greenpay_auth_token')}`
-                    },
-                    body: JSON.stringify({
-                      quotationId: quotationId,
-                      recipientEmail: recipient
-                    })
-                  });
-
-                  if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to send quotation');
-                  }
-
-                  const result = await response.json();
-
-                  toast({
-                    title: 'Quotation sent successfully!',
-                    description: `Email sent to ${recipient}`
-                  });
-                  setSendOpen(false);
-
-                  // Reload quotations to show updated status
-                  loadQuotations();
-                  loadStatistics();
-                } catch (e) {
-                  console.error('Send quotation error:', e);
-                  toast({
-                    variant: 'destructive',
-                    title: 'Send failed',
-                    description: e?.message || 'Unable to send quotation.'
-                  });
-                } finally {
-                  setSending(false);
-                }
-              }}
-            >
-              {sending ? 'Sending…' : 'Send'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* PDF Download Dialog */}
+      {pdfDialogOpen && getSelectedQuotation() && (
+        <QuotationPDF
+          quotation={getSelectedQuotation()}
+          isOpen={pdfDialogOpen}
+          onClose={() => setPdfDialogOpen(false)}
+        />
+      )}
     </motion.div>
     </main>
   );

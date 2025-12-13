@@ -44,7 +44,7 @@ const EditPassport = () => {
           title: 'Passport Not Found',
           description: 'The requested passport could not be found.',
         });
-        navigate('/passports');
+        navigate('/app/passports');
         return;
       }
 
@@ -111,7 +111,7 @@ const EditPassport = () => {
           title: 'Success',
           description: 'Passport updated successfully!',
         });
-        navigate('/passports');
+        navigate('/app/passports');
       } else {
         throw new Error(result.error || 'Failed to update passport');
       }
@@ -151,7 +151,7 @@ const EditPassport = () => {
         </div>
         <Button
           variant="outline"
-          onClick={() => navigate('/passports')}
+          onClick={() => navigate('/app/passports')}
         >
           ← Back to Passports
         </Button>
@@ -325,7 +325,7 @@ const EditPassport = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate('/passports')}
+              onClick={() => navigate('/app/passports')}
               disabled={saving}
             >
               Cancel

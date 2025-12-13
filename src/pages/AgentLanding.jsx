@@ -252,14 +252,14 @@ const AgentLanding = () => {
             </p>
             <div className="flex justify-center gap-4">
               <Button
-                onClick={() => navigate('/passports')}
+                onClick={() => navigate('/app/passports')}
                 className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-8 py-3"
               >
                 Start with Passports
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate('/payments')}
+                onClick={() => navigate('/app/payments')}
                 className="px-8 py-3"
               >
                 Process Payment
