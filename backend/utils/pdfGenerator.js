@@ -156,13 +156,15 @@ async function generateVoucherPDF(voucher) {
       const contentWidth = pageWidth - (margin * 2);
 
       // Logo placeholders (circles at top)
+      // TODO: To add CCDA logo, download https://ccda.gov.pg/wp-content/uploads/2025/01/ccda-logo.jpeg
+      // and save to server, then use: doc.image('/path/to/ccda-logo.jpeg', leftLogoX - logoRadius, logoY - logoRadius, { width: logoRadius * 2, height: logoRadius * 2, fit: [logoRadius * 2, logoRadius * 2] });
       const logoY = 80;
       const logoRadius = 50;
       const logoSpacing = 120;
       const leftLogoX = (pageWidth / 2) - logoSpacing;
       const rightLogoX = (pageWidth / 2) + logoSpacing;
 
-      // Left logo placeholder
+      // Left logo placeholder (CCDA Logo)
       doc.circle(leftLogoX, logoY, logoRadius)
          .lineWidth(1)
          .dash(5, { space: 3 })
@@ -171,7 +173,7 @@ async function generateVoucherPDF(voucher) {
       doc.fontSize(8)
          .fillColor('#999999')
          .font('Helvetica')
-         .text('PNG Govt Logo', leftLogoX - 30, logoY - 5, { width: 60, align: 'center' });
+         .text('CCDA Logo', leftLogoX - 30, logoY - 5, { width: 60, align: 'center' });
 
       // Right logo placeholder
       doc.circle(rightLogoX, logoY, logoRadius)
@@ -223,7 +225,31 @@ async function generateVoucherPDF(voucher) {
          .font('Helvetica-Bold')
          .text(voucherCode, 0, yPos, { width: pageWidth - margin - 20, align: 'right' });
 
-      // Barcode (if provided as data URL)
+      // Passport Info (if registered)
+      yPos += 50;
+      const passportNumber = voucher.passport_number || null;
+      if (passportNumber) {
+        // Draw green border rectangle
+        doc.rect(margin + 50, yPos, contentWidth - 100, 60)
+           .lineWidth(2)
+           .stroke('#4CAF50');
+
+        // Passport label
+        doc.fontSize(12)
+           .fillColor('#666666')
+           .font('Helvetica-Bold')
+           .text('REGISTERED PASSPORT', margin, yPos + 15, { width: contentWidth, align: 'center' });
+
+        // Passport number
+        doc.fontSize(18)
+           .fillColor('#000000')
+           .font('Courier-Bold')
+           .text(passportNumber, margin, yPos + 35, { width: contentWidth, align: 'center' });
+
+        yPos += 70;
+      }
+
+      // Barcode (if provided as data URL) - BIGGER for easier scanning
       yPos += 60;
       if (voucher.barcode) {
         try {
@@ -231,12 +257,13 @@ async function generateVoucherPDF(voucher) {
           const base64Data = voucher.barcode.replace(/^data:image\/png;base64,/, '');
           const imageBuffer = Buffer.from(base64Data, 'base64');
 
-          // Center the barcode
-          const barcodeWidth = 350;
+          // Center the barcode - INCREASED SIZE
+          const barcodeWidth = 450;  // Increased from 350
+          const barcodeHeight = 120; // Increased from 90
           const barcodeX = (pageWidth - barcodeWidth) / 2;
-          doc.image(imageBuffer, barcodeX, yPos, { width: barcodeWidth, height: 90 });
+          doc.image(imageBuffer, barcodeX, yPos, { width: barcodeWidth, height: barcodeHeight });
 
-          yPos += 110;
+          yPos += 140;
         } catch (err) {
           console.error('Error adding barcode to PDF:', err);
           yPos += 20;
@@ -269,20 +296,23 @@ async function generateVoucherPDF(voucher) {
       // Footer content
       yPos += 20;
 
-      // Left side: Authorizing Officer
-      const authorizingOfficer = voucher.created_by_name || 'AUTHORIZED OFFICER';
-      doc.fontSize(14)
-         .fillColor('#000000')
-         .font('Helvetica-Bold')
-         .text(authorizingOfficer.toUpperCase(), margin, yPos);
+      // Left side: Authorizing Officer (only if issued by staff)
+      const showAuthorizingOfficer = voucher.created_by_name && voucher.created_by_name !== 'AUTHORIZED OFFICER';
+      if (showAuthorizingOfficer) {
+        const authorizingOfficer = voucher.created_by_name;
+        doc.fontSize(14)
+           .fillColor('#000000')
+           .font('Helvetica-Bold')
+           .text(authorizingOfficer.toUpperCase(), margin, yPos);
 
-      doc.fontSize(11)
-         .fillColor('#666666')
-         .font('Helvetica')
-         .text('Authorizing Officer', margin, yPos + 18);
+        doc.fontSize(11)
+           .fillColor('#666666')
+           .font('Helvetica')
+           .text('Authorizing Officer', margin, yPos + 18);
+      }
 
       // Right side: Generation timestamp
-      const generationDate = new Date(voucher.created_at || new Date());
+      const generationDate = new Date(voucher.created_at || voucher.issued_date || new Date());
       const dateOptions = {
         year: 'numeric',
         month: 'long',
@@ -308,4 +338,276 @@ async function generateVoucherPDF(voucher) {
   });
 }
 
-module.exports = { generateInvoicePDF, generateVoucherPDF };
+/**
+ * Generate Quotation PDF
+ * @param {Object} quotation - Quotation data
+ * @returns {Promise<Buffer>} PDF buffer
+ */
+async function generateQuotationPDF(quotation) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const buffers = [];
+
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
+
+      const pageWidth = 595.28; // A4 width in points
+      const pageHeight = 841.89; // A4 height in points
+      const margin = 50;
+      const contentWidth = pageWidth - (margin * 2);
+
+      let yPos = margin;
+
+      // Header - QUOTATION Title
+      doc.fontSize(24)
+         .font('Helvetica-Bold')
+         .fillColor('#2c5530')
+         .text('QUOTATION', margin, yPos, { width: contentWidth, align: 'center' });
+
+      yPos += 30;
+
+      // Header line
+      doc.strokeColor('#66b958')
+         .lineWidth(1)
+         .moveTo(margin, yPos)
+         .lineTo(pageWidth - margin, yPos)
+         .stroke();
+
+      yPos += 15;
+
+      // Quotation details
+      doc.fontSize(10)
+         .fillColor('#666666')
+         .font('Helvetica-Bold')
+         .text('Quotation #:', margin, yPos);
+      doc.font('Helvetica')
+         .text(quotation.quotation_number || 'N/A', margin + 50, yPos);
+
+      yPos += 12;
+
+      doc.font('Helvetica-Bold')
+         .text('Date:', margin, yPos);
+      doc.font('Helvetica')
+         .text(quotation.created_at ? new Date(quotation.created_at).toLocaleDateString() : new Date().toLocaleDateString(), margin + 50, yPos);
+
+      yPos += 20;
+
+      // Two-column layout: FROM and TO
+      const leftColX = margin;
+      const rightColX = pageWidth / 2 + 5;
+      const colStartY = yPos;
+
+      // FROM Section
+      doc.rect(leftColX, colStartY, (pageWidth / 2) - margin - 10, 45)
+         .fill('#f8f9fa')
+         .stroke('#66b958');
+
+      doc.fontSize(9)
+         .fillColor('#2c5530')
+         .font('Helvetica-Bold')
+         .text('QUOTATION FROM:', leftColX + 5, colStartY + 5);
+
+      doc.fontSize(8)
+         .fillColor('#666666')
+         .font('Helvetica-Bold')
+         .text('Climate Change & Development Authority', leftColX + 5, colStartY + 12);
+
+      doc.font('Helvetica')
+         .text('Email: enquiries@ccda.gov.pg / png.greenfees@ccda.gov.pg', leftColX + 5, colStartY + 18)
+         .text('Phone: +675 7700 7513 / +675 7700 7836', leftColX + 5, colStartY + 24)
+         .text('Port Moresby, Papua New Guinea', leftColX + 5, colStartY + 30);
+
+      if (quotation.created_by_name) {
+        doc.font('Helvetica-Bold')
+           .fillColor('#2c5530')
+           .text('Issued By:', leftColX + 5, colStartY + 36);
+        doc.font('Helvetica')
+           .fillColor('#666666')
+           .text(quotation.created_by_name, leftColX + 50, colStartY + 36);
+      }
+
+      // TO Section
+      doc.rect(rightColX, colStartY, (pageWidth / 2) - margin - 10, 45)
+         .fill('#f8f9fa')
+         .stroke('#66b958');
+
+      doc.fontSize(9)
+         .fillColor('#2c5530')
+         .font('Helvetica-Bold')
+         .text('QUOTATION TO:', rightColX + 5, colStartY + 5);
+
+      doc.fontSize(8)
+         .fillColor('#666666')
+         .font('Helvetica-Bold')
+         .text(quotation.customer_name || quotation.company_name || 'N/A', rightColX + 5, colStartY + 12);
+
+      doc.font('Helvetica')
+         .text(`Email: ${quotation.customer_email || quotation.contact_email || 'N/A'}`, rightColX + 5, colStartY + 18);
+
+      if (quotation.contact_phone || quotation.customer_phone) {
+        doc.text(`Phone: ${quotation.contact_phone || quotation.customer_phone}`, rightColX + 5, colStartY + 24);
+      }
+
+      doc.font('Helvetica-Bold')
+         .text('Valid Until:', rightColX + 5, colStartY + 30);
+      doc.font('Helvetica')
+         .text(quotation.valid_until ? new Date(quotation.valid_until).toLocaleDateString() : 'N/A', rightColX + 50, colStartY + 30);
+
+      yPos = colStartY + 55;
+
+      // Services Table Header
+      doc.rect(margin, yPos, contentWidth, 12)
+         .fill('#66b958')
+         .stroke('#66b958');
+
+      doc.fontSize(9)
+         .fillColor('#ffffff')
+         .font('Helvetica-Bold')
+         .text('SERVICE DESCRIPTION', margin + 5, yPos + 6)
+         .text('QUANTITY', pageWidth - margin - 150, yPos + 6)
+         .text('UNIT PRICE', pageWidth - margin - 90, yPos + 6, { align: 'right' })
+         .text('AMOUNT', pageWidth - margin - 5, yPos + 6, { align: 'right' });
+
+      yPos += 12;
+
+      // Service Row
+      doc.rect(margin, yPos, contentWidth, 25)
+         .fill('#ffffff')
+         .stroke('#66b958');
+
+      const unitPrice = parseFloat(quotation.unit_price || quotation.amount_per_passport || quotation.price_per_passport || 0);
+      const quantity = quotation.number_of_vouchers || quotation.number_of_passports || 0;
+      const lineTotal = parseFloat(quotation.line_total || quotation.total_amount || 0);
+
+      doc.fontSize(9)
+         .fillColor('#666666')
+         .font('Helvetica-Bold')
+         .text('Green Fee Vouchers', margin + 5, yPos + 5);
+
+      doc.fontSize(8)
+         .font('Helvetica')
+         .text(`${quantity}`, pageWidth - margin - 150, yPos + 8)
+         .text(`K ${unitPrice.toFixed(2)}`, pageWidth - margin - 90, yPos + 8, { align: 'right' })
+         .text(`K ${lineTotal.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, { align: 'right' });
+
+      yPos += 30;
+
+      // Totals
+      const subtotal = parseFloat(quotation.subtotal || lineTotal || 0);
+      const discountAmount = parseFloat(quotation.discount_amount || 0);
+      const discountPercentage = parseFloat(quotation.discount_percentage || quotation.discount || 0);
+      const gstRate = parseFloat(quotation.gst_rate || quotation.tax_percentage || 10);
+      const gstAmount = parseFloat(quotation.gst_amount || quotation.tax_amount || (subtotal - discountAmount) * (gstRate / 100));
+      const totalAmount = parseFloat(quotation.total_amount || quotation.amount_after_discount || subtotal - discountAmount + gstAmount);
+
+      // Subtotal
+      doc.fontSize(9)
+         .fillColor('#666666')
+         .font('Helvetica-Bold')
+         .text('Subtotal:', pageWidth - margin - 90, yPos)
+         .font('Helvetica')
+         .text(`K ${subtotal.toFixed(2)}`, pageWidth - margin - 5, yPos, { align: 'right' });
+
+      yPos += 15;
+
+      // Discount
+      if (discountAmount > 0) {
+        doc.font('Helvetica-Bold')
+           .text(`Discount (${discountPercentage}%):`, pageWidth - margin - 90, yPos)
+           .font('Helvetica')
+           .text(`-K ${discountAmount.toFixed(2)}`, pageWidth - margin - 5, yPos, { align: 'right' });
+        yPos += 15;
+      }
+
+      // GST
+      doc.font('Helvetica-Bold')
+         .text(`GST (${gstRate}%):`, pageWidth - margin - 90, yPos)
+         .font('Helvetica')
+         .text(`K ${gstAmount.toFixed(2)}`, pageWidth - margin - 5, yPos, { align: 'right' });
+
+      yPos += 15;
+
+      // Total
+      doc.rect(pageWidth - margin - 90, yPos, 85, 15)
+         .fill('#2c5530')
+         .stroke('#2c5530');
+
+      doc.fontSize(11)
+         .fillColor('#ffffff')
+         .font('Helvetica-Bold')
+         .text('TOTAL:', pageWidth - margin - 85, yPos + 8)
+         .text(`K ${totalAmount.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, { align: 'right' });
+
+      yPos += 30;
+
+      // Payment terms if provided
+      if (quotation.payment_terms) {
+        doc.fontSize(9)
+           .fillColor('#2c5530')
+           .font('Helvetica-Bold')
+           .text('Payment Terms:', margin, yPos);
+        doc.fontSize(8)
+           .fillColor('#666666')
+           .font('Helvetica')
+           .text(quotation.payment_terms, margin, yPos + 12, { width: contentWidth });
+        yPos += 30;
+      }
+
+      // Notes if provided
+      if (quotation.notes || quotation.description) {
+        doc.fontSize(9)
+           .fillColor('#2c5530')
+           .font('Helvetica-Bold')
+           .text('Notes:', margin, yPos);
+        doc.fontSize(8)
+           .fillColor('#666666')
+           .font('Helvetica')
+           .text(quotation.notes || quotation.description, margin, yPos + 12, { width: contentWidth });
+      }
+
+      // Footer
+      yPos = pageHeight - 60;
+
+      doc.fontSize(8)
+         .fillColor('#666666')
+         .font('Helvetica-Italic')
+         .text('Thank you for your business!', margin, yPos, { width: contentWidth, align: 'center' });
+
+      // Signature box
+      doc.rect(pageWidth - margin - 80, yPos - 15, 80, 35)
+         .stroke('#2c5530');
+
+      doc.fontSize(7)
+         .fillColor('#2c5530')
+         .font('Helvetica-Bold')
+         .text('Authorized Signature:', pageWidth - margin - 75, yPos - 10);
+
+      doc.strokeColor('#666666')
+         .lineWidth(0.3)
+         .moveTo(pageWidth - margin - 75, yPos)
+         .lineTo(pageWidth - margin - 10, yPos)
+         .stroke();
+
+      if (quotation.created_by_name) {
+        doc.fontSize(8)
+           .fillColor('#2c5530')
+           .font('Helvetica-Bold')
+           .text(quotation.created_by_name, pageWidth - margin - 40, yPos + 5, { align: 'center' });
+      }
+
+      doc.fontSize(6)
+         .fillColor('#666666')
+         .font('Helvetica-Italic')
+         .text('Issuing Officer', pageWidth - margin - 40, yPos + 15, { align: 'center' })
+         .text('Climate Change & Development Authority', pageWidth - margin - 40, yPos + 20, { align: 'center' });
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+module.exports = { generateInvoicePDF, generateVoucherPDF, generateQuotationPDF };

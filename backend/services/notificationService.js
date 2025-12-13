@@ -254,11 +254,18 @@ async function sendQuotationEmail(recipientEmail, quotation) {
     quotation_number,
     customer_name,
     customer_email,
+    company_name,
+    contact_person,
+    contact_email,
     description,
     number_of_vouchers,
+    number_of_passports,
     unit_price,
+    amount_per_passport,
+    price_per_passport,
     line_total,
     discount_percentage,
+    discount,
     discount_amount,
     subtotal,
     tax_percentage,
@@ -266,17 +273,53 @@ async function sendQuotationEmail(recipientEmail, quotation) {
     gst_rate,
     gst_amount,
     total_amount,
+    amount_after_discount,
     valid_until,
     payment_terms,
     created_by_name
   } = quotation;
 
-  const publicUrl = process.env.PUBLIC_URL || 'https://greenpay.eywademo.cloud';
+  // Use the client name from the quotation
+  const clientName = customer_name || company_name || contact_person || 'Valued Customer';
+
+  // Generate PDF attachment
+  const { generateQuotationPDF } = require('../utils/pdfGenerator');
+  let pdfBuffer;
+  try {
+    pdfBuffer = await generateQuotationPDF(quotation);
+    console.log('✅ Quotation PDF generated successfully');
+  } catch (error) {
+    console.error('⚠️ Failed to generate quotation PDF:', error);
+    // Continue without PDF if generation fails
+    pdfBuffer = null;
+  }
+
+  // Check if SMTP is configured
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+    throw new Error('Email service not configured');
+  }
+
+  const nodemailer = require('nodemailer');
+
+  // Create SMTP transporter
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    }
+  });
+
+  // Verify connection
+  await transporter.verify();
+  console.log('✅ SMTP connection verified');
 
   // Email subject
-  const emailSubject = `Quotation ${quotation_number} from PNG Green Fees`;
+  const emailSubject = `Quotation ${quotation_number} - Climate Change and Development Authority`;
 
-  // Email HTML
+  // Email HTML - Using template text from Share Quotation document
   const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -286,114 +329,47 @@ async function sendQuotationEmail(recipientEmail, quotation) {
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 700px; margin: 0 auto; padding: 20px; }
     .header { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-    .content { background: #f9fafb; padding: 30px; }
-    .quotation-header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-    .quotation-info { display: flex; justify-content: space-between; margin-bottom: 10px; }
-    .items-table { width: 100%; background: white; border-collapse: collapse; margin: 20px 0; border-radius: 8px; overflow: hidden; }
-    .items-table th { background: #059669; color: white; padding: 12px; text-align: left; }
-    .items-table td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
-    .totals-table { width: 100%; max-width: 400px; margin-left: auto; background: white; padding: 15px; border-radius: 8px; }
-    .totals-table tr td { padding: 8px; }
-    .totals-table tr.total td { font-weight: bold; font-size: 18px; border-top: 2px solid #059669; padding-top: 12px; }
-    .highlight { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
-    .button { display: inline-block; background: #059669; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; margin: 10px 0; font-weight: bold; }
+    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+    .message { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669; }
     .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 30px; padding: 20px; border-top: 1px solid #e5e7eb; }
+    .contact-info { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>🌿 PNG Green Fees System</h1>
-      <p>Official Quotation</p>
+      <h1 style="margin: 0;">PNG Green Fees System</h1>
+      <p style="margin: 10px 0 0 0; opacity: 0.9;">Climate Change and Development Authority</p>
     </div>
     <div class="content">
-      <div class="quotation-header">
-        <h2 style="margin: 0 0 20px 0; color: #059669;">Quotation ${quotation_number}</h2>
-        <div class="quotation-info">
-          <div>
-            <strong>To:</strong> ${customer_name || 'Valued Customer'}<br>
-            ${customer_email ? `<strong>Email:</strong> ${customer_email}<br>` : ''}
-          </div>
-          <div style="text-align: right;">
-            <strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}<br>
-            ${valid_until ? `<strong>Valid Until:</strong> ${new Date(valid_until).toLocaleDateString('en-GB')}<br>` : ''}
-            ${created_by_name ? `<strong>Prepared By:</strong> ${created_by_name}` : ''}
-          </div>
-        </div>
-        ${description ? `<p style="margin-top: 15px;"><strong>Description:</strong> ${description}</p>` : ''}
+      <p>Dear ${clientName},</p>
+      
+      <div class="message">
+        <p>Thank you for your interest in our services. Please find attached your quotation for your review.</p>
+        
+        <p>This quotation includes all the details regarding the services requested, pricing information, terms and conditions, and validity period.</p>
+        
+        <p>Please review the attached document carefully. If you have any questions or require any modifications, please don't hesitate to contact us.</p>
+        
+        <p>We look forward to the opportunity to serve you and appreciate your consideration of our services.</p>
+        
+        <p>Thank you for your business.</p>
       </div>
 
-      <table class="items-table">
-        <thead>
-          <tr>
-            <th>Description</th>
-            <th style="text-align: center;">Quantity</th>
-            <th style="text-align: right;">Unit Price</th>
-            <th style="text-align: right;">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Green Fee Vouchers</td>
-            <td style="text-align: center;">${number_of_vouchers || 1}</td>
-            <td style="text-align: right;">K ${parseFloat(unit_price || 0).toFixed(2)}</td>
-            <td style="text-align: right;">K ${parseFloat(line_total || subtotal || 0).toFixed(2)}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <table class="totals-table">
-        <tr>
-          <td>Subtotal:</td>
-          <td style="text-align: right;">K ${parseFloat(subtotal || 0).toFixed(2)}</td>
-        </tr>
-        ${discount_amount > 0 ? `
-        <tr>
-          <td>Discount (${discount_percentage || 0}%):</td>
-          <td style="text-align: right; color: #dc2626;">-K ${parseFloat(discount_amount).toFixed(2)}</td>
-        </tr>
-        ` : ''}
-        <tr>
-          <td>GST (${gst_rate || tax_percentage || 10}%):</td>
-          <td style="text-align: right;">K ${parseFloat(gst_amount || tax_amount || 0).toFixed(2)}</td>
-        </tr>
-        <tr class="total">
-          <td>Total Amount:</td>
-          <td style="text-align: right; color: #059669;">K ${parseFloat(total_amount || 0).toFixed(2)}</td>
-        </tr>
-      </table>
-
-      ${payment_terms ? `
-      <div class="highlight">
-        <p><strong>Payment Terms:</strong> ${payment_terms}</p>
-      </div>
-      ` : ''}
-
-      <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="color: #059669; margin-top: 0;">What's Included:</h3>
-        <ul style="line-height: 2;">
-          <li>${number_of_vouchers || 1} Green Fee Voucher${(number_of_vouchers || 1) > 1 ? 's' : ''}</li>
-          <li>Valid for ${valid_until ? `use until ${new Date(valid_until).toLocaleDateString('en-GB')}` : '30 days from purchase'}</li>
-          <li>Online passport registration portal access</li>
-          <li>Email confirmation for each voucher</li>
-          <li>Customer support throughout the process</li>
-        </ul>
-      </div>
-
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="${publicUrl}/buy-voucher" class="button">Purchase Online Now</a>
-      </div>
-
-      <div class="highlight">
-        <p><strong>Questions about this quotation?</strong></p>
-        <p>Contact us at support@greenpay.gov.pg or call +675 XXX XXXX</p>
+      <div class="contact-info">
+        <p style="margin: 0;"><strong>Best regards,</strong></p>
+        <p style="margin: 5px 0 0 0;"><strong>Climate Change and Development Authority</strong></p>
+        <p style="margin: 10px 0 0 0;">
+          Email: <a href="mailto:enquiries@ccda.gov.pg">enquiries@ccda.gov.pg</a> / <a href="mailto:png.greenfees@ccda.gov.pg">png.greenfees@ccda.gov.pg</a><br>
+          Phone: +675 7700 7513 / +675 7700 7836
+        </p>
       </div>
 
       <div class="footer">
         <p><strong>PNG Green Fees System</strong></p>
-        <p>Papua New Guinea Immigration & Citizenship Authority</p>
-        <p>This quotation was sent to: ${recipientEmail}</p>
-        <p style="margin-top: 10px;">© 2025 PNG Green Fees System. All rights reserved.</p>
+        <p>Climate Change and Development Authority</p>
+        <p style="margin-top: 10px;">© ${new Date().getFullYear()} PNG Green Fees System. All rights reserved.</p>
+        <p>This is an automated email. Please do not reply to this message.</p>
       </div>
     </div>
   </div>
@@ -403,42 +379,56 @@ async function sendQuotationEmail(recipientEmail, quotation) {
 
   // Email plain text version
   const emailText = `
-PNG GREEN FEES SYSTEM
-Official Quotation
+Dear ${clientName},
 
-QUOTATION: ${quotation_number}
-DATE: ${new Date().toLocaleDateString('en-GB')}
-${valid_until ? `VALID UNTIL: ${new Date(valid_until).toLocaleDateString('en-GB')}` : ''}
+Thank you for your interest in our services. Please find attached your quotation for your review.
 
-TO: ${customer_name || 'Valued Customer'}
-${customer_email ? `EMAIL: ${customer_email}` : ''}
+This quotation includes all the details regarding the services requested, pricing information, terms and conditions, and validity period.
 
-${description ? `\nDESCRIPTION:\n${description}\n` : ''}
+Please review the attached document carefully. If you have any questions or require any modifications, please don't hesitate to contact us.
 
-ITEMS:
-- Green Fee Vouchers × ${number_of_vouchers || 1}
-  Unit Price: K ${parseFloat(unit_price || 0).toFixed(2)}
-  Amount: K ${parseFloat(line_total || subtotal || 0).toFixed(2)}
+We look forward to the opportunity to serve you and appreciate your consideration of our services.
 
-SUMMARY:
-Subtotal: K ${parseFloat(subtotal || 0).toFixed(2)}
-${discount_amount > 0 ? `Discount (${discount_percentage || 0}%): -K ${parseFloat(discount_amount).toFixed(2)}\n` : ''}GST (${gst_rate || tax_percentage || 10}%): K ${parseFloat(gst_amount || tax_amount || 0).toFixed(2)}
-TOTAL AMOUNT: K ${parseFloat(total_amount || 0).toFixed(2)}
+Thank you for your business.
 
-${payment_terms ? `\nPAYMENT TERMS: ${payment_terms}\n` : ''}
+Best regards,
+Climate Change and Development Authority
+Email: enquiries@ccda.gov.pg / png.greenfees@ccda.gov.pg
+Phone: +675 7700 7513 / +675 7700 7836
 
-To purchase online, visit: ${publicUrl}/buy-voucher
-
-Questions? Contact support@greenpay.gov.pg or call +675 XXX XXXX
-
-© 2025 PNG Green Fees System
+© ${new Date().getFullYear()} PNG Green Fees System. All rights reserved.
+This is an automated email. Please do not reply to this message.
   `;
+
+  // Prepare mail options
+  const mailOptions = {
+    from: process.env.SMTP_FROM || '"PNG Green Fees" <noreply@greenpay.gov.pg>',
+    to: recipientEmail,
+    subject: emailSubject,
+    text: emailText,
+    html: emailHtml
+  };
+
+  // Add PDF attachment if generated
+  if (pdfBuffer) {
+    mailOptions.attachments = [
+      {
+        filename: `Quotation_${quotation_number}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }
+    ];
+  }
 
   // Send the email
   try {
-    const result = await sendEmail(recipientEmail, emailSubject, emailHtml, emailText);
+    const result = await transporter.sendMail(mailOptions);
     console.log('✅ Quotation email sent successfully to:', recipientEmail);
-    return result;
+    return {
+      success: true,
+      provider: 'smtp',
+      messageId: result.messageId
+    };
   } catch (error) {
     console.error('❌ Failed to send quotation email:', error);
     throw error;

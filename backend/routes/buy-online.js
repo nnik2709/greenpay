@@ -491,7 +491,8 @@ router.post('/voucher/:sessionId/email', async (req, res) => {
       } : undefined
     });
 
-    // Send email
+    // Send email - Using Individual Purchase template text
+    const customerName = voucher.customer_name || 'Customer';
     const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -502,45 +503,65 @@ router.post('/voucher/:sessionId/email', async (req, res) => {
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
     .header { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
     .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-    .voucher-box { background: white; border: 2px solid #10b981; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
-    .voucher-code { font-size: 28px; font-weight: bold; color: #059669; font-family: monospace; letter-spacing: 2px; margin: 20px 0; }
-    .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 30px; }
+    .message { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669; }
+    .voucher-list { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+    .important { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+    .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 30px; padding: 20px; border-top: 1px solid #e5e7eb; }
+    .contact-info { background: #dcfce7; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>🌿 PNG Green Fees System</h1>
-      <p>Your Voucher is Ready!</p>
+      <h1 style="margin: 0;">PNG Green Fees System</h1>
+      <p style="margin: 10px 0 0 0; opacity: 0.9;">Climate Change and Development Authority</p>
     </div>
     <div class="content">
-      <h2>Payment Successful!</h2>
-      <p>Your green fee voucher has been generated and is attached to this email as a PDF.</p>
-
-      <div class="voucher-box">
-        <p><strong>Voucher Code</strong></p>
-        <div class="voucher-code">${voucher.voucher_code}</div>
-        <p><strong>Passport:</strong> ${voucher.passport_number}</p>
-        <p><strong>Amount:</strong> PGK ${voucher.amount}</p>
-        <p><strong>Valid Until:</strong> ${new Date(voucher.valid_until).toLocaleDateString('en-GB')}</p>
+      <p>Dear ${customerName},</p>
+      
+      <div class="message">
+        <p>Your passport voucher is attached to this email.</p>
       </div>
 
-      <h3>How to Use:</h3>
-      <ol>
-        <li>Download and print the attached PDF voucher</li>
-        <li>Present the voucher code or QR code at the entry checkpoint</li>
-        <li>Keep your passport with you for verification</li>
-      </ol>
+      <div class="voucher-list">
+        <p style="margin-top: 0;"><strong>Your Voucher Includes:</strong></p>
+        <ul style="margin-bottom: 0;">
+          <li>Passport information already linked to the voucher</li>
+          <li>Unique voucher code for redemption</li>
+          <li>Voucher value and validity details</li>
+          <li>QR code for easy processing</li>
+        </ul>
+      </div>
 
-      <div style="background: #dcfce7; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
-        <p><strong>✅ Your passport is already registered!</strong></p>
-        <p>You're all set. Just present this voucher when you travel.</p>
+      <div class="message">
+        <p style="margin-top: 0;"><strong>How to Use Your Voucher:</strong></p>
+        <ol style="margin-bottom: 0;">
+          <li>Present your voucher at the counter</li>
+          <li>Show valid identification</li>
+          <li>Your passport details are already linked</li>
+          <li>Complete your transaction</li>
+        </ol>
+      </div>
+
+      <div class="important">
+        <p style="margin-top: 0;"><strong>Important:</strong></p>
+        <ul style="margin-bottom: 0;">
+          <li>Keep your voucher safe</li>
+          <li>This voucher can only be used once</li>
+          <li>Bring valid ID when using the voucher</li>
+          <li>Contact us if you need help</li>
+        </ul>
+      </div>
+
+      <div class="contact-info">
+        <p style="margin: 0;">Thank you for choosing Climate Change and Development Authority.</p>
       </div>
 
       <div class="footer">
-        <p>This is an automated message from PNG Green Fees System</p>
-        <p>For support, contact: support@greenpay.gov.pg</p>
-        <p>© 2025 PNG Green Fees System. All rights reserved.</p>
+        <p><strong>PNG Green Fees System</strong></p>
+        <p>Climate Change and Development Authority</p>
+        <p style="margin-top: 10px;">© ${new Date().getFullYear()} PNG Green Fees System. All rights reserved.</p>
+        <p>This is an automated email. Please do not reply to this message.</p>
       </div>
     </div>
   </div>
@@ -549,24 +570,35 @@ router.post('/voucher/:sessionId/email', async (req, res) => {
     `;
 
     const emailText = `
-PNG GREEN FEES SYSTEM
-Your Voucher is Ready!
+Dear ${customerName},
 
-Payment Successful! Your green fee voucher is attached.
+Your passport voucher is attached to this email.
 
-VOUCHER CODE: ${voucher.voucher_code}
-Passport: ${voucher.passport_number}
-Amount: PGK ${voucher.amount}
-Valid Until: ${new Date(voucher.valid_until).toLocaleDateString('en-GB')}
+Your Voucher Includes
 
-HOW TO USE:
-1. Download and print the attached PDF voucher
-2. Present the voucher code or QR code at entry checkpoint
-3. Keep your passport with you for verification
+- Passport information already linked to the voucher
+- Unique voucher code for redemption
+- Voucher value and validity details
+- QR code for easy processing
 
-Your passport is already registered - you're all set!
+How to Use Your Voucher
 
-Need help? Contact support@greenpay.gov.pg
+1. Present your voucher at the counter
+2. Show valid identification
+3. Your passport details are already linked
+4. Complete your transaction
+
+Important
+
+- Keep your voucher safe
+- This voucher can only be used once
+- Bring valid ID when using the voucher
+- Contact us if you need help
+
+Thank you for choosing Climate Change and Development Authority.
+
+© ${new Date().getFullYear()} PNG Green Fees System. All rights reserved.
+This is an automated email. Please do not reply to this message.
     `;
 
     try {

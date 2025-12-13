@@ -245,45 +245,45 @@ router.get('/validate/:code',
       });
     }
 
-    // Check if corporate voucher is pending passport registration
+    // Check if corporate voucher is pending passport registration (Invalid)
     const actualStatus = voucherData.computed_status || voucherData.status;
     if (actualStatus === 'pending_passport') {
       return res.json({
         type: 'voucher',
-        status: 'error',
-        message: `Corporate voucher requires passport registration. Please visit /corporate-voucher-registration to register this voucher.`,
+        status: 'invalid',
+        message: 'INVALID - Voucher requires passport registration',
         data: { ...voucherData, voucherType, requiresRegistration: true }
       });
     }
 
-    // Check if voucher has been used
+    // Check if voucher has been used (Expired)
     if (voucherData.used_at) {
       const usedDate = new Date(voucherData.used_at).toLocaleDateString();
       return res.json({
         type: 'voucher',
-        status: 'error',
-        message: `${voucherType} voucher has already been used on ${usedDate}.`,
+        status: 'expired',
+        message: `EXPIRED - Voucher was already used on ${usedDate}`,
         data: { ...voucherData, voucherType }
       });
     }
 
-    // Check if voucher has expired
+    // Check if voucher has expired by date
     const now = new Date();
     const expiryDate = new Date(voucherData.valid_until);
     if (expiryDate < now) {
       return res.json({
         type: 'voucher',
-        status: 'error',
-        message: `${voucherType} voucher has expired on ${expiryDate.toLocaleDateString()}.`,
+        status: 'expired',
+        message: `EXPIRED - Voucher expired on ${expiryDate.toLocaleDateString()}`,
         data: { ...voucherData, voucherType }
       });
     }
 
-    // Voucher is valid
+    // Voucher is valid (Active with passport)
     return res.json({
       type: 'voucher',
-      status: 'success',
-      message: `${voucherType} voucher is valid and ready to use!`,
+      status: 'valid',
+      message: 'VALID - Voucher approved for entry',
       data: {
         ...voucherData,
         voucherType,
@@ -499,63 +499,78 @@ router.post('/email-vouchers', auth, checkRole('Flex_Admin', 'Finance_Manager', 
       });
     }
 
+    // Email HTML - Using Bulk Purchase template text
     const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
     .header { background: linear-gradient(135deg, #059669 0%, #14b8a6 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
     .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
     .footer { background: #f3f4f6; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-radius: 0 0 8px 8px; }
-    .voucher-summary { background: white; padding: 20px; border-left: 4px solid #059669; margin: 20px 0; }
-    .important { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
+    .message { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669; }
+    .voucher-list { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+    .important { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+    .contact-info { background: #dcfce7; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>PNG Green Fees</h1>
-      <p>Corporate Airport Exit Vouchers</p>
+      <h1 style="margin: 0;">PNG Green Fees System</h1>
+      <p style="margin: 10px 0 0 0; opacity: 0.9;">Climate Change and Development Authority</p>
     </div>
 
     <div class="content">
-      <h2>Dear ${companyName},</h2>
-      <p>Your corporate airport exit vouchers are ready! Please find them attached as a PDF document.</p>
-
-      <div class="voucher-summary">
-        <strong>Voucher Summary:</strong><br>
-        Total Vouchers: ${vouchers.length}<br>
-        Valid Until: ${new Date(vouchers[0].valid_until).toLocaleDateString()}<br>
-        Amount per Voucher: PGK ${parseFloat(vouchers[0].amount).toFixed(2)}
+      <p>Dear ${companyName},</p>
+      
+      <div class="message">
+        <p>Your passport vouchers are attached to this email.</p>
       </div>
 
-      <div class="important">
-        <strong>⚠️ Important Instructions:</strong>
-        <ol>
-          <li><strong>Print the attached PDF</strong> - Each voucher is on a separate page with a large QR code</li>
-          <li><strong>Distribute to employees</strong> - Give each employee their voucher page</li>
-          <li><strong>Present at airport exit</strong> - Show voucher QR code for scanning</li>
-          <li><strong>One-time use only</strong> - Each voucher can only be used ONCE</li>
-          <li><strong>Cannot be reused</strong> - Once scanned, the voucher is permanently deactivated</li>
+      <div class="voucher-list">
+        <p style="margin-top: 0;"><strong>Your Vouchers Include:</strong></p>
+        <ul style="margin-bottom: 0;">
+          <li>Passport information already linked to each voucher</li>
+          <li>Unique voucher codes for redemption</li>
+          <li>Voucher value and validity details</li>
+          <li>QR codes for easy processing</li>
+        </ul>
+      </div>
+
+      <div class="message">
+        <p style="margin-top: 0;"><strong>How to Use Your Vouchers:</strong></p>
+        <ol style="margin-bottom: 0;">
+          <li>Present your voucher at the counter</li>
+          <li>Show valid identification</li>
+          <li>Your passport details are already linked</li>
+          <li>Complete your transaction</li>
         </ol>
       </div>
 
-      <p><strong>How to Use:</strong></p>
-      <ul>
-        <li>Employee presents voucher at airport exit checkpoint</li>
-        <li>Airport staff scans the QR code</li>
-        <li>System validates the voucher (checks if not already used and not expired)</li>
-        <li>If valid, exit is approved and voucher is marked as used</li>
-      </ul>
+      <div class="important">
+        <p style="margin-top: 0;"><strong>Important:</strong></p>
+        <ul style="margin-bottom: 0;">
+          <li>Keep your vouchers safe</li>
+          <li>Each voucher can only be used once</li>
+          <li>Bring valid ID when using vouchers</li>
+          <li>Contact us if you need help</li>
+        </ul>
+      </div>
 
-      <p>If you have any questions, please contact our support team.</p>
-    </div>
+      <div class="contact-info">
+        <p style="margin: 0;">Thank you for choosing Climate Change and Development Authority.</p>
+      </div>
 
-    <div class="footer">
-      <p>&copy; ${new Date().getFullYear()} PNG Green Fees System. All rights reserved.</p>
-      <p>This is an automated email. Please do not reply.</p>
+      <div class="footer">
+        <p><strong>PNG Green Fees System</strong></p>
+        <p>Climate Change and Development Authority</p>
+        <p style="margin-top: 10px;">© ${new Date().getFullYear()} PNG Green Fees System. All rights reserved.</p>
+        <p>This is an automated email. Please do not reply to this message.</p>
+      </div>
     </div>
   </div>
 </body>
