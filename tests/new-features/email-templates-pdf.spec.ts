@@ -256,7 +256,7 @@ test.describe('Email Templates - Bulk Voucher Email with PDF', () => {
   test('should have email vouchers button in corporate vouchers', async ({ page }) => {
     const consoleChecker = await checkConsoleErrors(page);
 
-    await page.goto('/purchases/corporate-vouchers');
+    await page.goto('/app/payments/corporate-batch-history');
     await waitForPageLoad(page);
     await page.waitForTimeout(2000);
 
@@ -285,7 +285,7 @@ test.describe('Email Templates - Bulk Voucher Email with PDF', () => {
     const consoleChecker = await checkConsoleErrors(page);
     const networkChecker = await checkNetworkErrors(page);
 
-    await page.goto('/purchases/corporate-vouchers');
+    await page.goto('/app/payments/corporate-batch-history');
     await waitForPageLoad(page);
     await page.waitForTimeout(2000);
 
@@ -338,7 +338,7 @@ test.describe('Email Templates - Bulk Voucher Email with PDF', () => {
     // "How to Use Your Vouchers"
     // This is verified on backend when email is sent
 
-    await page.goto('/purchases/corporate-vouchers');
+    await page.goto('/app/payments/corporate-batch-history');
     await waitForPageLoad(page);
 
     console.log('✓ Bulk Purchase email template structure accessible');
@@ -488,7 +488,7 @@ test.describe('Email Templates - Console Error Verification', () => {
   test('no console errors when accessing voucher email', async ({ page }) => {
     const consoleChecker = await checkConsoleErrors(page);
 
-    await page.goto('/purchases/corporate-vouchers');
+    await page.goto('/app/payments/corporate-batch-history');
     await waitForPageLoad(page);
     await page.waitForTimeout(2000);
 

@@ -2,28 +2,27 @@ import { test, expect } from '@playwright/test';
 
 // Helper function to login
 async function login(page, email, password) {
-  await page.goto('/');
-  await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', password);
-  await page.click('button[type="submit"]');
+  await page.goto('/login');
+  await page.waitForLoadState('networkidle');
   
-  // Wait for appropriate landing page based on role
-  const isAgent = email.includes('agent@example.com');
-  if (isAgent) {
-    // Agents now go to base URL and see AgentLanding component
-    await page.waitForURL('**/', { timeout: 10000 });
-    await page.waitForSelector('h1:has-text("Counter Agent Portal")', { timeout: 10000 });
-  } else {
-    // Non-agents go to base URL and see Dashboard component
-    await page.waitForURL('**/', { timeout: 10000 });
-    await page.waitForSelector('h1:has-text("Dashboard")', { timeout: 10000 });
-  }
+  // Wait for email input to be visible
+  await page.waitForSelector('input#email', { state: 'visible', timeout: 10000 });
+  
+  await page.locator('input#email').fill(email);
+  await page.locator('input#password').fill(password);
+  await page.locator('button[type="submit"]').click();
+  
+  // Wait for navigation away from login page
+  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10000 });
+  
+  // Wait for page to load
+  await page.waitForLoadState('networkidle');
 }
 
 test.describe('Sample Data Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Login as admin before each test
-    await login(page, 'admin@example.com', 'admin123');
+    // Login as admin before each test (use correct email)
+    await login(page, 'flexadmin@greenpay.com', 'test123');
   });
 
   test('should display passports from sample data', async ({ page }) => {
