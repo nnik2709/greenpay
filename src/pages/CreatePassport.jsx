@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { useScannerInput } from '@/hooks/useScannerInput';
+import { NationalityCombobox } from '@/components/NationalityCombobox';
 
 const CreatePassport = ({ onSave }) => {
   const { toast } = useToast();

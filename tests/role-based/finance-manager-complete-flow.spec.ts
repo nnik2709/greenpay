@@ -219,10 +219,10 @@ test.describe('Finance Manager - Corporate Vouchers', () => {
   test('should access corporate vouchers', async ({ page }) => {
     const consoleChecker = await checkConsoleErrors(page);
     
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
-    await expect(page).toHaveURL('/purchases/corporate-exit-pass');
+    await expect(page).toHaveURL('/app/payments/corporate-exit-pass');
     console.log('✓ Finance Manager can access corporate vouchers');
 
     consoleChecker.assertNoErrors();
@@ -232,7 +232,7 @@ test.describe('Finance Manager - Corporate Vouchers', () => {
     const consoleChecker = await checkConsoleErrors(page);
     const networkChecker = await checkNetworkErrors(page);
     
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     // Fill form

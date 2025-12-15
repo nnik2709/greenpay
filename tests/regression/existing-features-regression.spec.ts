@@ -134,7 +134,7 @@ test.describe('Regression - Corporate Vouchers', () => {
   test('corporate voucher page loads', async ({ page }) => {
     const consoleChecker = await checkConsoleErrors(page);
 
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     await expect(page.locator('input[name="company_name"]')).toBeVisible();
@@ -147,7 +147,7 @@ test.describe('Regression - Corporate Vouchers', () => {
   test('corporate voucher form calculations work', async ({ page }) => {
     const consoleChecker = await checkConsoleErrors(page);
 
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     await page.fill('input[name="total_vouchers"]', '5');
@@ -396,7 +396,7 @@ test.describe('Regression - Overall System Health', () => {
       '/passports',
       '/passports/create',
       '/passports/bulk-upload',
-      '/purchases/corporate-exit-pass',
+      '/app/payments/corporate-exit-pass',
       '/quotations',
       '/reports',
       '/scan',

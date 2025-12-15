@@ -217,7 +217,7 @@ test.describe('Corporate Voucher Form - Complete Flow', () => {
   test('should validate company name', async ({ page }) => {
     const consoleChecker = await checkConsoleErrors(page);
     
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     // Try to submit without company name
@@ -232,7 +232,7 @@ test.describe('Corporate Voucher Form - Complete Flow', () => {
   test('should validate voucher quantity', async ({ page }) => {
     const consoleChecker = await checkConsoleErrors(page);
     
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     // Enter company name
@@ -251,7 +251,7 @@ test.describe('Corporate Voucher Form - Complete Flow', () => {
   test('should calculate total amount correctly', async ({ page }) => {
     const consoleChecker = await checkConsoleErrors(page);
     
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     // Fill form
@@ -270,7 +270,7 @@ test.describe('Corporate Voucher Form - Complete Flow', () => {
   test('should apply discount correctly', async ({ page }) => {
     const consoleChecker = await checkConsoleErrors(page);
     
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     await fillFormField(page, 'input[name="company_name"]', 'Discount Test');
@@ -290,7 +290,7 @@ test.describe('Corporate Voucher Form - Complete Flow', () => {
     const networkChecker = await checkNetworkErrors(page);
     const dbChecker = await checkDatabaseErrors(page);
     
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     // Fill complete form

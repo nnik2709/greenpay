@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { PlusCircle, CheckCircle, FileEdit } from 'lucide-react';
 
 const AgentLanding = () => {
   const navigate = useNavigate();
@@ -14,73 +15,58 @@ const AgentLanding = () => {
     navigate('/login');
   };
 
-  const steps = [
+  // 3 main actions for counter agents
+  const mainActions = [
     {
-      number: 1,
-      title: "Add Passport",
-      description: "Create new passport entries or search existing ones",
-      emoji: "👤",
-      color: "from-blue-500 to-blue-600",
+      id: 1,
+      title: "Add Passport & Generate Voucher",
+      description: "Add new passport, process payment, and print GREEN CARD voucher at your desk using POS barcode printer",
+      icon: PlusCircle,
+      iconColor: "text-emerald-600",
+      bgColor: "bg-emerald-50",
+      borderColor: "border-emerald-200",
+      hoverBg: "hover:bg-emerald-100",
+      path: "/app/passports/create",
+      emoji: "🆕",
+      benefits: [
+        "MRZ scanner or manual entry",
+        "Accept cash/card/EFTPOS payment",
+        "Print 8-character GREEN CARD instantly"
+      ]
+    },
+    {
+      id: 2,
+      title: "Validate Existing Voucher",
+      description: "Scan GREEN CARD voucher (corporate or online purchase) with USB barcode scanner to validate authenticity and status",
+      icon: CheckCircle,
+      iconColor: "text-blue-600",
       bgColor: "bg-blue-50",
       borderColor: "border-blue-200",
-      textColor: "text-blue-700",
-      actions: [
-        { label: "Create New Passport", path: "/passports/create" },
-        { label: "Search Passports", path: "/passports" },
-        { label: "Bulk Upload", path: "/passports/bulk-upload" }
+      hoverBg: "hover:bg-blue-100",
+      path: "/app/scan",
+      emoji: "✅",
+      benefits: [
+        "Scan 8-character barcode",
+        "Check voucher validity (12 months)",
+        "Verify passport data attached"
       ]
     },
     {
-      number: 2,
-      title: "Receive Payment",
-      description: "Process payments and record transactions",
-      emoji: "💳",
-      color: "from-green-500 to-green-600",
-      bgColor: "bg-green-50",
-      borderColor: "border-green-200",
-      textColor: "text-green-700",
-      actions: [
-        { label: "Process Payment", path: "/payments" },
-        { label: "Scan & Validate", path: "/scan" }
-      ]
-    },
-    {
-      number: 3,
-      title: "Print & Validate",
-      description: "Generate vouchers and validate transactions",
-      emoji: "🖨️",
-      color: "from-purple-500 to-purple-600",
+      id: 3,
+      title: "Add Passport to Voucher",
+      description: "Add passport details to existing voucher (if purchased without passport data), then print complete GREEN CARD",
+      icon: FileEdit,
+      iconColor: "text-purple-600",
       bgColor: "bg-purple-50",
       borderColor: "border-purple-200",
-      textColor: "text-purple-700",
-      actions: [
-        { label: "Print Vouchers", path: "/passports" },
-        { label: "Validate QR Codes", path: "/scan" }
+      hoverBg: "hover:bg-purple-100",
+      path: "/voucher-registration",
+      emoji: "📝",
+      benefits: [
+        "Link passport to existing voucher",
+        "Update passport number and holder name",
+        "Re-print complete GREEN CARD"
       ]
-    }
-  ];
-
-  const quickActions = [
-    {
-      title: "Quick Passport Search",
-      description: "Find existing passport records",
-      emoji: "📄",
-      path: "/passports",
-      color: "bg-blue-500"
-    },
-    {
-      title: "Process Payment",
-      description: "Record a new payment transaction",
-      emoji: "💰",
-      path: "/payments",
-      color: "bg-green-500"
-    },
-    {
-      title: "Scan QR Code",
-      description: "Validate existing vouchers",
-      emoji: "📱",
-      path: "/scan",
-      color: "bg-purple-500"
     }
   ];
 
@@ -89,40 +75,54 @@ const AgentLanding = () => {
     visible: {
       opacity: 1,
       transition: {
-        duration: 0.6,
-        staggerChildren: 0.1,
+        duration: 0.5,
+        staggerChildren: 0.15,
       },
     },
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
+  const cardVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15
+      }
+    },
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Simple Header */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-100">
+      {/* Header with Logout */}
       <div className="bg-white shadow-sm border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center text-white text-xl">
-                👤
+              <div className="w-12 h-12 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center text-white text-2xl shadow-lg">
+                🎫
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-800">PNG Green Fees</h1>
-                <p className="text-sm text-slate-500">Counter Agent Portal</p>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                  PNG Green Fees
+                </h1>
+                <p className="text-sm text-slate-600">Counter Agent Portal</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-slate-600">
-                {user?.email?.split('@')[0] || 'Agent'}
-              </span>
+              <div className="text-right">
+                <p className="text-sm font-medium text-slate-800">
+                  {user?.name || user?.email?.split('@')[0] || 'Agent'}
+                </p>
+                <p className="text-xs text-slate-500">{user?.role?.replace('_', ' ')}</p>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleLogout}
+                className="border-slate-300"
               >
                 Logout
               </Button>
@@ -131,143 +131,115 @@ const AgentLanding = () => {
         </div>
       </div>
 
+      {/* Main Content */}
       <motion.div
         initial="hidden"
         animate="visible"
         variants={containerVariants}
-        className="max-w-7xl mx-auto p-6"
+        className="max-w-7xl mx-auto px-6 py-12"
       >
-      {/* Header */}
-      <motion.div variants={itemVariants} className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-4">
-          Counter Agent Portal
-        </h1>
-        <p className="text-xl text-slate-600 mb-2">
-          Welcome back, {user?.email?.split('@')[0] || 'Agent'}!
-        </p>
-        <p className="text-lg text-slate-500">
-          Follow these simple steps to process passport transactions efficiently
-        </p>
-      </motion.div>
+        {/* Welcome Header */}
+        <motion.div variants={cardVariants} className="text-center mb-12">
+          <h2 className="text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-4">
+            Welcome Back!
+          </h2>
+          <p className="text-xl text-slate-600 mb-2">
+            Choose an action below to get started
+          </p>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-full mt-4">
+            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+            <span className="text-sm font-medium text-emerald-700">System Ready</span>
+          </div>
+        </motion.div>
 
-      {/* Step-by-Step Workflow */}
-      <motion.div variants={itemVariants} className="mb-12">
-        <h2 className="text-2xl font-bold text-slate-800 mb-8 text-center">
-          Transaction Workflow
-        </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {steps.map((step, index) => (
-            <motion.div
-              key={step.number}
-              variants={itemVariants}
-              whileHover={{ scale: 1.02, y: -4 }}
-              className="relative"
-            >
-              <Card className={`${step.bgColor} ${step.borderColor} border-2 h-full`}>
-                <CardHeader className="text-center pb-4">
-                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full ${step.bgColor} ${step.borderColor} border-2 flex items-center justify-center text-4xl`}>
-                    {step.emoji}
+        {/* 3 Main Action Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+          {mainActions.map((action, index) => {
+            const Icon = action.icon;
+            return (
+              <motion.div
+                key={action.id}
+                variants={cardVariants}
+                whileHover={{
+                  scale: 1.03,
+                  y: -8,
+                  transition: { type: "spring", stiffness: 300, damping: 20 }
+                }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Card
+                  className={`cursor-pointer h-full ${action.bgColor} ${action.borderColor} border-2 ${action.hoverBg} transition-all duration-300 shadow-lg hover:shadow-2xl relative overflow-hidden group`}
+                  onClick={() => navigate(action.path)}
+                >
+                  {/* Number badge */}
+                  <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-lg font-bold text-slate-700 shadow-md">
+                    {action.id}
                   </div>
-                  <CardTitle className={`text-2xl font-bold ${step.textColor}`}>
-                    Step {step.number}
-                  </CardTitle>
-                  <h3 className={`text-xl font-semibold ${step.textColor} mt-2`}>
-                    {step.title}
-                  </h3>
-                  <p className="text-slate-600 mt-2">
-                    {step.description}
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {step.actions.map((action, actionIndex) => (
+
+                  {/* Decorative gradient blob */}
+                  <div className={`absolute -top-10 -right-10 w-32 h-32 ${action.bgColor} rounded-full blur-3xl opacity-50 group-hover:opacity-70 transition-opacity`}></div>
+
+                  <CardContent className="p-8 relative">
+                    {/* Icon */}
+                    <div className={`w-20 h-20 mb-6 rounded-2xl bg-white shadow-lg flex items-center justify-center text-5xl transition-transform group-hover:scale-110 group-hover:rotate-3`}>
+                      {action.emoji}
+                    </div>
+
+                    {/* Title */}
+                    <h3 className={`text-2xl font-bold mb-3 ${action.iconColor}`}>
+                      {action.title}
+                    </h3>
+
+                    {/* Description */}
+                    <p className="text-slate-700 leading-relaxed mb-6">
+                      {action.description}
+                    </p>
+
+                    {/* Benefits */}
+                    <div className="space-y-2 mb-6">
+                      {action.benefits.map((benefit, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <Icon className={`w-4 h-4 mt-0.5 ${action.iconColor} flex-shrink-0`} />
+                          <span className="text-sm text-slate-600">{benefit}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Action Button */}
                     <Button
-                      key={actionIndex}
-                      variant="outline"
-                      className={`w-full ${step.borderColor} ${step.textColor} hover:${step.bgColor} border-2`}
-                      onClick={() => navigate(action.path)}
+                      className={`w-full ${action.iconColor} bg-white border-2 ${action.borderColor} hover:bg-opacity-90 font-semibold group-hover:shadow-lg transition-all`}
+                      size="lg"
                     >
-                      {action.label} →
+                      Start Now →
                     </Button>
-                  ))}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
 
-              {/* Arrow between steps */}
-              {index < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-1/2 -right-4 transform -translate-y-1/2 text-slate-400 text-3xl">
-                  →
+        {/* Quick Stats / Info Banner */}
+        <motion.div variants={cardVariants}>
+          <Card className="bg-gradient-to-r from-slate-800 to-slate-700 text-white border-0 shadow-xl">
+            <CardContent className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div>
+                  <div className="text-4xl font-bold text-emerald-400 mb-2">8-Char</div>
+                  <div className="text-sm text-slate-300">Voucher Code Format</div>
                 </div>
-              )}
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Quick Actions */}
-      <motion.div variants={itemVariants} className="mb-12">
-        <h2 className="text-2xl font-bold text-slate-800 mb-8 text-center">
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {quickActions.map((action, index) => (
-            <motion.div
-              key={index}
-              variants={itemVariants}
-              whileHover={{ scale: 1.03, y: -4 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Card
-                className="cursor-pointer h-full hover:shadow-xl transition-all duration-300 border-2 border-slate-200 hover:border-slate-300"
-                onClick={() => navigate(action.path)}
-              >
-                <CardContent className="p-6 text-center">
-                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full ${action.color} flex items-center justify-center text-3xl`}>
-                    {action.emoji}
-                  </div>
-                  <h3 className="text-xl font-semibold text-slate-800 mb-2">
-                    {action.title}
-                  </h3>
-                  <p className="text-slate-600">
-                    {action.description}
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Status Summary */}
-      <motion.div variants={itemVariants}>
-        <Card className="bg-gradient-to-r from-slate-50 to-slate-100 border-slate-200">
-          <CardContent className="p-8 text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <span className="text-3xl">✓</span>
-              <h3 className="text-xl font-semibold text-slate-800">
-                System Ready
-              </h3>
-            </div>
-            <p className="text-slate-600 mb-4">
-              All systems are operational. You can start processing transactions immediately.
-            </p>
-            <div className="flex justify-center gap-4">
-              <Button
-                onClick={() => navigate('/app/passports')}
-                className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-8 py-3"
-              >
-                Start with Passports
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate('/app/payments')}
-                className="px-8 py-3"
-              >
-                Process Payment
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+                <div>
+                  <div className="text-4xl font-bold text-blue-400 mb-2">12 Months</div>
+                  <div className="text-sm text-slate-300">Voucher Validity Period</div>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold text-purple-400 mb-2">GREEN CARD</div>
+                  <div className="text-sm text-slate-300">Official Voucher Name</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </motion.div>
     </div>
   );

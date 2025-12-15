@@ -213,7 +213,7 @@ test.describe('Quotation Workflow - Convert to Vouchers', () => {
       await expect(page.locator('text=/conversion.*successful/i')).toBeVisible({ timeout: 10000 });
 
       // Should navigate to corporate vouchers
-      await expect(page).toHaveURL('/purchases/corporate-exit-pass');
+      await expect(page).toHaveURL('/app/payments/corporate-exit-pass');
 
       console.log('✓ Quotation converted to voucher batch successfully');
     }

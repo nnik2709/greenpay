@@ -1,0 +1,10 @@
+# Generated prompts (can be regenerated)
+prompts-generated/
+
+# Project-specific config (copy and customize)
+config/project-config.json
+
+# Temporary files
+*.tmp
+*.log
+

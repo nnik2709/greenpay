@@ -1,0 +1,3 @@
+passport_no,surname,given_name,dob,nationality,sex,date_of_expiry
+VALID001,SMITH,JOHN,1990-01-01,Australian,Male,2030-01-01
+INVALID,MISSING,DATA,invalid-date,Unknown,?,2020-01-01

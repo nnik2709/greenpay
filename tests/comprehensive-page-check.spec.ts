@@ -10,7 +10,7 @@ const pages = [
   { url: '/cash-reconciliation', name: 'Cash Reconciliation', expectText: 'Cash Reconciliation' },
   { url: '/scan', name: 'Scan & Validate', expectText: 'Scan' },
   { url: '/individual-purchase', name: 'Individual Purchase', expectText: 'Individual' },
-  { url: '/purchases/corporate-exit-pass', name: 'Corporate Exit Pass', expectText: 'Corporate' },
+  { url: '/app/payments/corporate-exit-pass', name: 'Corporate Exit Pass', expectText: 'Corporate' },
   { url: '/passports/bulk-upload', name: 'Bulk Upload', expectText: 'Bulk' },
   { url: '/admin/payment-modes', name: 'Payment Modes', expectText: 'Payment' },
   { url: '/quotations/create', name: 'Create Quotation', expectText: 'Quotation' },

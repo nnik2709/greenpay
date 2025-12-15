@@ -175,7 +175,7 @@ test.describe('Quotations - Workflow', () => {
     await page.click('button:has-text("Convert")');
 
     // Should navigate to corporate vouchers
-    await page.waitForURL('**/purchases/corporate-exit-pass', { timeout: 10000 });
+    await page.waitForURL('**/app/payments/corporate-exit-pass', { timeout: 10000 });
 
     // Should show generated vouchers
     await expect(page.locator('text=/success|generated/i')).toBeVisible();

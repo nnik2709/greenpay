@@ -108,7 +108,7 @@ test.describe('E2E: Corporate Voucher Generation Flow', () => {
     const companyName = testData.randomCompanyName();
 
     // Step 1: Navigate to corporate vouchers
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     // Step 2: Fill form

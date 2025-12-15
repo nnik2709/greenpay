@@ -242,11 +242,11 @@ test.describe('IT Support - Restricted Access', () => {
   test('should NOT generate corporate vouchers', async ({ page }) => {
     const consoleChecker = await checkConsoleErrors(page);
     
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await page.waitForTimeout(2000);
 
     const currentUrl = page.url();
-    if (!currentUrl.includes('/purchases/corporate-exit-pass')) {
+    if (!currentUrl.includes('/app/payments/corporate-exit-pass')) {
       console.log('✓ IT Support correctly restricted from corporate vouchers');
     }
 

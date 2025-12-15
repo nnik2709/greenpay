@@ -152,46 +152,25 @@ const navItemsByRole = {
     subItems: reportSubItems
   }],
   Counter_Agent: [{
-    to: '/app/dashboard',
+    to: '/app/agent',
     icon: <LayoutDashboard className="h-4 w-4" />,
-    label: 'Dashboard'
+    label: 'Home'
   }, {
-    title: 'Passports',
+    to: '/app/passports',
     icon: <FileText className="h-4 w-4" />,
-    base_path: '/app/passports',
-    subItems: [{
-      to: '/app/passports',
-      icon: <FileText className="h-4 w-4" />,
-      label: 'All Passports'
-    }, {
-      to: '/app/passports/create',
-      icon: <FilePlus className="h-4 w-4" />,
-      label: 'Individual Exit Pass'
-    }, {
-      to: '/app/passports/bulk-upload',
-      icon: <UploadCloud className="h-4 w-4" />,
-      label: 'Bulk Upload'
-    }, {
-      to: '/app/payments/corporate-exit-pass',
-      icon: <Building className="h-4 w-4" />,
-      label: 'Corporate Exit Pass'
-    }, {
-      to: '/app/payments/corporate-batch-history',
-      icon: <Package className="h-4 w-4" />,
-      label: 'Batch History'
-    }, {
-      to: '/app/vouchers-list',
-      icon: <FileText className="h-4 w-4" />,
-      label: 'Vouchers List'
-    }, {
-      to: '/app/scan',
-      icon: <ScanSearch className="h-4 w-4" />,
-      label: 'Scan & Validate'
-    }]
+    label: 'All Passports'
   }, {
-    to: '/app/payments',
-    icon: <CreditCard className="h-4 w-4" />,
-    label: 'Payments'
+    to: '/app/passports/create',
+    icon: <FilePlus className="h-4 w-4" />,
+    label: 'Individual Green Pass'
+  }, {
+    to: '/app/vouchers-list',
+    icon: <Package className="h-4 w-4" />,
+    label: 'Vouchers List'
+  }, {
+    to: '/app/scan',
+    icon: <ScanSearch className="h-4 w-4" />,
+    label: 'Scan & Validate'
   }],
   IT_Support: [{
     to: '/app/dashboard',

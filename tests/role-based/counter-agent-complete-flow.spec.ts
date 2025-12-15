@@ -198,7 +198,7 @@ test.describe('Counter Agent - Bulk Upload', () => {
 
 test.describe('Counter Agent - Corporate Vouchers', () => {
   test('should generate corporate vouchers', async ({ page }) => {
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     // Counter agents can generate corporate vouchers

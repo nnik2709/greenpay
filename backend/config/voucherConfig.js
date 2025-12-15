@@ -181,13 +181,18 @@ module.exports = {
 
     /**
      * Validate voucher code format
+     * Accepts both:
+     * - NEW: 8-character alphanumeric (e.g., 3IEW5268)
+     * - OLD: VCH-timestamp-code format (for backward compatibility)
      * @param {string} code - Voucher code to validate
      * @returns {boolean} True if valid format
      */
     isValidVoucherCode(code) {
-      const config = module.exports.display.codeFormat;
-      const pattern = new RegExp(`^${config.prefix}${config.separator}\\d+${config.separator}[A-Z0-9]+$`, 'i');
-      return pattern.test(code);
+      // NEW format: 8 alphanumeric characters
+      const newFormat = /^[A-Z0-9]{8}$/i;
+      // OLD format: VCH-numbers-alphanumeric or CORP-numbers-alphanumeric
+      const oldFormat = /^(VCH|CORP|IND|ONL)-\d+-[A-Z0-9]+$/i;
+      return newFormat.test(code) || oldFormat.test(code);
     },
 
     /**

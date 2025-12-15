@@ -19,7 +19,7 @@ test.describe('Corporate Vouchers - Generation', () => {
     const networkChecker = await checkNetworkErrors(page);
     const dbChecker = await checkDatabaseErrors(page);
 
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     // Fill company details
@@ -66,7 +66,7 @@ test.describe('Corporate Vouchers - Generation', () => {
   });
 
   test('should validate required fields', async ({ page }) => {
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     // Try to submit without company name
@@ -82,7 +82,7 @@ test.describe('Corporate Vouchers - Generation', () => {
   });
 
   test('should calculate total amount correctly', async ({ page }) => {
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     // Set quantity
@@ -96,7 +96,7 @@ test.describe('Corporate Vouchers - Generation', () => {
   });
 
   test('should apply discount correctly', async ({ page }) => {
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     // Set quantity and discount
@@ -115,7 +115,7 @@ test.describe('Corporate Vouchers - Generation', () => {
 test.describe('Corporate Vouchers - Print & Distribution', () => {
   test.beforeEach(async ({ page }) => {
     // Generate a test batch first
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     await fillFormField(page, 'input[name="company_name"]', 'Test Corp');
@@ -177,7 +177,7 @@ test.describe('Corporate Vouchers - History', () => {
   test('[EXPECTED TO FAIL] should display corporate voucher history', async ({ page }) => {
     // THIS WILL FAIL - History page not implemented (from gap analysis)
 
-    await page.goto('/purchases/corporate-vouchers');
+    await page.goto('/app/payments/corporate-batch-history');
     await waitForPageLoad(page);
 
     // Should show list of all corporate batches
@@ -190,7 +190,7 @@ test.describe('Corporate Vouchers - History', () => {
   test('[EXPECTED TO FAIL] should filter corporate vouchers by date', async ({ page }) => {
     // THIS WILL FAIL - History page not implemented
 
-    await page.goto('/purchases/corporate-vouchers');
+    await page.goto('/app/payments/corporate-batch-history');
     await waitForPageLoad(page);
 
     // Date filters

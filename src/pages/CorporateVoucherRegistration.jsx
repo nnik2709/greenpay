@@ -13,9 +13,9 @@ import { useToast } from '@/components/ui/use-toast';
 import VoucherPrint from '@/components/VoucherPrint';
 
 /**
- * Corporate Voucher Registration Page
+ * Voucher Registration Page
  *
- * Purpose: Allow corporate customers to register their bulk vouchers with passport data
+ * Purpose: Allow users to register vouchers (corporate/individual/bulk) with passport data
  * Flow:
  * 1. Enter/scan voucher code
  * 2. Scan/enter passport data
@@ -137,7 +137,7 @@ const CorporateVoucherRegistration = () => {
     setError(null);
 
     try {
-      const response = await fetch(`/api/corporate-voucher-registration/voucher/${voucherCode}`);
+      const response = await fetch(`/api/voucher-registration/voucher/${voucherCode}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -200,7 +200,7 @@ const CorporateVoucherRegistration = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/corporate-voucher-registration/register', {
+      const response = await fetch('/api/voucher-registration/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -341,10 +341,10 @@ const CorporateVoucherRegistration = () => {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Corporate Voucher Registration
+          Voucher Registration
         </h1>
         <p className="text-gray-600">
-          Register your corporate vouchers with passport information to activate them
+          Register your GREEN CARD voucher with passport information to activate it
         </p>
       </div>
 

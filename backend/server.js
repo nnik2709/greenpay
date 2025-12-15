@@ -59,7 +59,7 @@ app.use('/api/quotations', quotationRoutes);
 app.use('/api/customers', customerRoutes); // Customer management
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/vouchers', voucherRoutes);
-app.use('/api/corporate-voucher-registration', corporateVoucherRegistrationRoutes); // Corporate voucher passport registration
+app.use('/api/voucher-registration', corporateVoucherRegistrationRoutes); // Voucher passport registration (corporate, individual, bulk)
 app.use('/api/payment-modes', paymentModeRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/login-events', loginEventsRoutes);

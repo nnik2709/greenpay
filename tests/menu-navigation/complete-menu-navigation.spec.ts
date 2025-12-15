@@ -54,7 +54,7 @@ test.describe('Menu Navigation - Complete Flow', () => {
         { testId: 'nav-link-all-passports', url: '/passports', text: 'All Passports' },
         { testId: 'nav-link-individual-exit-pass', url: '/passports/create', text: 'Individual Exit Pass' },
         { testId: 'nav-link-bulk-upload', url: '/passports/bulk-upload', text: 'Bulk Upload' },
-        { testId: 'nav-link-corporate-exit-pass', url: '/purchases/corporate-exit-pass', text: 'Corporate Exit Pass' },
+        { testId: 'nav-link-corporate-exit-pass', url: '/app/payments/corporate-exit-pass', text: 'Corporate Exit Pass' },
         { testId: 'nav-link-scan-&-validate', url: '/scan', text: 'Scan' }
       ];
 

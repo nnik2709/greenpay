@@ -143,7 +143,7 @@ const AppRoutes = () => {
         <Route path="/mock-bsp-payment" element={<MockBSPPayment />} />
         <Route path="/register/:voucherCode" element={<PublicRegistration />} />
         <Route path="/register/success/:voucherCode" element={<PublicRegistrationSuccess />} />
-        <Route path="/corporate-voucher-registration" element={<CorporateVoucherRegistration />} />
+        <Route path="/voucher-registration" element={<CorporateVoucherRegistration />} />
 
         {/* All authenticated routes under MainLayout */}
         <Route path="/app" element={

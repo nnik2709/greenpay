@@ -170,7 +170,7 @@ test.describe('Admin Role - Complete Passport Creation Flow', () => {
 
 test.describe('Admin Role - Corporate Voucher Generation', () => {
   test('should generate corporate vouchers', async ({ page }) => {
-    await page.goto('/purchases/corporate-exit-pass');
+    await page.goto('/app/payments/corporate-exit-pass');
     await waitForPageLoad(page);
 
     // Fill corporate voucher form

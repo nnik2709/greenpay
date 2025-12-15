@@ -1,0 +1,51 @@
+{
+  "projectName": "GreenPay",
+  "description": "Payment and voucher management system",
+  "frontend": {
+    "framework": "React",
+    "version": "18",
+    "buildTool": "Vite",
+    "styling": "TailwindCSS",
+    "uiLibrary": "Radix UI",
+    "stateManagement": "React Context",
+    "routing": "React Router"
+  },
+  "backend": {
+    "framework": "Node.js",
+    "runtime": "Express",
+    "database": "PostgreSQL",
+    "orm": "pg"
+  },
+  "testing": {
+    "e2e": "Playwright",
+    "unit": "Jest",
+    "integration": "Jest"
+  },
+  "deployment": {
+    "processManager": "PM2",
+    "webServer": "Nginx",
+    "hosting": "VPS",
+    "backendPath": "/home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/",
+    "frontendPath": "/home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/",
+    "port": "3001"
+  },
+  "directories": {
+    "backend": "backend",
+    "frontend": "src",
+    "tests": "tests",
+    "docs": "docs",
+    "scripts": "scripts",
+    "testData": "test-files"
+  },
+  "patterns": {
+    "componentNaming": "PascalCase",
+    "fileNaming": "kebab-case",
+    "apiStyle": "RESTful",
+    "componentPattern": "functional components with hooks",
+    "stylingPattern": "TailwindCSS utility classes"
+  },
+  "auth": {
+    "method": "JWT"
+  }
+}
+
