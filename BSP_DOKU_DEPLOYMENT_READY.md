@@ -232,6 +232,32 @@ The BSP DOKU payment gateway integration is **fully implemented, security-harden
    ssh root@165.22.52.100 "pm2 logs greenpay-api | grep 'BSP DOKU'"
    ```
 
+6. **Currency Testing (Optional)**
+
+   If DOKU rejects payments, test with IDR currency to diagnose:
+
+   ```bash
+   # Run automated IDR test
+   ./test-bsp-doku-idr.sh
+   ```
+
+   Or manually:
+   ```bash
+   # Set currency to IDR (Indonesian Rupiah - code 360)
+   ssh root@165.22.52.100
+   cd /home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend
+   echo "BSP_DOKU_TEST_CURRENCY=360" >> .env
+   pm2 restart greenpay-api
+
+   # To restore PGK (Papua New Guinea Kina - code 598)
+   sed -i 's/^BSP_DOKU_TEST_CURRENCY=.*/BSP_DOKU_TEST_CURRENCY=598/' .env
+   pm2 restart greenpay-api
+   ```
+
+   **What This Tells You:**
+   - If IDR works but PGK fails → Contact BSP to enable PGK in test environment
+   - If both fail → Merchant credentials need activation by BSP
+
 ---
 
 ## 🧪 BSP Testing Timeline

@@ -231,7 +231,9 @@ class BSPGateway extends PaymentGatewayInterface {
 
     // DOKU uses ISO3166 numeric currency codes
     // PGK = 598 (Papua New Guinea Kina)
-    const currencyCode = '598';
+    // IDR = 360 (Indonesian Rupiah) - for testing
+    // Allow override via environment variable for testing purposes
+    const currencyCode = process.env.BSP_DOKU_TEST_CURRENCY || '598';
 
     // Format amount to 12.2 decimal format
     const amount = parsedAmount.toFixed(2);
