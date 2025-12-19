@@ -49,6 +49,8 @@ const loginEventsRoutes = require('./routes/login-events');
 const settingsRoutes = require('./routes/settings');
 const publicPurchasesRoutes = require('./routes/public-purchases'); // Public voucher purchases (no auth)
 const { router: buyOnlineRoutes } = require('./routes/buy-online'); // Buy Online with passport (no auth)
+const cashReconciliationRoutes = require('./routes/cash-reconciliations'); // Cash reconciliation for agents
+const paymentWebhookDokuRoutes = require('./routes/payment-webhook-doku'); // BSP DOKU payment webhooks
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -66,6 +68,8 @@ app.use('/api/login-events', loginEventsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/public-purchases', publicPurchasesRoutes); // Public routes (no authentication)
 app.use('/api/buy-online', buyOnlineRoutes); // Buy Online with passport (no authentication)
+app.use('/api/cash-reconciliations', cashReconciliationRoutes); // Cash reconciliation
+app.use('/api/payment/webhook/doku', paymentWebhookDokuRoutes); // BSP DOKU webhooks (no authentication)
 
 // 404 handler
 app.use((req, res) => {
