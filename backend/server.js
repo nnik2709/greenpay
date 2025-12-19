@@ -90,10 +90,13 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+const HOST = process.env.HOST || '127.0.0.1'; // Listen on localhost only for security
+
+app.listen(PORT, HOST, () => {
   console.log('\n╔════════════════════════════════════════╗');
   console.log('║   🚀 GreenPay API Server Running      ║');
   console.log('╠════════════════════════════════════════╣');
+  console.log(`║   Host: ${HOST}                    ║`);
   console.log(`║   Port: ${PORT}                       ║`);
   console.log(`║   Environment: ${process.env.NODE_ENV}          ║`);
   console.log(`║   Database: ${process.env.DB_NAME}            ║`);
