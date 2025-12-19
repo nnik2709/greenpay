@@ -186,7 +186,9 @@ router.post('/prepare-payment', async (req, res) => {
         sessionId: session.id,
         paymentUrl: paymentSession.paymentUrl,
         expiresAt: paymentSession.expiresAt,
-        gateway: gateway.getName()
+        gateway: gateway.getName(),
+        // Include metadata for hosted payment pages (BSP DOKU)
+        metadata: paymentSession.metadata || {}
       }
     });
 
@@ -288,12 +290,11 @@ router.get('/voucher/:sessionId', async (req, res) => {
         ip.customer_name,
         ip.customer_email,
         p.id as passport_id,
-        p."passportNo" as passport_number_clean,
-        p.surname,
-        p."givenName" as given_name,
+        p.passport_number as passport_number_clean,
+        p.full_name,
         p.nationality
       FROM individual_purchases ip
-      LEFT JOIN "Passport" p ON ip.passport_number = p."passportNo"
+      LEFT JOIN passports p ON ip.passport_number = p.passport_number
       WHERE ip.passport_number = (
         SELECT passport_data->>'passportNumber' FROM purchase_sessions WHERE id = $1
       )
@@ -330,8 +331,7 @@ router.get('/voucher/:sessionId', async (req, res) => {
         passport: {
           id: voucher.passport_id,
           passportNumber: voucher.passport_number,
-          surname: voucher.surname,
-          givenName: voucher.given_name,
+          fullName: voucher.full_name,
           nationality: voucher.nationality
         }
       },
@@ -373,17 +373,12 @@ router.get('/voucher/:sessionId/pdf', async (req, res) => {
         ip.customer_email,
         ip.passport_number,
         p.id as passport_id,
-        p.surname,
-        p."givenName" as given_name,
+        p.full_name,
         p.nationality,
-        p.dob as date_of_birth,
-        p.sex
+        p.date_of_birth
       FROM individual_purchases ip
-      LEFT JOIN "Passport" p ON ip.passport_number = p."passportNo"
-      WHERE ip.passport_number = (
-        SELECT passport_data->>'passportNumber' FROM purchase_sessions WHERE id = $1
-      )
-      ORDER BY ip.created_at DESC
+      LEFT JOIN passports p ON ip.passport_number = p.passport_number
+      WHERE ip.purchase_session_id = $1
       LIMIT 1
     `;
 
@@ -442,11 +437,10 @@ router.post('/voucher/:sessionId/email', async (req, res) => {
         ip.customer_email,
         ip.passport_number,
         p.id as passport_id,
-        p.surname,
-        p."givenName" as given_name,
+        p.full_name,
         p.nationality
       FROM individual_purchases ip
-      LEFT JOIN "Passport" p ON ip.passport_number = p."passportNo"
+      LEFT JOIN passports p ON ip.passport_number = p.passport_number
       WHERE ip.passport_number = (
         SELECT passport_data->>'passportNumber' FROM purchase_sessions WHERE id = $1
       )
@@ -674,24 +668,26 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
     // 4. Check if passport already exists
     let passportId;
     const existingPassport = await client.query(
-      'SELECT id FROM "Passport" WHERE "passportNo" = $1',
+      'SELECT id FROM passports WHERE passport_number = $1',
       [passportData.passportNumber]
     );
 
     if (existingPassport.rows.length > 0) {
       // Update existing passport
       passportId = existingPassport.rows[0].id;
+      const fullName = passportData.surname && passportData.givenName
+        ? `${passportData.surname}, ${passportData.givenName}`
+        : (passportData.surname || passportData.givenName || '');
+
       await client.query(
-        `UPDATE "Passport"
-         SET surname = $1, "givenName" = $2, dob = $3,
-             nationality = $4, sex = $5, "updatedAt" = NOW()
-         WHERE id = $6`,
+        `UPDATE passports
+         SET full_name = $1, date_of_birth = $2,
+             nationality = $3, updated_at = NOW()
+         WHERE id = $4`,
         [
-          passportData.surname,
-          passportData.givenName,
+          fullName,
           passportData.dateOfBirth || null,
           passportData.nationality || 'Papua New Guinea',
-          passportData.sex || 'Male',
           passportId
         ]
       );
@@ -700,20 +696,21 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
       // Create new passport with default expiry (10 years from now if not provided)
       const defaultExpiry = new Date();
       defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 10);
+      const fullName = passportData.surname && passportData.givenName
+        ? `${passportData.surname}, ${passportData.givenName}`
+        : (passportData.surname || passportData.givenName || '');
 
       const newPassport = await client.query(
-        `INSERT INTO "Passport" (
-          "passportNo", surname, "givenName", dob,
-          nationality, sex, "dateOfExpiry", "createdAt", "updatedAt"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        `INSERT INTO passports (
+          passport_number, full_name, date_of_birth,
+          nationality, expiry_date, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
         RETURNING id`,
         [
           passportData.passportNumber,
-          passportData.surname,
-          passportData.givenName,
+          fullName,
           passportData.dateOfBirth || null,
           passportData.nationality || 'Papua New Guinea',
-          passportData.sex || 'Male',
           passportData.dateOfExpiry || defaultExpiry
         ]
       );
@@ -739,8 +736,9 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
         valid_until,
         valid_from,
         customer_name,
-        customer_email
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        customer_email,
+        purchase_session_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *
     `;
 
@@ -755,7 +753,8 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
       validUntil,
       validFrom,
       `${passportData.surname}, ${passportData.givenName}`,
-      session.customer_email || null // Email is optional
+      session.customer_email || null, // Email is optional
+      sessionId // Link voucher to purchase session
     ];
 
     const voucherResult = await client.query(voucherQuery, voucherValues);

@@ -43,20 +43,36 @@ const BuyOnline = () => {
     email: ''
   });
 
-  // Detect mobile device
+  // Detect mobile device and auto-show scanner
   useEffect(() => {
     const checkMobile = () => {
       const userAgent = navigator.userAgent.toLowerCase();
       const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'mobile', 'tablet'];
       const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword));
       const hasSmallScreen = window.innerWidth <= 768;
-      setIsMobile(isMobileDevice || hasSmallScreen);
+      return isMobileDevice || hasSmallScreen;
     };
 
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    const isMobileResult = checkMobile();
+    setIsMobile(isMobileResult);
+    
+    // Auto-show scanner on mobile for instant scan experience
+    // Only if no passport data has been entered yet
+    if (isMobileResult && !formData.passportNumber && !showCameraScanner) {
+      // Small delay to ensure component is rendered
+      const timer = setTimeout(() => {
+        setShowCameraScanner(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+    
+    const handleResize = () => {
+      setIsMobile(checkMobile());
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Anti-bot verification
   const [verificationAnswer, setVerificationAnswer] = useState('');
@@ -209,10 +225,35 @@ const BuyOnline = () => {
           description: 'Please complete your payment securely.',
         });
 
-        // Redirect to payment gateway
-        setTimeout(() => {
-          window.location.href = response.data.paymentUrl;
-        }, 1000);
+        // Check if this is a hosted payment page (requires form submission)
+        const isHostedPayment = response.data.metadata?.isHostedPayment || false;
+        const formParams = response.data.metadata?.formParams || {};
+
+        if (isHostedPayment && Object.keys(formParams).length > 0) {
+          // BSP DOKU or other hosted payment pages - submit form with parameters
+          setTimeout(() => {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = response.data.paymentUrl;
+
+            // Add all form parameters as hidden inputs
+            Object.entries(formParams).forEach(([key, value]) => {
+              const input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = key;
+              input.value = value;
+              form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+          }, 1000);
+        } else {
+          // Stripe or other redirect-based gateways
+          setTimeout(() => {
+            window.location.href = response.data.paymentUrl;
+          }, 1000);
+        }
       } else {
         throw new Error(response.error || 'Failed to prepare payment');
       }
@@ -288,23 +329,23 @@ const BuyOnline = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Mobile Camera Scanner Button */}
-              {isMobile && (
-                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-4">
+              {/* Mobile Camera Scanner Button - Shows if scanner was closed */}
+              {isMobile && !showCameraScanner && (
+                <div className="bg-gradient-to-r from-blue-50 to-emerald-50 border-2 border-blue-200 rounded-lg p-4 mb-4">
                   <div className="flex flex-col items-center gap-3">
                     <p className="text-blue-700 font-medium text-center">
-                      Use your phone camera to scan passport MRZ
+                      Scan your passport to auto-fill details
                     </p>
                     <Button
                       onClick={() => setShowCameraScanner(true)}
-                      className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+                      className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2 py-6 px-8 text-lg"
                       disabled={loading}
                     >
-                      <Camera className="h-5 w-5" />
-                      Scan Passport with Camera
+                      <Camera className="h-6 w-6" />
+                      Scan Passport
                     </Button>
-                    <p className="text-xs text-blue-600 text-center">
-                      Point camera at the MRZ (machine-readable zone) at the bottom of your passport
+                    <p className="text-xs text-slate-500 text-center">
+                      Or fill in the details manually below
                     </p>
                   </div>
                 </div>
@@ -500,10 +541,10 @@ const BuyOnline = () => {
         </motion.div>
       </div>
 
-      {/* Camera Scanner Modal */}
+      {/* Camera Scanner Modal - Full screen on mobile for best UX */}
       {showCameraScanner && (
         <div
-          className="fixed top-0 left-0 right-0 bottom-0 bg-white z-[9999]"
+          className="fixed inset-0 bg-white z-[9999] flex flex-col"
           style={{
             position: 'fixed',
             top: 0,
@@ -514,13 +555,14 @@ const BuyOnline = () => {
             height: '100vh',
             backgroundColor: 'white',
             zIndex: 9999,
-            overflow: 'auto'
+            overflow: 'hidden'
           }}
         >
-          <div className="p-4">
+          <div className="flex-1 overflow-auto p-2 md:p-4 safe-area-inset">
             <SimpleCameraScanner
               onScanSuccess={handleCameraScan}
               onClose={() => setShowCameraScanner(false)}
+              autoStart={isMobile}
             />
           </div>
         </div>
