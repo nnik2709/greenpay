@@ -6,13 +6,16 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
+import { useNavigate } from 'react-router-dom';
+import { Home } from 'lucide-react';
 import api from '@/lib/api/client';
 import { useScannerInput } from '@/hooks/useScannerInput';
 import { parseMrz as parseMrzUtil } from '@/lib/mrzParser';
 
 const ScanAndValidate = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [inputValue, setInputValue] = useState('');
   const [validationResult, setValidationResult] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -22,6 +25,7 @@ const ScanAndValidate = () => {
   const lastScannedCode = useRef(null);
   const lastScanTime = useRef(0);
   const audioContext = useRef(null);
+  const scannerRef = useRef(null);
 
   // Initialize audio context
   useEffect(() => {
@@ -168,10 +172,26 @@ const ScanAndValidate = () => {
       return result;
     } catch (error) {
       console.error('Voucher validation error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        stack: error.stack
+      });
+
+      // Better error messaging
+      let errorMessage = 'Error validating voucher.';
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please check backend logs.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       return {
         type: 'error',
         status: 'error',
-        message: error.message || 'Error validating voucher.'
+        message: errorMessage
       };
     }
   };
@@ -254,63 +274,119 @@ const ScanAndValidate = () => {
   }, [toast]);
 
   useEffect(() => {
-    if (!showCameraScanner) return;
+    if (!showCameraScanner) {
+      // Cleanup when camera is closed
+      if (scannerRef.current) {
+        console.log('[Scanner] Stopping camera...');
+        scannerRef.current.stop().then(() => {
+          console.log('[Scanner] Camera stopped');
+          scannerRef.current = null;
+        }).catch(err => {
+          console.error("[Scanner] Stop error:", err);
+          scannerRef.current = null;
+        });
+      }
+      return;
+    }
+
+    // Prevent double initialization
+    if (scannerRef.current) {
+      console.log('[Scanner] Scanner already running, skipping...');
+      return;
+    }
+
+    console.log('[Scanner] Starting camera scanner...');
 
     // Check if we're in a secure context (HTTPS or localhost)
-    const isSecureContext = window.isSecureContext || 
-                           window.location.hostname === 'localhost' || 
+    const isSecureContext = window.isSecureContext ||
+                           window.location.hostname === 'localhost' ||
                            window.location.hostname === '127.0.0.1' ||
                            window.location.protocol === 'https:';
 
     if (!isSecureContext) {
       toast({
         title: "Camera Not Available",
-        description: "Camera access requires HTTPS. Please use manual entry or visit via HTTPS.",
+        description: "Camera access requires HTTPS.",
         variant: "destructive",
       });
       setShowCameraScanner(false);
       return;
     }
 
-    const scanner = new Html5QrcodeScanner(
-      'qr-reader',
-      {
-        fps: 10,
-        qrbox: 250,
-        rememberLastUsedCamera: true,
-        showTorchButtonIfSupported: true
-      },
-      {
-        verbose: false,
-        formatsToSupport: undefined,
-        useBarCodeDetectorIfSupported: true,
-        showZoomSliderIfSupported: true,
-        defaultZoomValueIfSupported: 2
-      }
-    );
+    const startScanner = async () => {
+      try {
+        const scanner = new Html5Qrcode('qr-reader');
+        scannerRef.current = scanner;
 
-    const onScanSuccess = (decodedText) => {
-      handleValidation(decodedText);
-      setShowCameraScanner(false);
-    };
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0
+        };
 
-    const onScanError = (error) => {
-      // Don't show every scan error, only important ones
-      if (error.includes('Permission denied') || error.includes('NotAllowedError')) {
-        toast({
-          title: "Camera Permission Denied",
-          description: "Please allow camera access and try again.",
-          variant: "destructive",
-        });
+        const onScanSuccess = (decodedText, decodedResult) => {
+          console.log('[Scanner] Scan successful:', decodedText);
+          handleValidation(decodedText);
+
+          // Stop scanner after successful scan
+          if (scannerRef.current) {
+            scannerRef.current.stop().then(() => {
+              scannerRef.current = null;
+              setShowCameraScanner(false);
+            }).catch(err => console.error('[Scanner] Stop error:', err));
+          }
+        };
+
+        const onScanFailure = (error) => {
+          // This is called frequently when no QR code is detected, so we don't log it
+        };
+
+        // Start camera with back camera (environment facing)
+        console.log('[Scanner] Requesting camera access...');
+        await scanner.start(
+          { facingMode: "environment" }, // Use back camera by default
+          config,
+          onScanSuccess,
+          onScanFailure
+        );
+
+        console.log('[Scanner] Camera started successfully');
+
+      } catch (err) {
+        console.error('[Scanner] Start error:', err);
+
+        if (err.toString().includes('NotAllowedError') || err.toString().includes('Permission denied')) {
+          toast({
+            title: "Camera Permission Denied",
+            description: "Please allow camera access to scan vouchers.",
+            variant: "destructive",
+          });
+        } else if (err.toString().includes('NotFoundError')) {
+          toast({
+            title: "No Camera Found",
+            description: "No camera detected on this device.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Camera Error",
+            description: err.message || "Failed to start camera. Please try again.",
+            variant: "destructive",
+          });
+        }
+
         setShowCameraScanner(false);
+        scannerRef.current = null;
       }
     };
 
-    scanner.render(onScanSuccess, onScanError);
+    startScanner();
 
     return () => {
-      if (scanner && scanner.getState() === 2) { // 2 is SCANNING state
-        scanner.clear().catch(err => console.error("Failed to clear scanner", err));
+      console.log('[Scanner] Cleanup...');
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(err => console.error("[Scanner] Cleanup stop error:", err));
+        scannerRef.current = null;
       }
     };
   }, [showCameraScanner, handleValidation, toast]);
@@ -362,6 +438,17 @@ const ScanAndValidate = () => {
       animate={{ opacity: 1, y: 0 }}
       className="max-w-2xl mx-auto p-4 relative"
     >
+      {/* Home/Back Button */}
+      <div className="mb-4">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/app/agent')}
+          className="gap-2"
+        >
+          <Home className="h-4 w-4" />
+          Home
+        </Button>
+      </div>
       {/* Success Flash Overlay */}
       <AnimatePresence>
         {showSuccessFlash && (
@@ -395,11 +482,11 @@ const ScanAndValidate = () => {
       <Card className="mb-8">
         <CardContent className="p-6 space-y-4">
           {/* Scanner Options Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* QR Code / Barcode Scanner */}
+          <div className="grid grid-cols-1 gap-4">
+            {/* Primary: Mobile Camera Scanner (Full width on mobile) */}
             <Button
               variant={showCameraScanner ? "destructive" : "default"}
-              className="h-24 text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
+              className="h-28 sm:h-24 text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
               onClick={() => setShowCameraScanner(s => !s)}
               disabled={!window.isSecureContext &&
                        window.location.hostname !== 'localhost' &&
@@ -407,17 +494,54 @@ const ScanAndValidate = () => {
                        window.location.protocol !== 'https:'}
             >
               <div className="text-center">
-                <span className="block text-3xl mb-1">📷</span>
-                <span className="block text-base">{showCameraScanner ? 'Close QR Scanner' : 'Scan QR/Barcode'}</span>
-                <span className="block text-xs opacity-80">Voucher codes</span>
+                <span className="block text-4xl sm:text-3xl mb-2 sm:mb-1">📷</span>
+                <span className="block text-xl sm:text-base font-bold">{showCameraScanner ? 'Close Camera' : 'Scan Voucher Barcode'}</span>
+                <span className="block text-sm sm:text-xs opacity-90 mt-1">Tap to open camera scanner</span>
               </div>
             </Button>
+
+            {/* Hardware Scanner Status Indicator */}
+            {isScannerActive && (
+              <div className="bg-emerald-50 border-2 border-emerald-300 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-3xl animate-pulse">📱</span>
+                  <div className="text-left">
+                    <p className="font-bold text-emerald-900">USB Scanner Ready</p>
+                    <p className="text-sm text-emerald-700">Simply scan a barcode or QR code</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Manual Input Option */}
-          <Button variant="outline" className="w-full h-12 text-base" onClick={() => document.getElementById('manual-input').focus()}>
-            ⌨️ Manual Input (Optional)
-          </Button>
+          {/* Manual Input Option (Collapsed by default on mobile) */}
+          <details className="border rounded-lg">
+            <summary className="cursor-pointer p-4 hover:bg-slate-50 rounded-lg font-medium text-slate-700">
+              ⌨️ Manual Entry (Optional)
+            </summary>
+            <div className="p-4 pt-0">
+              <p className="text-sm text-slate-600 mb-3">Type or paste voucher code manually</p>
+              <div className="relative">
+                <Input
+                  id="manual-input"
+                  placeholder="Enter voucher code..."
+                  className="h-12 text-base"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleValidation(inputValue)}
+                  disabled={isProcessing}
+                />
+                <Button
+                  onClick={() => handleValidation(inputValue)}
+                  disabled={!inputValue || isProcessing}
+                  className="mt-2 w-full"
+                >
+                  {isProcessing ? 'Validating...' : 'Validate Code'}
+                </Button>
+              </div>
+            </div>
+          </details>
+
           {/* QR Code Scanner View */}
           <AnimatePresence>
             {showCameraScanner && (
@@ -426,44 +550,25 @@ const ScanAndValidate = () => {
                 <Card className="mb-4 bg-emerald-50 border-emerald-300">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <span className="text-2xl text-emerald-600 flex-shrink-0">📷</span>
+                      <span className="text-3xl sm:text-2xl text-emerald-600 flex-shrink-0">📷</span>
                       <div>
-                        <h3 className="font-bold text-emerald-900 mb-1 text-lg">QR/Barcode Scanner</h3>
+                        <h3 className="font-bold text-emerald-900 mb-1 text-lg">Camera Scanner Active</h3>
                         <p className="text-emerald-800 text-sm mb-2">
-                          Scan voucher QR codes or barcodes
+                          Position voucher barcode or QR code in the frame
                         </p>
                         <ul className="text-emerald-700 text-xs space-y-1 list-disc list-inside">
-                          <li>Position the QR code within the scanning frame</li>
-                          <li>Hold steady until it scans automatically</li>
-                          <li>You'll hear a beep when successful</li>
+                          <li>Center the code within the scanning box</li>
+                          <li>Hold steady for automatic detection</li>
+                          <li>You'll hear a beep and see a flash when successful</li>
                         </ul>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-                <div id="qr-reader" className="w-full"></div>
+                <div id="qr-reader" className="w-full rounded-lg overflow-hidden"></div>
               </motion.div>
             )}
           </AnimatePresence>
-          <div className="relative">
-            {isScannerActive ? (
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600 text-xl animate-pulse">📱</span>
-            ) : (
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">🔲</span>
-            )}
-            <Input
-              id="manual-input"
-              placeholder={isScannerActive ? "Scanning..." : "Enter code or scan with device..."}
-              className={`pl-10 h-14 text-lg ${isScannerActive ? 'border-emerald-500 ring-2 ring-emerald-200' : ''}`}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleValidation(inputValue)}
-              disabled={isProcessing || isScannerActive}
-            />
-            {isProcessing && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin rounded-full h-5 w-5 border-2 border-slate-400 border-t-transparent"></div>
-            )}
-          </div>
         </CardContent>
       </Card>
 
@@ -473,22 +578,48 @@ const ScanAndValidate = () => {
 
       <Card className="mt-8 bg-blue-50 border-blue-200">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-800">
-            <span className="text-xl">ℹ️</span> How to Use
+          <CardTitle className="flex items-center gap-2 text-blue-800 text-lg sm:text-base">
+            <span className="text-2xl sm:text-xl">ℹ️</span> How to Scan & Validate Vouchers
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-blue-700 space-y-3">
-          <div>
-            <p className="font-bold mb-1">🖥️ USB/Bluetooth Scanner (Recommended):</p>
-            <p className="text-sm">Simply scan a QR code, barcode, or passport MRZ with your hardware scanner. The system automatically detects and processes the scan with visual feedback.</p>
+        <CardContent className="text-blue-700 space-y-4">
+          <div className="bg-white/50 p-3 rounded-lg">
+            <p className="font-bold mb-2 text-base flex items-center gap-2">
+              <span className="text-2xl">📱</span> Mobile Phone Camera (Recommended)
+            </p>
+            <ol className="text-sm space-y-1 list-decimal list-inside ml-6">
+              <li>Tap the big green "Scan Voucher Barcode" button above</li>
+              <li>Allow camera access when prompted</li>
+              <li>Point your camera at the voucher barcode or QR code</li>
+              <li>Hold steady until you hear a beep</li>
+              <li>Check the validation result below</li>
+            </ol>
           </div>
-          <div>
-            <p className="font-bold mb-1">📷 QR/Barcode Scanner:</p>
-            <p className="text-sm">Click 'Scan QR/Barcode' for voucher codes. Position the code within the frame for automatic scanning. <em>Requires HTTPS in production.</em></p>
+
+          <div className="bg-white/50 p-3 rounded-lg">
+            <p className="font-bold mb-2 text-base flex items-center gap-2">
+              <span className="text-2xl">🖥️</span> USB/Bluetooth Scanner (Desktop/Counter)
+            </p>
+            <p className="text-sm">
+              Simply scan a barcode or QR code with your hardware scanner. The system automatically detects and validates the voucher with instant feedback (beep + flash).
+            </p>
           </div>
-          <div>
-            <p className="font-bold mb-1">⌨️ Manual Entry:</p>
-            <p className="text-sm">Type or paste codes directly into the input field and press Enter.</p>
+
+          <div className="bg-white/50 p-3 rounded-lg">
+            <p className="font-bold mb-2 text-base flex items-center gap-2">
+              <span className="text-2xl">⌨️</span> Manual Entry (Backup)
+            </p>
+            <p className="text-sm">
+              If scanning doesn't work, expand "Manual Entry" above and type the voucher code manually.
+            </p>
+          </div>
+
+          <div className="border-t border-blue-300 pt-3 mt-3">
+            <p className="text-xs font-semibold text-blue-900 mb-1">Validation Results:</p>
+            <ul className="text-xs space-y-1">
+              <li>✅ <strong>Green Flash + Beep:</strong> Valid voucher - proceed with exit clearance</li>
+              <li>❌ <strong>Red Flash + Alert:</strong> Invalid/Used/Expired - do not allow exit</li>
+            </ul>
           </div>
         </CardContent>
       </Card>

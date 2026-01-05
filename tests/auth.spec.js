@@ -53,8 +53,9 @@ test.describe('Authentication Tests', () => {
     // Wait for login to complete and agent landing page to load
     await page.waitForTimeout(3000);
     
-    // Wait for agent landing page heading to appear
-    await expect(page.locator('h1:has-text("Counter Agent Portal")')).toBeVisible({ timeout: 10000 });
+    // Wait for redirect to /app/agent and verify welcome message
+    await page.waitForURL('**/app/agent**', { timeout: 10000 });
+    await expect(page.locator('h2:has-text("Welcome Back!")')).toBeVisible({ timeout: 10000 });
   });
 
   test('should login as IT support', async ({ page }) => {

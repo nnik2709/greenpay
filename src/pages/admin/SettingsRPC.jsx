@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { api } from '@/lib/api/client';
 
@@ -11,7 +12,10 @@ const SettingsRPC = () => {
   const { toast } = useToast();
   const [settings, setSettings] = useState({
     voucher_validity_days: 30,
-    default_amount: 50.00
+    default_amount: 50.00,
+    terms_content: '',
+    privacy_content: '',
+    refunds_content: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -29,6 +33,9 @@ const SettingsRPC = () => {
         setSettings({
           voucher_validity_days: data.voucherValidityDays || 30,
           default_amount: data.defaultAmount || 50.00,
+          terms_content: data.termsContent || '',
+          privacy_content: data.privacyContent || '',
+          refunds_content: data.refundsContent || '',
           created_at: data.createdAt,
           updated_at: data.updatedAt
         });
@@ -50,7 +57,10 @@ const SettingsRPC = () => {
       setSaving(true);
       await api.settings.update({
         voucher_validity_days: settings.voucher_validity_days,
-        default_amount: settings.default_amount
+        default_amount: settings.default_amount,
+        terms_content: settings.terms_content,
+        privacy_content: settings.privacy_content,
+        refunds_content: settings.refunds_content
       });
 
       toast({
@@ -136,6 +146,43 @@ const SettingsRPC = () => {
                 Default amount for green fee vouchers
               </p>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="terms_content">Terms &amp; Conditions (public page)</Label>
+              <Textarea
+                id="terms_content"
+                rows={6}
+                value={settings.terms_content}
+                onChange={(e) => handleInputChange('terms_content', e.target.value)}
+                placeholder="Enter Terms & Conditions content"
+              />
+              <p className="text-sm text-gray-500">Visible at /terms and in email links.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="privacy_content">Privacy Policy (public page)</Label>
+              <Textarea
+                id="privacy_content"
+                rows={6}
+                value={settings.privacy_content}
+                onChange={(e) => handleInputChange('privacy_content', e.target.value)}
+                placeholder="Enter Privacy Policy content"
+              />
+              <p className="text-sm text-gray-500">Visible at /privacy and in email links.</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="refunds_content">Refund / Return Policy (public page)</Label>
+            <Textarea
+              id="refunds_content"
+              rows={6}
+              value={settings.refunds_content}
+              onChange={(e) => handleInputChange('refunds_content', e.target.value)}
+              placeholder="Enter Refund / Return Policy content"
+            />
+            <p className="text-sm text-gray-500">Visible at /refunds and in email links.</p>
           </div>
 
           <div className="flex gap-3 pt-4">

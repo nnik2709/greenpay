@@ -114,3 +114,7 @@ echo "3. Use: ./.virtual-team-helper.sh [ROLE] [TASK] to get role prompts"
 echo ""
 echo "See virtual-dev-team/docs/USAGE_GUIDE.md for detailed instructions."
 
+
+
+
+

@@ -2,7 +2,8 @@ import api from './api/client';
 
 export const getPassports = async () => {
   try {
-    const response = await api.passports.getAll();
+    // Request all passports (high limit to get all records)
+    const response = await api.passports.getAll({ limit: 10000 });
     const data = response.passports || response.data || response;
     return data;
   } catch (error) {

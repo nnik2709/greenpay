@@ -22,7 +22,7 @@ router.get('/', auth, async (req, res) => {
         'individual' as transaction_type,
         COALESCE(p.nationality, 'Unknown') as nationality
       FROM individual_purchases ip
-      LEFT JOIN "Passport" p ON ip.passport_number = p."passportNo"
+      LEFT JOIN passports p ON ip.passport_number = p.passport_number
       WHERE ip.status != 'refunded' OR ip.status IS NULL
     `;
 
@@ -89,11 +89,10 @@ router.get('/:id', auth, async (req, res) => {
       SELECT
         ip.*,
         'individual' as transaction_type,
-        p.nationality,
-        p.surname,
-        p."givenName" as given_name
+        p.full_name,
+        p.nationality
       FROM individual_purchases ip
-      LEFT JOIN "Passport" p ON ip.passport_number = p."passportNo"
+      LEFT JOIN passports p ON ip.passport_number = p.passport_number
       WHERE ip.id = $1
     `;
 

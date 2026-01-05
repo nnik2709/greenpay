@@ -9,12 +9,12 @@ const MainLayout = () => {
   const { user } = useAuth();
 
   // Don't show header for agent landing page
-  const isAgentLanding = location.pathname === '/agent';
+  const isAgentLanding = location.pathname === '/app/agent' || location.pathname === '/agent';
 
   return (
     <div className="flex min-h-screen w-full flex-col">
       {!isAgentLanding && <Header />}
-      <main className={`flex flex-1 flex-col gap-6 p-6 md:gap-10 md:p-10 min-h-screen ${isAgentLanding ? 'pt-0' : ''}`}>
+      <main className={`flex flex-1 flex-col ${isAgentLanding ? 'p-0' : 'gap-6 p-6 md:gap-10 md:p-10'} min-h-screen`}>
         <AnimatePresence mode="wait">
           <Outlet location={location} key={location.pathname} />
         </AnimatePresence>

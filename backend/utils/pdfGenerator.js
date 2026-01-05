@@ -1,4 +1,257 @@
 const PDFDocument = require('pdfkit');
+const bwipjs = require('bwip-js');
+const path = require('path');
+const fs = require('fs');
+
+// Generate a single PDF that contains all vouchers in the array.
+// This is used for bulk email/download of corporate vouchers.
+const generateVoucherPDFBuffer = async (vouchers, companyName) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: 'A4', margin: 60 });
+      const chunks = [];
+
+      doc.on('data', chunk => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      const pageWidth = 595.28; // A4 width in points
+      const pageHeight = 841.89; // A4 height in points
+      const margin = 60;
+      const contentWidth = pageWidth - (margin * 2);
+
+      for (let i = 0; i < vouchers.length; i++) {
+        const voucher = vouchers[i];
+        if (i > 0) doc.addPage();
+
+        let yPos = margin;
+
+        // Two logos centered at top
+        const logoY = margin;
+        const logoSize = 90;
+        const logoGap = 80; // Gap between logos
+        const totalLogoWidth = (logoSize * 2) + logoGap;
+        const leftLogoX = (pageWidth - totalLogoWidth) / 2; // First logo position
+        const rightLogoX = leftLogoX + logoSize + logoGap; // Second logo position
+
+        // CCDA Logo (left)
+        try {
+          const ccdaLogoPath = path.join(__dirname, '../assets/logos/ccda-logo.png');
+          if (fs.existsSync(ccdaLogoPath)) {
+            doc.image(ccdaLogoPath, leftLogoX, logoY, { width: logoSize });
+          }
+        } catch (err) {
+          console.error('❌ Error loading CCDA logo:', err.message);
+        }
+
+        // PNG Emblem (right)
+        try {
+          const pngEmblemPath = path.join(__dirname, '../assets/logos/png-emblem.png');
+          if (fs.existsSync(pngEmblemPath)) {
+            doc.image(pngEmblemPath, rightLogoX, logoY, { width: logoSize });
+          }
+        } catch (err) {
+          console.error('❌ Error loading PNG emblem:', err.message);
+        }
+
+        yPos = logoY + logoSize + 30; // Position content below logos
+
+        // GREEN CARD title
+        doc.fontSize(48)
+           .fillColor('#4CAF50')
+           .font('Helvetica')
+           .text('GREEN CARD', margin, yPos, { width: contentWidth, align: 'center' });
+
+        yPos += 65;
+
+        // Green line under title
+        doc.moveTo(margin, yPos)
+           .lineTo(pageWidth - margin, yPos)
+           .lineWidth(3)
+           .stroke('#4CAF50');
+
+        yPos += 25;
+
+        // Subtitle: Foreign Passport Holder
+        doc.fontSize(20)
+           .fillColor('#000000')
+           .font('Helvetica')
+           .text('Foreign Passport Holder', margin, yPos, { width: contentWidth, align: 'center' });
+
+        yPos += 60;
+
+        // Get the voucher code
+        const voucherCode = voucher.voucher_code || voucher.code || 'UNKNOWN';
+
+        // Coupon Number (label on left, value on right)
+        doc.fontSize(16)
+           .fillColor('#000000')
+           .font('Helvetica')
+           .text('Coupon Number:', margin + 20, yPos);
+
+        doc.fontSize(20)
+           .fillColor('#000000')
+           .font('Helvetica')
+           .text(voucherCode, 0, yPos, { width: pageWidth - margin - 20, align: 'right' });
+
+        yPos += 60;
+
+        // Generate CODE128 barcode for voucher code
+        try {
+          const barcodePng = await bwipjs.toBuffer({
+            bcid: 'code128',
+            text: voucherCode,
+            scale: 3,
+            height: 15,
+            includetext: false,
+            textxalign: 'center',
+            paddingwidth: 10,
+            paddingheight: 5
+          });
+
+          // Center the barcode
+          const barcodeWidth = 350;
+          const barcodeHeight = 80;
+          const barcodeX = (pageWidth - barcodeWidth) / 2;
+
+          doc.image(barcodePng, barcodeX, yPos, { width: barcodeWidth, height: barcodeHeight, align: 'center' });
+          yPos += barcodeHeight + 20;
+        } catch (err) {
+          console.error('Error adding barcode to PDF:', err);
+          yPos += 20;
+        }
+
+        // Conditional section: Show passport number OR registration QR code + link
+        const passportNumber = voucher.passport_number;
+        const hasPassport = passportNumber && passportNumber !== 'PENDING';
+
+        if (hasPassport) {
+          // REGISTERED PASSPORT SECTION
+          yPos += 20;
+
+          // Box with passport info
+          const boxY = yPos;
+          const boxHeight = 80;
+
+          // Draw green border box
+          doc.rect(margin + 20, boxY, contentWidth - 40, boxHeight)
+             .lineWidth(2)
+             .strokeColor('#4CAF50')
+             .stroke();
+
+          // Passport label
+          yPos = boxY + 15;
+          doc.fontSize(12)
+             .fillColor('#4CAF50')
+             .font('Helvetica')
+             .text('REGISTERED PASSPORT', margin, yPos, { width: contentWidth, align: 'center' });
+
+          // Passport number
+          yPos += 25;
+          doc.fontSize(20)
+             .fillColor('#000000')
+             .font('Helvetica')
+             .text(passportNumber, margin, yPos, { width: contentWidth, align: 'center' });
+
+          yPos = boxY + boxHeight + 30;
+        } else {
+          // UNREGISTERED - SHOW QR CODE + REGISTRATION LINK
+          yPos += 20;
+
+          // "Scan to Register" heading
+          doc.fontSize(18)
+             .fillColor('#4CAF50')
+             .font('Helvetica')
+             .text('Scan to Register Your Passport', margin, yPos, { width: contentWidth, align: 'center' });
+
+          yPos += 35;
+
+          // Generate QR code for registration URL
+          const registrationUrl = `https://greenpay.eywademo.cloud/register/${voucherCode}`;
+
+          try {
+            const QRCode = require('qrcode');
+            const qrDataUrl = await QRCode.toDataURL(registrationUrl, {
+              width: 200,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            });
+            const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
+            const qrBuffer = Buffer.from(qrBase64, 'base64');
+
+            // Center the QR code
+            const qrSize = 150;
+            const qrX = (pageWidth - qrSize) / 2;
+
+            doc.image(qrBuffer, qrX, yPos, { width: qrSize, height: qrSize });
+            yPos += qrSize + 15;
+          } catch (err) {
+            console.error('Error generating QR code:', err);
+            yPos += 15;
+          }
+
+          // Instructions text
+          doc.fontSize(11)
+             .fillColor('#666666')
+             .font('Helvetica')
+             .text('Scan this QR code with your mobile device', margin, yPos, { width: contentWidth, align: 'center' });
+
+          yPos += 20;
+          doc.fontSize(11)
+             .fillColor('#666666')
+             .font('Helvetica')
+             .text('or visit:', margin, yPos, { width: contentWidth, align: 'center' });
+
+          yPos += 18;
+
+          // Registration URL as clickable link
+          doc.fontSize(9)
+             .fillColor('#2196F3')
+             .font('Helvetica')
+             .text(registrationUrl, margin, yPos, {
+               width: contentWidth,
+               align: 'center',
+               link: registrationUrl,
+               underline: true
+             });
+
+          yPos += 30;
+        }
+
+        // Footer with company name (if corporate), authorizing officer, and generation date
+        yPos = pageHeight - margin - 60;
+
+        // Horizontal line
+        doc.moveTo(margin, yPos)
+           .lineTo(pageWidth - margin, yPos)
+           .lineWidth(1)
+           .stroke('#CCCCCC');
+
+        yPos += 15;
+
+        // Footer text
+        if (companyName) {
+          doc.fontSize(9)
+             .fillColor('#666666')
+             .font('Helvetica')
+             .text(`Company: ${companyName}`, margin, yPos);
+        }
+
+        doc.fontSize(9)
+           .fillColor('#666666')
+           .font('Helvetica')
+           .text(`Generated: ${new Date().toLocaleString()}`, 0, yPos, { width: pageWidth - margin, align: 'right' });
+      }
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
 
 async function generateInvoicePDF(invoice, customer, supplier) {
   return new Promise((resolve, reject) => {
@@ -10,46 +263,107 @@ async function generateInvoicePDF(invoice, customer, supplier) {
       doc.on('end', () => resolve(Buffer.concat(buffers)));
       doc.on('error', reject);
 
-      // Company header
-      doc.fontSize(20).text(supplier.name || 'PNG Green Fees System', 50, 50);
-      doc.fontSize(10)
-         .text(supplier.address_line1 || '', 50, 75)
-         .text((supplier.city || '') + ' ' + (supplier.province || ''), 50, 90)
-         .text(supplier.country || 'Papua New Guinea', 50, 105);
+      const pageWidth = 595.28;
+      const margin = 50;
+      let yPos = margin;
 
-      if (supplier.tin) doc.text('TIN: ' + supplier.tin, 50, 120);
-      if (supplier.phone) doc.text('Phone: ' + supplier.phone, 50, 135);
-      if (supplier.email) doc.text('Email: ' + supplier.email, 50, 150);
+      // Header - Company Info (Left side)
+      doc.fontSize(11)
+         .fillColor('#2c5530')
+         .font('Helvetica')
+         .text('Climate Change and Development Authority', margin, yPos);
+      yPos += 14;
 
-      // Invoice title
-      doc.fontSize(24).text('TAX INVOICE', 400, 50, { align: 'right' });
-      doc.fontSize(12)
-         .text('Invoice #: ' + invoice.invoice_number, 400, 80, { align: 'right' })
-         .text('Date: ' + new Date(invoice.invoice_date).toLocaleDateString(), 400, 95, { align: 'right' })
-         .text('Due Date: ' + new Date(invoice.due_date).toLocaleDateString(), 400, 110, { align: 'right' });
+      doc.fontSize(9)
+         .fillColor('#666666')
+         .text('P.O. Box 4017 BOROKO National Capital District', margin, yPos);
+      yPos += 12;
+      doc.text('Port Moresby, Papua New Guinea', margin, yPos);
+      yPos += 12;
+      doc.text('Email: png.greenfees@ccda.gov.pg', margin, yPos);
+      yPos += 12;
+      doc.text('Phone: +675 7700 7513 / +675 7700 7836', margin, yPos);
 
-      // Customer info
-      doc.fontSize(12).text('Bill To:', 50, 180);
-      doc.fontSize(10)
-         .text(customer.name || invoice.customer_name, 50, 200)
-         .text(customer.address_line1 || invoice.customer_address || '', 50, 215);
+      // Invoice Title (Right side)
+      doc.fontSize(24)
+         .fillColor('#2c5530')
+         .text('INVOICE', 400, margin, { width: 145, align: 'right' });
 
-      if (customer.tin || invoice.customer_tin) {
-        doc.text('TIN: ' + (customer.tin || invoice.customer_tin), 50, 230);
+      // Invoice Details (Right side)
+      const invoiceDetailsY = margin + 35;
+      doc.fontSize(9)
+         .fillColor('#000000')
+         .text('Invoice #: ' + (invoice.invoice_number || 'N/A'), 400, invoiceDetailsY, { width: 145, align: 'right' });
+
+      doc.fillColor('#000000')
+         .text('Date: ' + new Date(invoice.invoice_date || Date.now()).toLocaleDateString('en-GB'), 400, invoiceDetailsY + 14, { width: 145, align: 'right' });
+
+      doc.fillColor('#000000')
+         .text('Due Date: ' + new Date(invoice.due_date || Date.now()).toLocaleDateString('en-GB'), 400, invoiceDetailsY + 28, { width: 145, align: 'right' });
+
+      if (invoice.po_reference) {
+        doc.fillColor('#000000')
+           .text('PO Reference: ' + invoice.po_reference, 400, invoiceDetailsY + 42, { width: 145, align: 'right' });
       }
+
+      yPos = 140;
+
+      // Bill To and Payment Details (Two columns)
+      const leftColX = margin;
+      const rightColX = 305;
+
+      // Bill To Section
+      doc.fontSize(11)
+         .fillColor('#2c5530')
+         .text('Bill To', leftColX, yPos);
+      yPos += 18;
+
+      doc.fontSize(9)
+         .fillColor('#000000')
+         .text(customer.name || invoice.customer_name || 'N/A', leftColX, yPos);
+      yPos += 12;
+
       if (customer.email || invoice.customer_email) {
-        doc.text('Email: ' + (customer.email || invoice.customer_email), 50, 245);
+        doc.fillColor('#666666')
+           .text(customer.email || invoice.customer_email, leftColX, yPos);
+        yPos += 12;
       }
 
-      // Table
-      const tableTop = 290;
-      doc.fontSize(10);
-      doc.text('Description', 50, tableTop, { width: 250 });
-      doc.text('Qty', 310, tableTop, { width: 50, align: 'right' });
-      doc.text('Unit Price', 370, tableTop, { width: 70, align: 'right' });
-      doc.text('Amount', 450, tableTop, { width: 90, align: 'right' });
-      doc.moveTo(50, tableTop + 15).lineTo(540, tableTop + 15).stroke();
+      if (customer.address_line1 || invoice.customer_address) {
+        doc.text(customer.address_line1 || invoice.customer_address, leftColX, yPos);
+      }
 
+      // Payment Details Section (Right column)
+      const paymentY = 140;
+      doc.fontSize(11)
+         .fillColor('#2c5530')
+         .text('Payment Details', rightColX, paymentY);
+
+      doc.fontSize(9)
+         .fillColor('#000000')
+         .text('Payment Mode: ' + (invoice.payment_mode || 'N/A'), rightColX, paymentY + 18);
+
+      const amountPaid = parseFloat(invoice.amount_paid || 0);
+      doc.fillColor('#000000')
+         .text('Amount Paid: PGK ' + amountPaid.toFixed(2), rightColX, paymentY + 32);
+
+      yPos = 220;
+
+      // Table Header with dark green background
+      doc.rect(margin, yPos, pageWidth - (margin * 2), 20)
+         .fillAndStroke('#2c5530', '#2c5530');
+
+      doc.fontSize(9)
+         .fillColor('#FFFFFF')
+         .text('S.No', margin + 5, yPos + 6, { width: 30 })
+         .text('Description', margin + 40, yPos + 6, { width: 250 })
+         .text('Quantity', 350, yPos + 6, { width: 60, align: 'center' })
+         .text('Unit Price', 420, yPos + 6, { width: 60, align: 'right' })
+         .text('Total', 490, yPos + 6, { width: 50, align: 'right' });
+
+      yPos += 20;
+
+      // Table Rows
       let items = [];
       try {
         items = typeof invoice.items === 'string' ? JSON.parse(invoice.items) : invoice.items || [];
@@ -57,76 +371,91 @@ async function generateInvoicePDF(invoice, customer, supplier) {
         items = [];
       }
 
-      let yPos = tableTop + 25;
+      let rowNum = 1;
       items.forEach((item) => {
-        const desc = item.description || 'Item';
+        const desc = item.description || 'Green Fee Vouchers';
         const qty = item.quantity || 1;
-        const price = parseFloat(item.unitPrice || item.unit_price || 0);
-        const amt = qty * price;
+        const price = parseFloat(item.unitPrice || item.unit_price || 50);
+        const total = qty * price;
 
-        doc.text(desc, 50, yPos, { width: 250 });
-        doc.text(qty.toString(), 310, yPos, { width: 50, align: 'right' });
-        doc.text('K ' + price.toFixed(2), 370, yPos, { width: 70, align: 'right' });
-        doc.text('K ' + amt.toFixed(2), 450, yPos, { width: 90, align: 'right' });
-        yPos += 20;
+        // Light gray background for rows
+        if (rowNum % 2 === 0) {
+          doc.rect(margin, yPos, pageWidth - (margin * 2), 35)
+             .fill('#f9f9f9');
+        }
+
+        doc.fontSize(9)
+           .fillColor('#000000')
+           .text(rowNum.toString(), margin + 5, yPos + 5, { width: 30 })
+           .text(desc, margin + 40, yPos + 5, { width: 250 });
+
+        // Add voucher details if available
+        if (item.voucher_value) {
+          doc.fontSize(7)
+             .fillColor('#666666')
+             .text('Voucher Value: PGK ' + parseFloat(item.voucher_value).toFixed(2) + ' each', margin + 40, yPos + 16);
+        }
+        if (item.validity_start && item.validity_end) {
+          const startDate = new Date(item.validity_start).toLocaleDateString('en-GB');
+          const endDate = new Date(item.validity_end).toLocaleDateString('en-GB');
+          doc.text('Validity: ' + startDate + ' - ' + endDate, margin + 40, yPos + 24);
+        }
+
+        doc.fontSize(9)
+           .fillColor('#000000')
+           .text(qty.toString(), 350, yPos + 5, { width: 60, align: 'center' })
+           .text('PGK ' + price.toFixed(2), 420, yPos + 5, { width: 60, align: 'right' })
+           .text('PGK ' + total.toFixed(2), 490, yPos + 5, { width: 50, align: 'right' });
+
+        yPos += 35;
+        rowNum++;
       });
 
-      // Totals
-      yPos += 20;
-      doc.moveTo(50, yPos).lineTo(540, yPos).stroke();
-      yPos += 15;
+      yPos += 10;
 
-      const subtotal = parseFloat(invoice.subtotal || 0);
-      const gstRate = parseFloat(invoice.gst_rate || 10);
-      const gstAmount = parseFloat(invoice.gst_amount || 0);
-      const totalAmount = parseFloat(invoice.total_amount || 0);
+      // Total Amount
+      doc.fontSize(10)
+         .fillColor('#000000')
+         .text('Total Amount:', 420, yPos, { width: 60, align: 'right' })
+         .text('PGK ' + parseFloat(invoice.total_amount || 0).toFixed(2), 490, yPos, { width: 50, align: 'right' });
 
-      doc.text('Subtotal:', 370, yPos, { width: 70, align: 'right' });
-      doc.text('K ' + subtotal.toFixed(2), 450, yPos, { width: 90, align: 'right' });
-      yPos += 20;
-
-      doc.text('GST (' + gstRate + '%):', 370, yPos, { width: 70, align: 'right' });
-      doc.text('K ' + gstAmount.toFixed(2), 450, yPos, { width: 90, align: 'right' });
-      yPos += 20;
-
-      doc.fontSize(12).font('Helvetica-Bold');
-      doc.text('Total:', 370, yPos, { width: 70, align: 'right' });
-      doc.text('K ' + totalAmount.toFixed(2), 450, yPos, { width: 90, align: 'right' });
-      doc.font('Helvetica').fontSize(10);
-
-      // Payment status
       yPos += 30;
-      const amountPaid = parseFloat(invoice.amount_paid || 0);
-      const amountDue = parseFloat(invoice.amount_due || totalAmount);
 
-      if (amountPaid > 0) {
-        doc.text('Amount Paid:', 370, yPos, { width: 70, align: 'right' });
-        doc.text('K ' + amountPaid.toFixed(2), 450, yPos, { width: 90, align: 'right' });
-        yPos += 20;
-      }
+      // Payment Information and Terms & Conditions (Two columns)
+      const bottomSectionY = yPos;
 
-      if (amountDue > 0) {
-        doc.fontSize(12).font('Helvetica-Bold');
-        doc.text('Amount Due:', 370, yPos, { width: 70, align: 'right' });
-        doc.text('K ' + amountDue.toFixed(2), 450, yPos, { width: 90, align: 'right' });
-        doc.font('Helvetica').fontSize(10);
-      }
+      // Payment Information (Left)
+      doc.fontSize(11)
+         .fillColor('#2c5530')
+         .text('Payment Information', leftColX, bottomSectionY);
 
-      // Notes
-      yPos += 40;
-      if (invoice.payment_terms) {
-        doc.text('Payment Terms:', 50, yPos);
-        doc.text(invoice.payment_terms, 50, yPos + 15, { width: 490 });
-        yPos += 40;
-      }
+      doc.fontSize(9)
+         .fillColor('#000000')
+         .text('Bank: Bank South Pacific (BSP)', leftColX, bottomSectionY + 18);
 
-      if (invoice.notes) {
-        doc.text('Notes:', 50, yPos);
-        doc.text(invoice.notes, 50, yPos + 15, { width: 490 });
-      }
+      doc.fillColor('#000000')
+         .text('Account Name: CCDA/DoF Revenue Account', leftColX, bottomSectionY + 32);
 
-      // Footer
-      doc.fontSize(8).text('Thank you for your business!', 50, 750, { align: 'center', width: 500 });
+      doc.fillColor('#000000')
+         .text('Account Number: 7012975186', leftColX, bottomSectionY + 46);
+
+      doc.fillColor('#000000')
+         .text('Swift Code: BOSPPGPM', leftColX, bottomSectionY + 60);
+
+      doc.fillColor('#000000')
+         .text('BSB: 088-294', leftColX, bottomSectionY + 74);
+
+      // Terms & Conditions (Right)
+      doc.fontSize(11)
+         .fillColor('#2c5530')
+         .text('Terms & Conditions', rightColX, bottomSectionY);
+
+      doc.fontSize(8)
+         .fillColor('#666666')
+         .text('• Payment is due within 7 days of the invoice date.', rightColX, bottomSectionY + 18, { width: 240 })
+         .text('• Quotation sent will be valid from ' + new Date(invoice.invoice_date || Date.now()).toLocaleDateString('en-GB') + ' to ' + new Date(new Date(invoice.invoice_date || Date.now()).getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB') + '.', rightColX, bottomSectionY + 32, { width: 240 })
+         .text('• No refunds will be provided after voucher generation.', rightColX, bottomSectionY + 58, { width: 240 })
+         .text('• For enquiries, contact enquiries.greenfees@ccda.gov.pg', rightColX, bottomSectionY + 72, { width: 240 });
 
       doc.end();
     } catch (error) {
@@ -136,7 +465,8 @@ async function generateInvoicePDF(invoice, customer, supplier) {
 }
 
 /**
- * Generate Voucher PDF with QR Code
+ * Generate Voucher PDF with QR Code - GREEN CARD Template
+ * Matches the agreed template with CCDA and PNG logos
  * @param {Object} voucher - Voucher data with QR code
  * @returns {Promise<Buffer>} PDF buffer
  */
@@ -155,136 +485,136 @@ async function generateVoucherPDF(voucher) {
       const margin = 60;
       const contentWidth = pageWidth - (margin * 2);
 
-      // Logo placeholders (circles at top)
-      // TODO: To add CCDA logo, download https://ccda.gov.pg/wp-content/uploads/2025/01/ccda-logo.jpeg
-      // and save to server, then use: doc.image('/path/to/ccda-logo.jpeg', leftLogoX - logoRadius, logoY - logoRadius, { width: logoRadius * 2, height: logoRadius * 2, fit: [logoRadius * 2, logoRadius * 2] });
-      const logoY = 80;
-      const logoRadius = 50;
-      const logoSpacing = 120;
-      const leftLogoX = (pageWidth / 2) - logoSpacing;
-      const rightLogoX = (pageWidth / 2) + logoSpacing;
+      let yPos = margin;
 
-      // Left logo placeholder (CCDA Logo)
-      doc.circle(leftLogoX, logoY, logoRadius)
-         .lineWidth(1)
-         .dash(5, { space: 3 })
-         .stroke('#cccccc');
+      // Two logos centered at top
+      const logoY = margin;
+      const logoSize = 90;
+      const logoGap = 80; // Gap between logos
+      const totalLogoWidth = (logoSize * 2) + logoGap;
+      const leftLogoX = (pageWidth - totalLogoWidth) / 2; // First logo position
+      const rightLogoX = leftLogoX + logoSize + logoGap; // Second logo position
 
-      doc.fontSize(8)
-         .fillColor('#999999')
-         .font('Helvetica')
-         .text('CCDA Logo', leftLogoX - 30, logoY - 5, { width: 60, align: 'center' });
+      // CCDA Logo (left)
+      try {
+        const ccdaLogoPath = path.join(__dirname, '../assets/logos/ccda-logo.png');
+        if (fs.existsSync(ccdaLogoPath)) {
+          doc.image(ccdaLogoPath, leftLogoX, logoY, { width: logoSize });
+        }
+      } catch (err) {
+        console.error('❌ Error loading CCDA logo:', err.message);
+      }
 
-      // Right logo placeholder
-      doc.circle(rightLogoX, logoY, logoRadius)
-         .lineWidth(1)
-         .dash(5, { space: 3 })
-         .stroke('#cccccc');
+      // PNG Emblem (right)
+      try {
+        const pngEmblemPath = path.join(__dirname, '../assets/logos/png-emblem.png');
+        if (fs.existsSync(pngEmblemPath)) {
+          doc.image(pngEmblemPath, rightLogoX, logoY, { width: logoSize });
+        }
+      } catch (err) {
+        console.error('❌ Error loading PNG emblem:', err.message);
+      }
 
-      doc.fontSize(8)
-         .fillColor('#999999')
-         .font('Helvetica')
-         .text('National Emblem', rightLogoX - 30, logoY - 5, { width: 60, align: 'center' });
-
-      // Reset dash
-      doc.undash();
+      yPos = logoY + logoSize + 30; // Position content below logos
 
       // GREEN CARD title
-      let yPos = 200;
-      doc.fontSize(44)
+      doc.fontSize(48)
          .fillColor('#4CAF50')
-         .font('Helvetica-Bold')
+         .font('Helvetica')
          .text('GREEN CARD', margin, yPos, { width: contentWidth, align: 'center' });
 
+      yPos += 65;
+
       // Green line under title
-      yPos += 60;
       doc.moveTo(margin, yPos)
          .lineTo(pageWidth - margin, yPos)
          .lineWidth(3)
          .stroke('#4CAF50');
 
+      yPos += 25;
+
       // Subtitle: Foreign Passport Holder
-      yPos += 30;
-      doc.fontSize(22)
+      doc.fontSize(20)
          .fillColor('#000000')
-         .font('Helvetica-Bold')
+         .font('Helvetica')
          .text('Foreign Passport Holder', margin, yPos, { width: contentWidth, align: 'center' });
 
-      // Coupon Number (label on left, value on right)
       yPos += 60;
-      doc.fontSize(18)
-         .fillColor('#000000')
-         .font('Helvetica-Bold')
-         .text('Coupon Number:', margin + 20, yPos, { continued: false });
 
       // Get the voucher code
       const voucherCode = voucher.voucher_code || voucher.code || 'UNKNOWN';
 
-      doc.fontSize(22)
+      // Coupon Number (label on left, value on right)
+      doc.fontSize(16)
          .fillColor('#000000')
-         .font('Helvetica-Bold')
+         .font('Helvetica')
+         .text('Coupon Number:', margin + 20, yPos);
+
+      doc.fontSize(20)
+         .fillColor('#000000')
+         .font('Helvetica')
          .text(voucherCode, 0, yPos, { width: pageWidth - margin - 20, align: 'right' });
 
-      // Passport Info (if registered)
-      yPos += 50;
-      const passportNumber = voucher.passport_number || null;
-      if (passportNumber) {
-        // Draw green border rectangle
-        doc.rect(margin + 50, yPos, contentWidth - 100, 60)
-           .lineWidth(2)
-           .stroke('#4CAF50');
-
-        // Passport label
-        doc.fontSize(12)
-           .fillColor('#666666')
-           .font('Helvetica-Bold')
-           .text('REGISTERED PASSPORT', margin, yPos + 15, { width: contentWidth, align: 'center' });
-
-        // Passport number
-        doc.fontSize(18)
-           .fillColor('#000000')
-           .font('Courier-Bold')
-           .text(passportNumber, margin, yPos + 35, { width: contentWidth, align: 'center' });
-
-        yPos += 70;
-      }
-
-      // Barcode (if provided as data URL) - BIGGER for easier scanning
       yPos += 60;
-      if (voucher.barcode) {
+
+      // Barcode in center
+      if (voucher.barcode || voucher.qrCode) {
         try {
-          // Extract base64 data from data URL
-          const base64Data = voucher.barcode.replace(/^data:image\/png;base64,/, '');
+          const barcodeData = voucher.barcode || voucher.qrCode;
+          const base64Data = barcodeData.replace(/^data:image\/png;base64,/, '');
           const imageBuffer = Buffer.from(base64Data, 'base64');
 
-          // Center the barcode - INCREASED SIZE
-          const barcodeWidth = 450;  // Increased from 350
-          const barcodeHeight = 120; // Increased from 90
+          // Center the barcode
+          const barcodeWidth = 400;
+          const barcodeHeight = 100;
           const barcodeX = (pageWidth - barcodeWidth) / 2;
-          doc.image(imageBuffer, barcodeX, yPos, { width: barcodeWidth, height: barcodeHeight });
 
-          yPos += 140;
+          doc.image(imageBuffer, barcodeX, yPos, { width: barcodeWidth, height: barcodeHeight });
+          yPos += barcodeHeight + 20;
         } catch (err) {
           console.error('Error adding barcode to PDF:', err);
           yPos += 20;
         }
-      } else {
-        yPos += 20;
       }
 
-      // "Scan to Register" instruction
-      doc.fontSize(18)
-         .fillColor('#000000')
-         .font('Helvetica')
-         .text('Scan to Register', margin, yPos, { width: contentWidth, align: 'center' });
+      // Conditional section: Show passport number OR registration link
+      const passportNumber = voucher.passport_number;
+      const hasPassport = passportNumber && passportNumber !== 'PENDING';
 
-      // Registration URL
-      yPos += 30;
-      const registrationUrl = `https://pnggreenfees.gov.pg/voucher/register/${voucherCode}`;
-      doc.fontSize(12)
-         .fillColor('#666666')
-         .font('Helvetica')
-         .text(registrationUrl, margin, yPos, { width: contentWidth, align: 'center' });
+      if (hasPassport) {
+        // Show passport number when attached
+        yPos += 20;
+        doc.fontSize(14)
+           .fillColor('#000000')
+           .font('Helvetica')
+           .text('Passport Number:', margin, yPos, { width: contentWidth, align: 'center' });
+
+        yPos += 25;
+        doc.fontSize(18)
+           .fillColor('#000000')
+           .font('Helvetica')
+           .text(passportNumber, margin, yPos, { width: contentWidth, align: 'center' });
+
+        yPos += 40;
+      } else {
+        // Show "Scan to Register" with link when no passport
+        yPos += 20;
+        doc.fontSize(16)
+           .fillColor('#000000')
+           .font('Helvetica')
+           .text('Scan to Register', margin, yPos, { width: contentWidth, align: 'center' });
+
+        yPos += 30;
+
+        // Registration URL
+        const registrationUrl = `https://greenpay.eywademo.cloud/register/${voucherCode}`;
+        doc.fontSize(10)
+           .fillColor('#666666')
+           .font('Helvetica')
+           .text(registrationUrl, margin, yPos, { width: contentWidth, align: 'center' });
+
+        yPos += 40;
+      }
 
       // Footer separator line
       yPos = pageHeight - 130;
@@ -293,19 +623,20 @@ async function generateVoucherPDF(voucher) {
          .lineWidth(1)
          .stroke('#cccccc');
 
-      // Footer content
       yPos += 20;
 
-      // Left side: Authorizing Officer (only if issued by staff)
-      const showAuthorizingOfficer = voucher.created_by_name && voucher.created_by_name !== 'AUTHORIZED OFFICER';
-      if (showAuthorizingOfficer) {
-        const authorizingOfficer = voucher.created_by_name;
-        doc.fontSize(14)
+      // Footer content
+      // Left side: Authorizing Officer (if available)
+      const authorizingOfficer = voucher.created_by_name;
+      const showOfficer = authorizingOfficer && authorizingOfficer !== 'AUTHORIZED OFFICER';
+
+      if (showOfficer) {
+        doc.fontSize(12)
            .fillColor('#000000')
-           .font('Helvetica-Bold')
+           .font('Helvetica')
            .text(authorizingOfficer.toUpperCase(), margin, yPos);
 
-        doc.fontSize(11)
+        doc.fontSize(10)
            .fillColor('#666666')
            .font('Helvetica')
            .text('Authorizing Officer', margin, yPos + 18);
@@ -323,7 +654,7 @@ async function generateVoucherPDF(voucher) {
       };
       const dateString = generationDate.toLocaleString('en-US', dateOptions);
 
-      doc.fontSize(10)
+      doc.fontSize(9)
          .fillColor('#666666')
          .font('Helvetica')
          .text(`Generated on ${dateString}`, 0, yPos + 10, {
@@ -339,7 +670,7 @@ async function generateVoucherPDF(voucher) {
 }
 
 /**
- * Generate Quotation PDF
+ * Generate Quotation PDF - Matches official template with logos
  * @param {Object} quotation - Quotation data
  * @returns {Promise<Buffer>} PDF buffer
  */
@@ -353,255 +684,199 @@ async function generateQuotationPDF(quotation) {
       doc.on('end', () => resolve(Buffer.concat(buffers)));
       doc.on('error', reject);
 
-      const pageWidth = 595.28; // A4 width in points
-      const pageHeight = 841.89; // A4 height in points
+      const pageWidth = 595.28;
       const margin = 50;
-      const contentWidth = pageWidth - (margin * 2);
-
       let yPos = margin;
 
-      // Header - QUOTATION Title
-      doc.fontSize(24)
-         .font('Helvetica-Bold')
+      // Header with logos placeholder and title
+      doc.fontSize(11)
          .fillColor('#2c5530')
-         .text('QUOTATION', margin, yPos, { width: contentWidth, align: 'center' });
+         .font('Helvetica')
+         .text('CLIMATE CHANGE and DEVELOPMENT AUTHORITY', margin, yPos, { align: 'center', width: pageWidth - (margin * 2) });
 
-      yPos += 30;
+      yPos += 25;
 
-      // Header line
+      // Green line under header
       doc.strokeColor('#66b958')
-         .lineWidth(1)
+         .lineWidth(2)
          .moveTo(margin, yPos)
          .lineTo(pageWidth - margin, yPos)
          .stroke();
 
-      yPos += 15;
+      yPos += 5;
 
-      // Quotation details
+      // QUOTATION title and details (right aligned)
+      doc.fontSize(18)
+         .fillColor('#2c5530')
+         .text('QUOTATION', 320, yPos, { width: 225, align: 'right' });
+
+      doc.fontSize(9)
+         .fillColor('#000000')
+         .text('Quotation #: ' + (quotation.quotation_number || 'N/A'), 320, yPos + 25, { width: 225, align: 'right' });
+
+      doc.fillColor('#000000')
+         .text('Subject: Green Fee Voucher', 320, yPos + 39, { width: 225, align: 'right' });
+
+      doc.fillColor('#000000')
+         .text('Date: ' + new Date(quotation.created_at || Date.now()).toLocaleDateString('en-GB'), 320, yPos + 53, { width: 225, align: 'right' });
+
+      yPos = 140;
+
+      // Two columns: QUOTATION FROM and QUOTATION TO
+      const leftColX = margin;
+      const rightColX = 305;
+      const boxWidth = 240;
+      const boxHeight = 90;
+
+      // QUOTATION FROM (Left box with green border)
+      doc.rect(leftColX, yPos, boxWidth, boxHeight)
+         .lineWidth(1)
+         .strokeColor('#66b958')
+         .stroke();
+
       doc.fontSize(10)
+         .fillColor('#66b958')
+         .text('QUOTATION FROM:', leftColX + 10, yPos + 10);
+
+      doc.fontSize(9)
+         .fillColor('#000000')
+         .text('Climate Change and Development Authority', leftColX + 10, yPos + 28);
+
+      doc.fontSize(8)
          .fillColor('#666666')
-         .font('Helvetica-Bold')
-         .text('Quotation #:', margin, yPos);
-      doc.font('Helvetica')
-         .text(quotation.quotation_number || 'N/A', margin + 50, yPos);
+         .text('Email: png.greenfees@ccda.gov.pg', leftColX + 10, yPos + 42)
+         .text('Phone: +675 7700 7513 / +675 7700 7836', leftColX + 10, yPos + 54);
 
-      yPos += 12;
+      if (quotation.created_by_name) {
+        doc.fillColor('#000000')
+           .text('Contact: ' + quotation.created_by_name, leftColX + 10, yPos + 68);
+      }
 
-      doc.font('Helvetica-Bold')
-         .text('Date:', margin, yPos);
-      doc.font('Helvetica')
-         .text(quotation.created_at ? new Date(quotation.created_at).toLocaleDateString() : new Date().toLocaleDateString(), margin + 50, yPos);
+      // QUOTATION TO (Right box with green border)
+      doc.rect(rightColX, yPos, boxWidth, boxHeight)
+         .lineWidth(1)
+         .strokeColor('#66b958')
+         .stroke();
+
+      doc.fontSize(10)
+         .fillColor('#66b958')
+         .text('QUOTATION TO:', rightColX + 10, yPos + 10);
+
+      doc.fontSize(9)
+         .fillColor('#000000')
+         .text(quotation.customer_name || quotation.company_name || 'N/A', rightColX + 10, yPos + 28);
+
+      doc.fontSize(8)
+         .fillColor('#666666')
+         .text(quotation.customer_email || quotation.contact_email || 'N/A', rightColX + 10, yPos + 42);
+
+      doc.fillColor('#000000')
+         .text('Quotation Date: ' + new Date(quotation.created_at || Date.now()).toLocaleDateString('en-GB'), rightColX + 10, yPos + 56);
+
+      doc.text('Valid Until: ' + (quotation.valid_until ? new Date(quotation.valid_until).toLocaleDateString('en-GB') : 'N/A'), rightColX + 10, yPos + 68);
+
+      yPos += boxHeight + 20;
+
+      // Table Header with green background
+      doc.rect(margin, yPos, pageWidth - (margin * 2), 20)
+         .fillAndStroke('#66b958', '#66b958');
+
+      doc.fontSize(9)
+         .fillColor('#FFFFFF')
+         .text('SERVICE DESCRIPTION', margin + 10, yPos + 6, { width: 220 })
+         .text('UNIT PRICE', 320, yPos + 6, { width: 70, align: 'center' })
+         .text('QUANTITY', 400, yPos + 6, { width: 60, align: 'center' })
+         .text('TOTAL', 490, yPos + 6, { width: 50, align: 'right' });
 
       yPos += 20;
 
-      // Two-column layout: FROM and TO
-      const leftColX = margin;
-      const rightColX = pageWidth / 2 + 5;
-      const colStartY = yPos;
-
-      // FROM Section
-      doc.rect(leftColX, colStartY, (pageWidth / 2) - margin - 10, 45)
-         .fill('#f8f9fa')
-         .stroke('#66b958');
+      // Table Row
+      const unitPrice = parseFloat(quotation.unit_price || quotation.amount_per_passport || quotation.price_per_passport || 50);
+      const quantity = quotation.number_of_vouchers || quotation.number_of_passports || 1;
+      const lineTotal = unitPrice * quantity;
 
       doc.fontSize(9)
-         .fillColor('#2c5530')
-         .font('Helvetica-Bold')
-         .text('QUOTATION FROM:', leftColX + 5, colStartY + 5);
-
-      doc.fontSize(8)
-         .fillColor('#666666')
-         .font('Helvetica-Bold')
-         .text('Climate Change & Development Authority', leftColX + 5, colStartY + 12);
-
-      doc.font('Helvetica')
-         .text('Email: enquiries@ccda.gov.pg / png.greenfees@ccda.gov.pg', leftColX + 5, colStartY + 18)
-         .text('Phone: +675 7700 7513 / +675 7700 7836', leftColX + 5, colStartY + 24)
-         .text('Port Moresby, Papua New Guinea', leftColX + 5, colStartY + 30);
-
-      if (quotation.created_by_name) {
-        doc.font('Helvetica-Bold')
-           .fillColor('#2c5530')
-           .text('Issued By:', leftColX + 5, colStartY + 36);
-        doc.font('Helvetica')
-           .fillColor('#666666')
-           .text(quotation.created_by_name, leftColX + 50, colStartY + 36);
-      }
-
-      // TO Section
-      doc.rect(rightColX, colStartY, (pageWidth / 2) - margin - 10, 45)
-         .fill('#f8f9fa')
-         .stroke('#66b958');
-
-      doc.fontSize(9)
-         .fillColor('#2c5530')
-         .font('Helvetica-Bold')
-         .text('QUOTATION TO:', rightColX + 5, colStartY + 5);
-
-      doc.fontSize(8)
-         .fillColor('#666666')
-         .font('Helvetica-Bold')
-         .text(quotation.customer_name || quotation.company_name || 'N/A', rightColX + 5, colStartY + 12);
-
-      doc.font('Helvetica')
-         .text(`Email: ${quotation.customer_email || quotation.contact_email || 'N/A'}`, rightColX + 5, colStartY + 18);
-
-      if (quotation.contact_phone || quotation.customer_phone) {
-        doc.text(`Phone: ${quotation.contact_phone || quotation.customer_phone}`, rightColX + 5, colStartY + 24);
-      }
-
-      doc.font('Helvetica-Bold')
-         .text('Valid Until:', rightColX + 5, colStartY + 30);
-      doc.font('Helvetica')
-         .text(quotation.valid_until ? new Date(quotation.valid_until).toLocaleDateString() : 'N/A', rightColX + 50, colStartY + 30);
-
-      yPos = colStartY + 55;
-
-      // Services Table Header
-      doc.rect(margin, yPos, contentWidth, 12)
-         .fill('#66b958')
-         .stroke('#66b958');
-
-      doc.fontSize(9)
-         .fillColor('#ffffff')
-         .font('Helvetica-Bold')
-         .text('SERVICE DESCRIPTION', margin + 5, yPos + 6)
-         .text('QUANTITY', pageWidth - margin - 150, yPos + 6)
-         .text('UNIT PRICE', pageWidth - margin - 90, yPos + 6, { align: 'right' })
-         .text('AMOUNT', pageWidth - margin - 5, yPos + 6, { align: 'right' });
-
-      yPos += 12;
-
-      // Service Row
-      doc.rect(margin, yPos, contentWidth, 25)
-         .fill('#ffffff')
-         .stroke('#66b958');
-
-      const unitPrice = parseFloat(quotation.unit_price || quotation.amount_per_passport || quotation.price_per_passport || 0);
-      const quantity = quotation.number_of_vouchers || quotation.number_of_passports || 0;
-      const lineTotal = parseFloat(quotation.line_total || quotation.total_amount || 0);
-
-      doc.fontSize(9)
-         .fillColor('#666666')
-         .font('Helvetica-Bold')
-         .text('Green Fee Vouchers', margin + 5, yPos + 5);
-
-      doc.fontSize(8)
-         .font('Helvetica')
-         .text(`${quantity}`, pageWidth - margin - 150, yPos + 8)
-         .text(`K ${unitPrice.toFixed(2)}`, pageWidth - margin - 90, yPos + 8, { align: 'right' })
-         .text(`K ${lineTotal.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, { align: 'right' });
+         .fillColor('#000000')
+         .text('Green Fee Vouchers', margin + 10, yPos + 8, { width: 220 })
+         .text('PGK ' + unitPrice.toFixed(2), 320, yPos + 8, { width: 70, align: 'center' })
+         .text(quantity.toString(), 400, yPos + 8, { width: 60, align: 'center' })
+         .text('PGK ' + lineTotal.toFixed(2), 490, yPos + 8, { width: 50, align: 'right' });
 
       yPos += 30;
 
-      // Totals
-      const subtotal = parseFloat(quotation.subtotal || lineTotal || 0);
-      const discountAmount = parseFloat(quotation.discount_amount || 0);
-      const discountPercentage = parseFloat(quotation.discount_percentage || quotation.discount || 0);
-      const gstRate = parseFloat(quotation.gst_rate || quotation.tax_percentage || 10);
-      const gstAmount = parseFloat(quotation.gst_amount || quotation.tax_amount || (subtotal - discountAmount) * (gstRate / 100));
-      const totalAmount = parseFloat(quotation.total_amount || quotation.amount_after_discount || subtotal - discountAmount + gstAmount);
-
-      // Subtotal
-      doc.fontSize(9)
-         .fillColor('#666666')
-         .font('Helvetica-Bold')
-         .text('Subtotal:', pageWidth - margin - 90, yPos)
-         .font('Helvetica')
-         .text(`K ${subtotal.toFixed(2)}`, pageWidth - margin - 5, yPos, { align: 'right' });
-
-      yPos += 15;
-
-      // Discount
-      if (discountAmount > 0) {
-        doc.font('Helvetica-Bold')
-           .text(`Discount (${discountPercentage}%):`, pageWidth - margin - 90, yPos)
-           .font('Helvetica')
-           .text(`-K ${discountAmount.toFixed(2)}`, pageWidth - margin - 5, yPos, { align: 'right' });
-        yPos += 15;
-      }
-
-      // GST
-      doc.font('Helvetica-Bold')
-         .text(`GST (${gstRate}%):`, pageWidth - margin - 90, yPos)
-         .font('Helvetica')
-         .text(`K ${gstAmount.toFixed(2)}`, pageWidth - margin - 5, yPos, { align: 'right' });
-
-      yPos += 15;
-
-      // Total
-      doc.rect(pageWidth - margin - 90, yPos, 85, 15)
-         .fill('#2c5530')
-         .stroke('#2c5530');
-
-      doc.fontSize(11)
-         .fillColor('#ffffff')
-         .font('Helvetica-Bold')
-         .text('TOTAL:', pageWidth - margin - 85, yPos + 8)
-         .text(`K ${totalAmount.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, { align: 'right' });
-
-      yPos += 30;
-
-      // Payment terms if provided
-      if (quotation.payment_terms) {
-        doc.fontSize(9)
-           .fillColor('#2c5530')
-           .font('Helvetica-Bold')
-           .text('Payment Terms:', margin, yPos);
-        doc.fontSize(8)
-           .fillColor('#666666')
-           .font('Helvetica')
-           .text(quotation.payment_terms, margin, yPos + 12, { width: contentWidth });
-        yPos += 30;
-      }
-
-      // Notes if provided
-      if (quotation.notes || quotation.description) {
-        doc.fontSize(9)
-           .fillColor('#2c5530')
-           .font('Helvetica-Bold')
-           .text('Notes:', margin, yPos);
-        doc.fontSize(8)
-           .fillColor('#666666')
-           .font('Helvetica')
-           .text(quotation.notes || quotation.description, margin, yPos + 12, { width: contentWidth });
-      }
-
-      // Footer
-      yPos = pageHeight - 60;
-
-      doc.fontSize(8)
-         .fillColor('#666666')
-         .font('Helvetica-Italic')
-         .text('Thank you for your business!', margin, yPos, { width: contentWidth, align: 'center' });
-
-      // Signature box
-      doc.rect(pageWidth - margin - 80, yPos - 15, 80, 35)
-         .stroke('#2c5530');
-
-      doc.fontSize(7)
-         .fillColor('#2c5530')
-         .font('Helvetica-Bold')
-         .text('Authorized Signature:', pageWidth - margin - 75, yPos - 10);
-
-      doc.strokeColor('#666666')
-         .lineWidth(0.3)
-         .moveTo(pageWidth - margin - 75, yPos)
-         .lineTo(pageWidth - margin - 10, yPos)
+      // Subtotal row with bottom border
+      doc.moveTo(margin, yPos)
+         .lineTo(pageWidth - margin, yPos)
+         .strokeColor('#66b958')
+         .lineWidth(1)
          .stroke();
 
-      if (quotation.created_by_name) {
-        doc.fontSize(8)
-           .fillColor('#2c5530')
-           .font('Helvetica-Bold')
-           .text(quotation.created_by_name, pageWidth - margin - 40, yPos + 5, { align: 'center' });
-      }
+      yPos += 10;
 
-      doc.fontSize(6)
+      const subtotal = parseFloat(quotation.subtotal || lineTotal);
+      doc.fontSize(10)
+         .fillColor('#000000')
+         .text('SUB TOTAL', 400, yPos, { width: 80, align: 'left' })
+         .text('PGK ' + subtotal.toFixed(2), 490, yPos, { width: 50, align: 'right' });
+
+      yPos += 30;
+
+      // Payment Information and Terms & Conditions (Two columns)
+      const bottomSectionY = yPos;
+
+      // Payment Information (Left box)
+      doc.rect(leftColX, bottomSectionY, boxWidth, 90)
+         .lineWidth(1)
+         .strokeColor('#66b958')
+         .stroke();
+
+      doc.fontSize(10)
+         .fillColor('#66b958')
+         .text('PAYMENT INFORMATION:', leftColX + 10, bottomSectionY + 10);
+
+      doc.fontSize(8)
+         .fillColor('#000000')
+         .text('Bank: Bank South Pacific (BSP)', leftColX + 10, bottomSectionY + 28);
+
+      doc.fillColor('#000000')
+         .text('Account Name: CCDA/DoF Revenue Account', leftColX + 10, bottomSectionY + 40);
+
+      doc.fillColor('#000000')
+         .text('Account Number: 7012975186', leftColX + 10, bottomSectionY + 52);
+
+      doc.fillColor('#000000')
+         .text('Swift Code: BOSPPGPM', leftColX + 10, bottomSectionY + 64);
+
+      doc.fillColor('#000000')
+         .text('BSB: 088-294', leftColX + 10, bottomSectionY + 76);
+
+      // Terms & Conditions (Right box)
+      doc.rect(rightColX, bottomSectionY, boxWidth, 90)
+         .lineWidth(1)
+         .strokeColor('#66b958')
+         .stroke();
+
+      doc.fontSize(10)
+         .fillColor('#66b958')
+         .text('TERMS & CONDITIONS:', rightColX + 10, bottomSectionY + 10);
+
+      doc.fontSize(8)
          .fillColor('#666666')
-         .font('Helvetica-Italic')
-         .text('Issuing Officer', pageWidth - margin - 40, yPos + 15, { align: 'center' })
-         .text('Climate Change & Development Authority', pageWidth - margin - 40, yPos + 20, { align: 'center' });
+         .text('• Payment is due within 7 days of the invoice date.', rightColX + 10, bottomSectionY + 28, { width: 220 })
+         .text('• Quotation sent will be valid from ' + new Date(quotation.created_at || Date.now()).toLocaleDateString('en-GB') + ' to ' + (quotation.valid_until ? new Date(quotation.valid_until).toLocaleDateString('en-GB') : 'N/A') + '.', rightColX + 10, bottomSectionY + 42, { width: 220 })
+         .text('• No refunds will be provided after voucher generation.', rightColX + 10, bottomSectionY + 68, { width: 220 })
+         .text('• For enquiries, contact enquiries.greenfees@ccda.gov.pg', rightColX + 10, bottomSectionY + 80, { width: 220 });
+
+      yPos = bottomSectionY + 110;
+
+      // Footer
+      doc.fontSize(9)
+         .fillColor('#000000')
+         .text('Thank you for your business!', margin, yPos, { width: pageWidth - (margin * 2), align: 'center' });
+
+      doc.fontSize(8)
+         .fillColor('#666666')
+         .text('For any queries, please contact our support team email: png.greenfees@ccda.gov.pg', margin, yPos + 15, { width: pageWidth - (margin * 2), align: 'center' });
 
       doc.end();
     } catch (error) {
@@ -610,4 +885,9 @@ async function generateQuotationPDF(quotation) {
   });
 }
 
-module.exports = { generateInvoicePDF, generateVoucherPDF, generateQuotationPDF };
+module.exports = {
+  generateInvoicePDF,
+  generateVoucherPDF,
+  generateQuotationPDF,
+  generateVoucherPDFBuffer
+};

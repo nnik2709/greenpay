@@ -2,13 +2,37 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { auth, checkRole } = require('../middleware/auth');
-const { generateInvoicePDF } = require('../utils/pdfGenerator');
+const { generateInvoicePDF, generateVoucherPDFBuffer } = require('../utils/pdfGenerator');
 const { sendInvoiceEmail, sendEmailWithAttachments } = require('../services/notificationService');
 const voucherConfig = require('../config/voucherConfig');
 
 // Import voucher PDF generation functions
 const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
+
+const ensureGstColumn = async () => {
+  await db.query("ALTER TABLE settings ADD COLUMN IF NOT EXISTS gst_enabled boolean DEFAULT true");
+};
+
+const getEnvGstEnabled = () => {
+  if (process.env.GST_ENABLED === 'false') return false;
+  if (process.env.GST_ENABLED === '0') return false;
+  return true;
+};
+
+const getGstEnabled = async () => {
+  const fallback = getEnvGstEnabled();
+  try {
+    await ensureGstColumn();
+    const result = await db.query('SELECT gst_enabled FROM settings ORDER BY id DESC LIMIT 1');
+    if (result.rows.length === 0) return fallback;
+    const val = result.rows[0].gst_enabled;
+    return val === null || val === undefined ? fallback : val;
+  } catch (err) {
+    console.error('GST setting lookup failed, using fallback:', err.message);
+    return fallback;
+  }
+};
 
 // Helper function to generate vouchers PDF (same as in vouchers.js)
 const generateVouchersPDF = async (vouchers, companyName) => {
@@ -111,6 +135,18 @@ const calculateGST = (subtotal, gstRate = 10.00) => {
   return parseFloat((subtotal * (gstRate / 100)).toFixed(2));
 };
 
+// Safe no-op (schema-aware) voucher flag column helper
+const ensureVouchersFlagColumn = async () => {
+  try {
+    // Attempt to add column if permissions allow; ignore errors otherwise
+    await db.query("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS vouchers_generated boolean DEFAULT false");
+  } catch (err) {
+    // Swallow permission errors; we also guard with EXISTS checks elsewhere
+    console.warn('ensureVouchersFlagColumn skipped:', err.message);
+  }
+};
+
+// Ensure invoices has vouchers_generated flag
 // GET /api/invoices/stats - Get invoice statistics
 // IMPORTANT: This must come BEFORE /:id route to avoid matching "stats" as an ID
 router.get('/stats', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Support'), async (req, res) => {
@@ -141,40 +177,60 @@ router.get('/', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Support'), 
   try {
     const { status, customer, from_date, to_date } = req.query;
 
-    let query = 'SELECT * FROM invoices WHERE 1=1';
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/393aee6e-ef35-424a-a035-9f1cded26861',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'H2',location:'invoices-gst.js:get/ start',message:'Fetching invoices start',data:{status,customer,from_date,to_date},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
+    let query = `
+      SELECT 
+        i.*,
+        EXISTS (
+          SELECT 1 FROM corporate_vouchers cv WHERE cv.invoice_id = i.id
+        ) AS vouchers_generated
+      FROM invoices i
+      WHERE 1=1
+    `;
     const params = [];
     let paramCount = 1;
 
     if (status) {
-      query += ` AND status = $${paramCount}`;
+      query += ` AND i.status = $${paramCount}`;
       params.push(status);
       paramCount++;
     }
 
     if (customer) {
-      query += ` AND customer_name ILIKE $${paramCount}`;
+      query += ` AND i.customer_name ILIKE $${paramCount}`;
       params.push(`%${customer}%`);
       paramCount++;
     }
 
     if (from_date) {
-      query += ` AND invoice_date >= $${paramCount}`;
+      query += ` AND i.invoice_date >= $${paramCount}`;
       params.push(from_date);
       paramCount++;
     }
 
     if (to_date) {
-      query += ` AND invoice_date <= $${paramCount}`;
+      query += ` AND i.invoice_date <= $${paramCount}`;
       params.push(to_date);
       paramCount++;
     }
 
-    query += ' ORDER BY invoice_date DESC, invoice_number DESC';
+    query += ' ORDER BY i.invoice_date DESC, i.invoice_number DESC';
 
     const result = await db.query(query, params);
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/393aee6e-ef35-424a-a035-9f1cded26861',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'H2',location:'invoices-gst.js:get/ success',message:'Fetched invoices ok',data:{rows:result?.rows?.length || 0},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching invoices:', error);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/393aee6e-ef35-424a-a035-9f1cded26861',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'H3',location:'invoices-gst.js:get/ error',message:'Error fetching invoices',data:{error:error?.message},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     res.status(500).json({ error: 'Failed to fetch invoices' });
   }
 });
@@ -192,6 +248,16 @@ router.get('/:id', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Support'
 
     const invoice = invoiceResult.rows[0];
 
+    // Ensure vouchers_generated is reflected regardless of column presence
+    const vouchersExistsResult = await db.query(
+      'SELECT EXISTS (SELECT 1 FROM corporate_vouchers WHERE invoice_id = $1)',
+      [id]
+    );
+    const existsFlag = vouchersExistsResult.rows[0]?.exists || false;
+    invoice.vouchers_generated = typeof invoice.vouchers_generated === 'boolean'
+      ? invoice.vouchers_generated || existsFlag
+      : existsFlag;
+
     // Get payments
     const paymentsResult = await db.query(
       'SELECT * FROM invoice_payments WHERE invoice_id = $1 ORDER BY payment_date DESC',
@@ -207,6 +273,51 @@ router.get('/:id', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Support'
   }
 });
 
+// GET /api/invoices/:id/vouchers - Get vouchers linked to an invoice
+router.get('/:id/vouchers', auth, checkRole('Flex_Admin', 'Finance_Manager'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoiceId = parseInt(id, 10);
+
+    if (Number.isNaN(invoiceId)) {
+      return res.status(400).json({ error: 'Invalid invoice id' });
+    }
+
+    // Check if invoice_id column exists in corporate_vouchers (production schema differences)
+    const colCheck = await db.query(
+      `SELECT column_name FROM information_schema.columns 
+       WHERE table_name = 'corporate_vouchers' AND column_name = 'invoice_id'`
+    );
+
+    if (colCheck.rows.length === 0) {
+      return res.status(400).json({
+        error: 'Vouchers are not linked to invoices in the current schema (missing invoice_id column).'
+      });
+    }
+
+    const vouchersResult = await db.query(
+      `SELECT * FROM corporate_vouchers
+       WHERE invoice_id = $1
+       ORDER BY id DESC`,
+      [invoiceId]
+    );
+
+    if (vouchersResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'No vouchers found for this invoice'
+      });
+    }
+
+    return res.json({
+      success: true,
+      vouchers: vouchersResult.rows
+    });
+  } catch (error) {
+    console.error('Error fetching vouchers for invoice:', error);
+    return res.status(500).json({ error: 'Failed to fetch vouchers for invoice' });
+  }
+});
+
 // POST /api/invoices/from-quotation - Create invoice from quotation
 router.post('/from-quotation', auth, checkRole('Flex_Admin', 'Finance_Manager'), async (req, res) => {
   const client = await db.pool.connect();
@@ -214,7 +325,7 @@ router.post('/from-quotation', auth, checkRole('Flex_Admin', 'Finance_Manager'),
   try {
     await client.query('BEGIN');
 
-    const { quotation_id, due_days, payment_terms, notes } = req.body;
+    const { quotation_id, due_days, payment_terms, notes, apply_gst } = req.body;
 
     // Get quotation
     const quotationResult = await client.query(
@@ -243,9 +354,12 @@ router.post('/from-quotation', auth, checkRole('Flex_Admin', 'Finance_Manager'),
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + (due_days || 30));
 
-    // Calculate totals (ensure all values are proper numbers)
+    // Calculate totals (ensure all values are proper numbers) with GST toggle from request
+    // Default to true if not specified for backward compatibility
+    const applyGstFlag = apply_gst !== undefined ? apply_gst : true;
+    const effectiveGstRate = applyGstFlag ? (quotation.gst_rate || 10.00) : 0;
     const subtotal = parseFloat(quotation.subtotal) || parseFloat((parseFloat(quotation.total_amount) / 1.10).toFixed(2));
-    const gstAmount = parseFloat(quotation.gst_amount) || calculateGST(subtotal, quotation.gst_rate || 10.00);
+    const gstAmount = applyGstFlag ? (parseFloat(quotation.gst_amount) || calculateGST(subtotal, effectiveGstRate)) : 0;
     const totalAmount = parseFloat((parseFloat(subtotal) + parseFloat(gstAmount)).toFixed(2));
 
     // Create items array from quotation
@@ -304,15 +418,136 @@ router.post('/from-quotation', auth, checkRole('Flex_Admin', 'Finance_Manager'),
   }
 });
 
+// POST /api/invoices/corporate - Create corporate invoice (unpaid) before voucher generation
+router.post('/corporate', auth, checkRole('Flex_Admin', 'Finance_Manager'), async (req, res) => {
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const {
+      customer_id,
+      customer_name,
+      customer_email,
+      customer_phone,
+      customer_address,
+      customer_tin,
+      count,
+      amount, // unit price per voucher
+      discount = 0, // percentage
+      valid_until
+    } = req.body;
+
+    if (!customer_name || !count || !amount) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'customer_name, count and amount are required' });
+    }
+
+    const quantity = parseInt(count, 10);
+    const unitPrice = parseFloat(amount);
+    if (Number.isNaN(quantity) || quantity < 1) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Invalid voucher count' });
+    }
+    if (Number.isNaN(unitPrice) || unitPrice <= 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+
+    // Calculate amounts (GST configurable)
+    const gstEnabled = await getGstEnabled();
+    const subtotal = quantity * unitPrice;
+    const discountValue = subtotal * (parseFloat(discount) / 100);
+    const subtotalAfterDiscount = subtotal - discountValue;
+    const gstRate = gstEnabled ? 10.0 : 0;
+    const gstAmount = gstEnabled ? calculateGST(subtotalAfterDiscount, gstRate) : 0;
+    const totalAmount = subtotalAfterDiscount + gstAmount;
+
+    // Invoice metadata
+    const invoiceNumber = await generateInvoiceNumber();
+    const invoiceDate = new Date();
+    const dueDate = new Date(invoiceDate);
+    dueDate.setDate(dueDate.getDate() + 30);
+
+    const items = [{
+      description: `Green Fee Vouchers - ${quantity} voucher${quantity > 1 ? 's' : ''}`,
+      quantity,
+      unitPrice,
+      gstApplicable: true
+    }];
+
+    // Use same column set as ad hoc vouchers flow to match production schema
+    const invoiceResult = await client.query(
+      `INSERT INTO invoices (
+        invoice_number,
+        customer_name,
+        customer_address,
+        customer_tin,
+        customer_email,
+        customer_phone,
+        invoice_date,
+        due_date,
+        status,
+        items,
+        subtotal,
+        gst_rate,
+        gst_amount,
+        net_amount,
+        total_amount,
+        amount_paid,
+        amount_due,
+        payment_terms,
+        notes,
+        created_by
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+      )
+      RETURNING *`,
+      [
+        invoiceNumber,
+        customer_name,
+        customer_address || null,
+        customer_tin || null,
+        customer_email || null,
+        customer_phone || null,
+        invoiceDate,
+        dueDate,
+        'pending',
+        JSON.stringify(items),
+        subtotalAfterDiscount,
+        gstRate,
+        gstAmount,
+        subtotalAfterDiscount,
+        totalAmount,
+        0,
+        totalAmount,
+        'Net 30 days',
+        `Corporate vouchers (pre-generation)${valid_until ? ` - Valid until ${valid_until}` : ''}`,
+        req.user.id
+      ]
+    );
+
+    const invoice = invoiceResult.rows[0];
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      invoice
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error creating corporate invoice:', error);
+    res.status(500).json({ error: 'Failed to create corporate invoice' });
+  } finally {
+    client.release();
+  }
+});
+
 // POST /api/invoices/:id/payments - Record payment
 router.post('/:id/payments', auth, checkRole('Flex_Admin', 'Finance_Manager', 'Counter_Agent'), async (req, res) => {
   try {
     const { id } = req.params;
     const { amount, payment_method, payment_date, reference_number, notes } = req.body;
-
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: 'Invalid payment amount' });
-    }
 
     // Validate payment method
     const validMethods = ['CASH', 'CARD', 'BANK TRANSFER', 'EFTPOS', 'CHEQUE', 'OTHER'];
@@ -328,21 +563,39 @@ router.post('/:id/payments', auth, checkRole('Flex_Admin', 'Finance_Manager', 'C
 
     const invoice = invoiceCheck.rows[0];
 
-    // Check if overpayment
-    const totalPaid = parseFloat(invoice.amount_paid || 0) + parseFloat(amount);
-    if (totalPaid > parseFloat(invoice.total_amount)) {
-      return res.status(400).json({
-        error: 'Payment amount exceeds invoice balance',
-        balance_due: parseFloat(invoice.total_amount) - parseFloat(invoice.amount_paid || 0)
-      });
+    const alreadyPaid = parseFloat(invoice.amount_paid || 0);
+    const total = parseFloat(invoice.total_amount || 0);
+    const remaining = Math.max(total - alreadyPaid, 0);
+
+    let payAmount = amount !== undefined ? parseFloat(amount) : remaining;
+    if (Number.isNaN(payAmount) || payAmount <= 0) {
+      return res.status(400).json({ error: 'Invalid payment amount' });
     }
+
+    // Clamp to remaining to avoid overpayment and ensure full settlement by default
+    payAmount = Math.min(payAmount, remaining);
 
     // Record payment
     const result = await db.query(
       `INSERT INTO invoice_payments (invoice_id, payment_date, amount, payment_method, reference_number, notes, recorded_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [id, payment_date || new Date(), amount, payment_method, reference_number, notes, req.user.id]
+      [id, payment_date || new Date(), payAmount, payment_method, reference_number, notes, req.user.id]
+    );
+
+    // Update invoice totals/status
+    const newAmountPaid = alreadyPaid + payAmount;
+    const amountDue = Math.max(total - newAmountPaid, 0);
+    const newStatus = amountDue <= 0.00001 ? 'paid' : 'partial';
+
+    await db.query(
+      `UPDATE invoices
+       SET amount_paid = $1,
+           amount_due = $2,
+           status = $3,
+           updated_at = NOW()
+       WHERE id = $4`,
+      [newAmountPaid, amountDue, newStatus, id]
     );
 
     // Get updated invoice
@@ -385,8 +638,19 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
 
   try {
     await client.query('BEGIN');
+    await ensureVouchersFlagColumn();
 
     const { id } = req.params;
+
+    // Ensure corporate_vouchers has invoice_id column to avoid 500s on insert
+    const colCheck = await client.query(
+      `SELECT column_name FROM information_schema.columns 
+       WHERE table_name = 'corporate_vouchers' AND column_name = 'invoice_id'`
+    );
+    if (colCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Schema missing corporate_vouchers.invoice_id; cannot link vouchers to invoice.' });
+    }
 
     // Get invoice
     const invoiceResult = await client.query('SELECT * FROM invoices WHERE id = $1', [id]);
@@ -397,25 +661,39 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
 
     const invoice = invoiceResult.rows[0];
 
+    // If flagged as already generated, return existing vouchers
+    if (invoice.vouchers_generated) {
+      const existing = await client.query(
+        `SELECT * FROM corporate_vouchers WHERE invoice_id = $1`,
+        [id]
+      );
+      await client.query('ROLLBACK');
+      return res.json({
+        success: true,
+        message: 'Vouchers already generated for this invoice',
+        vouchers: existing.rows
+      });
+    }
+
     // Check if fully paid
     if (invoice.status !== 'paid') {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Invoice must be fully paid before generating vouchers' });
     }
 
-    // Check if vouchers already exist for this invoice (safety check)
-    const existingVouchersCheck = await client.query(
-      `SELECT COUNT(*) as count FROM corporate_vouchers
-       WHERE company_name = $1
-       AND voucher_code LIKE $2`,
-      [invoice.customer_name, `GP-%-${invoice.invoice_number}%`]
+    // Check if vouchers already exist for this invoice (strict by invoice_id)
+    const existingVouchers = await client.query(
+      `SELECT * FROM corporate_vouchers WHERE invoice_id = $1`,
+      [id]
     );
 
-    if (parseInt(existingVouchersCheck.rows[0].count) > 0) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({
-        error: 'Vouchers have already been generated for this invoice',
-        message: `Found ${existingVouchersCheck.rows[0].count} existing vouchers. Please check the Vouchers List page.`
+    if (existingVouchers.rows.length > 0) {
+      await client.query('UPDATE invoices SET vouchers_generated = true, updated_at = NOW() WHERE id = $1', [id]);
+      await client.query('COMMIT');
+      return res.json({
+        success: true,
+        message: `Vouchers already exist for this invoice`,
+        vouchers: existingVouchers.rows
       });
     }
 
@@ -423,10 +701,29 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
     const batchId = `INV-${invoice.invoice_number}-${Date.now()}`;
 
     // Parse items to get quantity (handle both array and JSON string formats)
-    const items = Array.isArray(invoice.items) ? invoice.items : JSON.parse(invoice.items);
+    let items;
+    try {
+      items = Array.isArray(invoice.items) ? invoice.items : JSON.parse(invoice.items);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Invoice items could not be parsed for voucher generation.' });
+    }
     const totalVouchers = items.reduce((sum, item) => sum + item.quantity, 0);
 
-    // Generate vouchers (8-character alphanumeric)
+    // Get payment method from invoice_payments if available
+    let paymentMethod = 'Bank Transfer'; // Default
+    const paymentResult = await client.query(
+      `SELECT payment_method FROM invoice_payments 
+       WHERE invoice_id = $1 
+       ORDER BY payment_date DESC 
+       LIMIT 1`,
+      [id]
+    );
+    if (paymentResult.rows.length > 0) {
+      paymentMethod = paymentResult.rows[0].payment_method;
+    }
+
+    // Generate vouchers (8-character alphanumeric) and link to invoice_id
     const vouchers = [];
     for (let i = 0; i < totalVouchers; i++) {
       const voucherCode = voucherConfig.helpers.generateVoucherCode('CORP');
@@ -439,7 +736,7 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
           valid_from,
           valid_until,
           status,
-          payment_method
+          invoice_id
         ) VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *`,
         [
@@ -449,7 +746,7 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
           new Date(),
           new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Valid for 1 year
           'pending_passport', // Requires passport registration
-          invoice.payment_method || 'Bank Transfer'
+          id
         ]
       );
 
@@ -462,7 +759,7 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
     }
 
     // Note: Not updating invoice table as vouchers_generated/voucher_batch_id columns may not exist
-    // Vouchers are generated and linked by invoice_number in voucher_code prefix
+    await client.query('UPDATE invoices SET vouchers_generated = true, updated_at = NOW() WHERE id = $1', [id]);
 
     await client.query('COMMIT');
 
@@ -485,7 +782,7 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
 router.post('/:id/email', auth, checkRole('Flex_Admin', 'Finance_Manager'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { recipient_email } = req.body;
+    const { recipient_email, email } = req.body;
 
     // Get invoice
     const invoiceResult = await db.query('SELECT * FROM invoices WHERE id = $1', [id]);
@@ -496,7 +793,7 @@ router.post('/:id/email', auth, checkRole('Flex_Admin', 'Finance_Manager'), asyn
     const invoice = invoiceResult.rows[0];
 
     // Determine recipient email
-    const recipientEmail = recipient_email || invoice.customer_email;
+    const recipientEmail = recipient_email || email || invoice.customer_email;
     if (!recipientEmail) {
       return res.status(400).json({ error: 'No recipient email address available' });
     }
@@ -517,33 +814,19 @@ router.post('/:id/email', auth, checkRole('Flex_Admin', 'Finance_Manager'), asyn
       }
     }
 
-    // Get supplier details from settings
-    const settingsResult = await db.query(
-      "SELECT key, value FROM settings WHERE key IN ('company_name', 'company_address_line1', 'company_address_line2', 'company_city', 'company_province', 'company_postal_code', 'company_country', 'company_tin', 'company_phone', 'company_email')"
-    );
-
+    // Get supplier details - hardcoded since settings table doesn't have key/value columns in production
     const supplier = {
       name: 'PNG Green Fees System',
-      address_line1: '',
-      address_line2: '',
-      city: '',
-      province: '',
-      postal_code: '',
+      address_line1: 'Government Building',
+      address_line2: 'Port Moresby',
+      city: 'Port Moresby',
+      province: 'National Capital District',
+      postal_code: '111',
       country: 'Papua New Guinea',
-      tin: '',
-      phone: '',
-      email: ''
+      tin: 'TIN123456789',
+      phone: '+675 XXX XXXX',
+      email: process.env.SMTP_USER || 'noreply@greenpay.gov.pg'
     };
-
-    // Map settings to supplier object
-    settingsResult.rows.forEach(setting => {
-      const key = setting.key.replace('company_', '');
-      if (key === 'name') {
-        supplier.name = setting.value || supplier.name;
-      } else {
-        supplier[key] = setting.value || '';
-      }
-    });
 
     // Generate PDF
     const pdfBuffer = await generateInvoicePDF(invoice, customer, supplier);
@@ -603,13 +886,12 @@ router.post('/:id/email-vouchers', auth, checkRole('Flex_Admin', 'Finance_Manage
       return res.status(400).json({ error: 'Invoice must be fully paid before emailing vouchers' });
     }
 
-    // Get vouchers for this invoice by voucher code containing invoice number
+    // Get vouchers linked to this invoice_id
     const vouchersResult = await db.query(
       `SELECT * FROM corporate_vouchers
-       WHERE company_name = $1
-       AND voucher_code LIKE $2
+       WHERE invoice_id = $1
        ORDER BY voucher_code`,
-      [invoice.customer_name, `%-${invoice.invoice_number}`]
+      [invoice.id]
     );
 
     if (vouchersResult.rows.length === 0) {
@@ -621,8 +903,10 @@ router.post('/:id/email-vouchers', auth, checkRole('Flex_Admin', 'Finance_Manage
     const vouchers = vouchersResult.rows;
     const companyName = invoice.customer_name;
 
-    // Generate PDF with QR codes
-    const pdfBuffer = await generateVouchersPDF(vouchers, companyName);
+    // Generate single PDF with QR codes
+    const pdfBuffer = await generateVoucherPDFBuffer(vouchers, companyName);
+
+    const policyBase = process.env.PUBLIC_URL || 'https://pnggreenfees.gov.pg';
 
     // Prepare email HTML content
     const htmlContent = `
@@ -675,6 +959,11 @@ router.post('/:id/email-vouchers', auth, checkRole('Flex_Admin', 'Finance_Manage
     <div class="footer">
       <p>&copy; ${new Date().getFullYear()} PNG Green Fees System. All rights reserved.</p>
       <p>This is an automated email. Please do not reply.</p>
+      <p style="margin-top:8px;">
+        <a href="${policyBase}/terms" style="color:#047857;text-decoration:underline;">Terms &amp; Conditions</a> |
+        <a href="${policyBase}/privacy" style="color:#047857;text-decoration:underline;">Privacy Policy</a> |
+        <a href="${policyBase}/refunds" style="color:#047857;text-decoration:underline;">Refund / Return Policy</a>
+      </p>
     </div>
   </div>
 </body>
@@ -712,6 +1001,57 @@ router.post('/:id/email-vouchers', auth, checkRole('Flex_Admin', 'Finance_Manage
   }
 });
 
+// GET /api/invoices/:id/vouchers-pdf - Download all vouchers for an invoice as PDF
+router.get('/:id/vouchers-pdf', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Support', 'Counter_Agent'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get invoice
+    const invoiceResult = await db.query('SELECT * FROM invoices WHERE id = $1', [id]);
+    if (invoiceResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+
+    const invoice = invoiceResult.rows[0];
+
+    // Check if invoice is paid
+    if (invoice.status !== 'paid') {
+      return res.status(400).json({ error: 'Invoice must be fully paid to download vouchers' });
+    }
+
+    // Get vouchers linked to this invoice
+    const vouchersResult = await db.query(
+      `SELECT * FROM corporate_vouchers
+       WHERE invoice_id = $1
+       ORDER BY voucher_code`,
+      [invoice.id]
+    );
+
+    if (vouchersResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'No vouchers found for this invoice. Please generate vouchers first.'
+      });
+    }
+
+    const vouchers = vouchersResult.rows;
+    const companyName = invoice.customer_name;
+
+    // Generate PDF
+    const pdfBuffer = await generateVoucherPDFBuffer(vouchers, companyName);
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${companyName.replace(/\s+/g, '_')}_Vouchers_${invoice.invoice_number}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+
+    // Send PDF
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error downloading vouchers PDF:', error);
+    res.status(500).json({ error: 'Failed to download vouchers PDF' });
+  }
+});
+
 // GET /api/invoices/:id/pdf - Generate and download PDF
 router.get('/:id/pdf', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Support'), async (req, res) => {
   try {
@@ -741,33 +1081,19 @@ router.get('/:id/pdf', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Supp
       }
     }
 
-    // Get supplier details from settings
-    const settingsResult = await db.query(
-      "SELECT key, value FROM settings WHERE key IN ('company_name', 'company_address_line1', 'company_address_line2', 'company_city', 'company_province', 'company_postal_code', 'company_country', 'company_tin', 'company_phone', 'company_email')"
-    );
-
+    // Get supplier details - hardcoded since settings table doesn't have key/value columns in production
     const supplier = {
       name: 'PNG Green Fees System',
-      address_line1: '',
-      address_line2: '',
-      city: '',
-      province: '',
-      postal_code: '',
+      address_line1: 'Government Building',
+      address_line2: 'Port Moresby',
+      city: 'Port Moresby',
+      province: 'National Capital District',
+      postal_code: '111',
       country: 'Papua New Guinea',
-      tin: '',
-      phone: '',
-      email: ''
+      tin: 'TIN123456789',
+      phone: '+675 XXX XXXX',
+      email: process.env.SMTP_USER || 'noreply@greenpay.gov.pg'
     };
-
-    // Map settings to supplier object
-    settingsResult.rows.forEach(setting => {
-      const key = setting.key.replace('company_', '');
-      if (key === 'name') {
-        supplier.name = setting.value || supplier.name;
-      } else {
-        supplier[key] = setting.value || '';
-      }
-    });
 
     // Generate PDF
     const pdfBuffer = await generateInvoicePDF(invoice, customer, supplier);

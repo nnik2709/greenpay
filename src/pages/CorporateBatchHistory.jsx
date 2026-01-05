@@ -41,9 +41,9 @@ const CorporateBatchHistory = () => {
           batchMap.set(batchId, {
             batchId,
             companyName: voucher.company_name || 'Unknown Company',
-            contactEmail: voucher.contact_email || 'No email',
-            createdBy: voucher.created_by_name || 'Unknown',
-            createdAt: voucher.created_at || voucher.issued_date,
+            contactEmail: 'N/A', // contact_email column doesn't exist in production DB
+            createdBy: 'System', // created_by_name doesn't exist in production DB
+            createdAt: voucher.issued_date, // Use issued_date instead of created_at
             vouchers: [],
             totalAmount: 0,
             usedCount: 0,
@@ -54,7 +54,7 @@ const CorporateBatchHistory = () => {
         const batch = batchMap.get(batchId);
         batch.vouchers.push(voucher);
         batch.totalAmount += parseFloat(voucher.amount || 0);
-        if (voucher.used_at || voucher.redeemed_date) {
+        if (voucher.redeemed_date) { // Use redeemed_date instead of used_at
           batch.usedCount++;
         }
       });
@@ -471,11 +471,11 @@ const CorporateBatchHistory = () => {
                           <td className="px-3 py-2">PGK {voucher.amount}</td>
                           <td className="px-3 py-2">
                             <span className={`px-2 py-1 text-xs rounded-full ${
-                              voucher.used_at 
-                                ? 'bg-green-100 text-green-800' 
+                              voucher.redeemed_date
+                                ? 'bg-green-100 text-green-800'
                                 : 'bg-slate-100 text-slate-800'
                             }`}>
-                              {voucher.used_at ? 'Used' : 'Unused'}
+                              {voucher.redeemed_date ? 'Used' : 'Unused'}
                             </span>
                           </td>
                         </tr>

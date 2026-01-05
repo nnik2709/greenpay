@@ -8,17 +8,22 @@ export const generateTicketNumber = () => {
 
 export const getTickets = async () => {
   try {
-    const data = await api.tickets.getAll();
+    const response = await api.tickets.getAll();
+    const data = response?.data || response || [];
 
-    return (data || []).map(ticket => ({
+    return (Array.isArray(data) ? data : []).map(ticket => ({
       id: ticket.id,
-      ticketNumber: ticket.ticketNumber,
-      title: ticket.title,
+      ticketNumber: ticket.ticket_number,
+      title: ticket.title || ticket.subject,
       description: ticket.description,
       priority: ticket.priority,
       status: ticket.status,
-      createdAt: ticket.createdAt,
-      createdBy: ticket.createdBy,
+      category: ticket.category,
+      createdAt: ticket.created_at,
+      createdBy: ticket.created_by || ticket.user_id,
+      createdByName: ticket.created_by_name,
+      assignedTo: ticket.assigned_to,
+      assignedToName: ticket.assigned_to_name,
       responses: ticket.responses || [],
     }));
   } catch (error) {
@@ -32,6 +37,7 @@ export const createTicket = async (ticketData, userId) => {
     const data = await api.tickets.create({
       title: ticketData.title,
       description: ticketData.description,
+      category: ticketData.category,
       priority: ticketData.priority || 'medium',
     });
 
@@ -40,6 +46,7 @@ export const createTicket = async (ticketData, userId) => {
       ticketNumber: data.ticketNumber,
       title: data.title,
       description: data.description,
+      category: data.category,
       priority: data.priority,
       status: data.status,
       createdAt: data.createdAt,

@@ -51,6 +51,7 @@ const publicPurchasesRoutes = require('./routes/public-purchases'); // Public vo
 const { router: buyOnlineRoutes } = require('./routes/buy-online'); // Buy Online with passport (no auth)
 const cashReconciliationRoutes = require('./routes/cash-reconciliations'); // Cash reconciliation for agents
 const paymentWebhookDokuRoutes = require('./routes/payment-webhook-doku'); // BSP DOKU payment webhooks
+const ocrRoutes = require('./routes/ocr'); // Python OCR service integration for MRZ scanning
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -70,6 +71,7 @@ app.use('/api/public-purchases', publicPurchasesRoutes); // Public routes (no au
 app.use('/api/buy-online', buyOnlineRoutes); // Buy Online with passport (no authentication)
 app.use('/api/cash-reconciliations', cashReconciliationRoutes); // Cash reconciliation
 app.use('/api/payment/webhook/doku', paymentWebhookDokuRoutes); // BSP DOKU webhooks (no authentication)
+app.use('/api/ocr', ocrRoutes); // Python OCR service (no authentication - public)
 
 // 404 handler
 app.use((req, res) => {

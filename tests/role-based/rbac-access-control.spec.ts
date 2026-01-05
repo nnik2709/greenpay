@@ -125,7 +125,7 @@ test.describe('RBAC - Flex Admin Access', () => {
         }
         
         // Should successfully access - route should be in URL or we should be on an authenticated page
-        // Some routes might redirect (e.g., /purchases might redirect to /app/app/payments/corporate-exit-pass)
+        // Some routes might redirect (e.g., /purchases might redirect to /app/payments/corporate-exit-pass)
         const isAccessible = currentUrl.includes(route) || 
                             (currentUrl.includes('/app') && !currentUrl.includes('/login'));
         expect(isAccessible).toBe(true);

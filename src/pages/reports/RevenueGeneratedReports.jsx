@@ -77,11 +77,11 @@ const RevenueGeneratedReports = () => {
 
       // Transform individual purchases
       const individualRows = (individualData || []).map(item => {
-        const discount = item.discount || 0;
-        const totalAmount = item.amount || 0;
+        const discount = parseFloat(item.discount) || 0;
+        const totalAmount = parseFloat(item.amount) || 0;
         const amountAfterDiscount = totalAmount - discount;
-        const collectedAmount = item.collected_amount || totalAmount;
-        const returnedAmount = item.returned_amount || 0;
+        const collectedAmount = parseFloat(item.collected_amount) || totalAmount;
+        const returnedAmount = parseFloat(item.returned_amount) || 0;
 
         return {
           id: `ind-${item.id}`,
@@ -101,13 +101,14 @@ const RevenueGeneratedReports = () => {
       // Transform corporate vouchers (group by company/batch)
       const corporateGroups = {};
       (corporateData || []).forEach(voucher => {
-        const key = `${voucher.company_name}-${voucher.created_at.split('T')[0]}`;
+        const dateKey = voucher.created_at ? voucher.created_at.split('T')[0] : 'unknown';
+        const key = `${voucher.company_name}-${dateKey}`;
         if (!corporateGroups[key]) {
           corporateGroups[key] = {
             id: `corp-${key}`,
             type: 'Corporate',
             totalExitPass: 0,
-            exitPassValue: voucher.amount || 0,
+            exitPassValue: parseFloat(voucher.amount) || 0,
             totalAmount: 0,
             discount: 0,
             amountAfterDiscount: 0,
@@ -118,12 +119,12 @@ const RevenueGeneratedReports = () => {
             companyName: voucher.company_name
           };
         }
-        const voucherAmount = voucher.amount || 0;
-        const voucherDiscount = voucher.discount || 0;
-        const voucherCollected = voucher.collected_amount || voucherAmount;
-        const voucherReturned = voucher.returned_amount || 0;
+        const voucherAmount = parseFloat(voucher.amount) || 0;
+        const voucherDiscount = parseFloat(voucher.discount) || 0;
+        const voucherCollected = parseFloat(voucher.collected_amount) || voucherAmount;
+        const voucherReturned = parseFloat(voucher.returned_amount) || 0;
 
-        corporateGroups[key].totalExitPass += voucher.quantity || 1;
+        corporateGroups[key].totalExitPass += parseInt(voucher.quantity) || 1;
         corporateGroups[key].totalAmount += voucherAmount;
         corporateGroups[key].discount += voucherDiscount;
         corporateGroups[key].amountAfterDiscount += (voucherAmount - voucherDiscount);
@@ -135,21 +136,21 @@ const RevenueGeneratedReports = () => {
       const allData = [...individualRows, ...corporateRows];
       setData(allData);
 
-      // Calculate statistics
+      // Calculate statistics (ensure all values are numbers)
       const totalRecords = allData.length;
-      const totalExitPass = allData.reduce((sum, row) => sum + row.totalExitPass, 0);
-      const totalAmount = allData.reduce((sum, row) => sum + row.totalAmount, 0);
-      const totalCollected = allData.reduce((sum, row) => sum + row.collectedAmount, 0);
-      const totalDiscount = allData.reduce((sum, row) => sum + row.discount, 0);
-      const totalReturned = allData.reduce((sum, row) => sum + row.returnedAmount, 0);
+      const totalExitPass = allData.reduce((sum, row) => sum + (Number(row.totalExitPass) || 0), 0);
+      const totalAmount = allData.reduce((sum, row) => sum + (Number(row.totalAmount) || 0), 0);
+      const totalCollected = allData.reduce((sum, row) => sum + (Number(row.collectedAmount) || 0), 0);
+      const totalDiscount = allData.reduce((sum, row) => sum + (Number(row.discount) || 0), 0);
+      const totalReturned = allData.reduce((sum, row) => sum + (Number(row.returnedAmount) || 0), 0);
 
       setStats({
-        totalRecords,
-        totalExitPass,
-        totalAmount,
-        totalCollected,
-        totalDiscount,
-        totalReturned
+        totalRecords: Number(totalRecords) || 0,
+        totalExitPass: Number(totalExitPass) || 0,
+        totalAmount: Number(totalAmount) || 0,
+        totalCollected: Number(totalCollected) || 0,
+        totalDiscount: Number(totalDiscount) || 0,
+        totalReturned: Number(totalReturned) || 0
       });
 
     } catch (error) {
@@ -206,12 +207,12 @@ const RevenueGeneratedReports = () => {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard title="Total Records" value={stats.totalRecords} />
-        <StatCard title="Total Exit Pass" value={stats.totalExitPass} />
-        <StatCard title="Total Amount" value={`PGK ${stats.totalAmount.toFixed(2)}`} />
-        <StatCard title="Total Collected" value={`PGK ${stats.totalCollected.toFixed(2)}`} />
-        <StatCard title="Total Discount" value={`PGK ${stats.totalDiscount.toFixed(2)}`} />
-        <StatCard title="Total Returned" value={`PGK ${stats.totalReturned.toFixed(2)}`} />
+        <StatCard title="Total Records" value={stats.totalRecords || 0} />
+        <StatCard title="Total Exit Pass" value={stats.totalExitPass || 0} />
+        <StatCard title="Total Amount" value={`PGK ${(Number(stats.totalAmount) || 0).toFixed(2)}`} />
+        <StatCard title="Total Collected" value={`PGK ${(Number(stats.totalCollected) || 0).toFixed(2)}`} />
+        <StatCard title="Total Discount" value={`PGK ${(Number(stats.totalDiscount) || 0).toFixed(2)}`} />
+        <StatCard title="Total Returned" value={`PGK ${(Number(stats.totalReturned) || 0).toFixed(2)}`} />
       </div>
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">

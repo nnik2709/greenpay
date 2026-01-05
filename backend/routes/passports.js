@@ -9,37 +9,52 @@ const { auth, checkRole } = require('../middleware/auth');
 router.get('/', auth, async (req, res) => {
   try {
     const { page = 1, limit = 50, search = '', passport_number } = req.query;
-    const offset = (page - 1) * limit;
+    // Convert limit and page to integers (query params are strings)
+    const pageInt = parseInt(page);
+    const limitInt = parseInt(limit);
+    const offset = (pageInt - 1) * limitInt;
 
     let query = `
-      SELECT p.*, u.name as created_by_name
-      FROM "Passport" p
-      LEFT JOIN "User" u ON p."createdById" = u.id
+      SELECT
+        p.id,
+        p.passport_number,
+        p.full_name,
+        p.nationality,
+        p.date_of_birth,
+        p.issue_date,
+        p.expiry_date,
+        p.passport_type,
+        p.created_by,
+        p.created_at,
+        p.updated_at,
+        u.name as created_by_name
+      FROM passports p
+      LEFT JOIN "User" u ON p.created_by = u.id
       WHERE 1=1
     `;
     const params = [];
 
     // Search by passport number (exact match for lookups)
     if (passport_number) {
-      query += ` AND p."passportNo" = $${params.length + 1}`;
+      query += ` AND p.passport_number = $${params.length + 1}`;
       params.push(passport_number);
     }
     // General search
     else if (search) {
-      query += ` AND (p."passportNo" ILIKE $${params.length + 1} OR p.surname ILIKE $${params.length + 1} OR p."givenName" ILIKE $${params.length + 1})`;
+      query += ` AND (p.passport_number ILIKE $${params.length + 1} OR p.full_name ILIKE $${params.length + 1})`;
       params.push(`%${search}%`);
     }
 
-    query += ` ORDER BY p."createdAt" DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-    params.push(limit, offset);
+    query += ` ORDER BY p.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(limitInt, offset);
 
     const result = await db.query(query, params);
 
     res.json({
       passports: result.rows,
       total: result.rows.length,
-      page: parseInt(page),
-      limit: parseInt(limit)
+      page: pageInt,
+      limit: limitInt
     });
   } catch (error) {
     console.error('Get passports error:', error);
@@ -51,7 +66,7 @@ router.get('/', auth, async (req, res) => {
 router.get('/:id', auth, param('id').isInt(), validate, async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await db.query('SELECT * FROM "Passport" WHERE id = $1', [id]);
+    const result = await db.query('SELECT * FROM passports WHERE id = $1', [id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Passport not found' });
@@ -69,30 +84,78 @@ router.post('/',
   auth,
   checkRole('Admin', 'Manager', 'Agent', 'Flex_Admin', 'Counter_Agent', 'Finance_Manager'),
   [
-    body('passportNo').notEmpty().withMessage('Passport number is required')
-    // All other fields are optional
+    body('passport_number').notEmpty().withMessage('Passport number is required'),
+    body('full_name').optional(),
+    body('nationality').optional(),
+    body('date_of_birth').optional(),
+    body('issue_date').optional(),
+    body('expiry_date').optional(),
+    body('passport_type').optional()
   ],
   validate,
   async (req, res) => {
     try {
-      const fields = req.body;
+      const {
+        passport_number,
+        full_name,
+        nationality,
+        date_of_birth,
+        issue_date,
+        expiry_date,
+        passport_type
+      } = req.body;
 
-      // Filter out undefined, null, and empty string values
-      const cleanFields = {};
-      Object.keys(fields).forEach(key => {
-        if (fields[key] !== undefined && fields[key] !== null && fields[key] !== '') {
-          cleanFields[key] = fields[key];
-        }
-      });
+      // Build dynamic INSERT with only provided fields
+      const fields = { passport_number };
+      const columnNames = ['passport_number'];
+      const values = [passport_number];
 
-      cleanFields.createdById = req.userId;
+      if (full_name) {
+        fields.full_name = full_name;
+        columnNames.push('full_name');
+        values.push(full_name);
+      } else {
+        // Database requires full_name to be NOT NULL, so provide empty string if not given
+        fields.full_name = '';
+        columnNames.push('full_name');
+        values.push('');
+      }
+      if (nationality) {
+        fields.nationality = nationality;
+        columnNames.push('nationality');
+        values.push(nationality);
+      }
+      if (date_of_birth) {
+        fields.date_of_birth = date_of_birth;
+        columnNames.push('date_of_birth');
+        values.push(date_of_birth);
+      }
+      if (issue_date) {
+        fields.issue_date = issue_date;
+        columnNames.push('issue_date');
+        values.push(issue_date);
+      }
+      if (expiry_date) {
+        fields.expiry_date = expiry_date;
+        columnNames.push('expiry_date');
+        values.push(expiry_date);
+      }
+      if (passport_type) {
+        fields.passport_type = passport_type;
+        columnNames.push('passport_type');
+        values.push(passport_type);
+      }
 
-      const columns = Object.keys(cleanFields).map(k => `"${k}"`).join(', ');
-      const placeholders = Object.keys(cleanFields).map((_, i) => `$${i + 1}`).join(', ');
-      const values = Object.values(cleanFields);
+      // Add created_by
+      columnNames.push('created_by');
+      values.push(req.userId);
+
+      const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
 
       const result = await db.query(
-        `INSERT INTO "Passport" (${columns}, "createdAt", "updatedAt") VALUES (${placeholders}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *`,
+        `INSERT INTO passports (${columnNames.join(', ')}, created_at, updated_at)
+         VALUES (${placeholders}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         RETURNING *`,
         values
       );
 
@@ -102,7 +165,11 @@ router.post('/',
       });
     } catch (error) {
       console.error('Create passport error:', error);
-      res.status(500).json({ error: 'Failed to create passport' });
+      if (error.code === '23505') { // Unique violation
+        res.status(409).json({ error: 'Passport number already exists' });
+      } else {
+        res.status(500).json({ error: 'Failed to create passport' });
+      }
     }
   }
 );
@@ -116,26 +183,62 @@ router.put('/:id',
   async (req, res) => {
     try {
       const { id } = req.params;
-      const fields = req.body;
+      const {
+        passport_number,
+        full_name,
+        nationality,
+        date_of_birth,
+        issue_date,
+        expiry_date,
+        passport_type
+      } = req.body;
 
-      delete fields.id;
-      delete fields.createdAt;
-      delete fields.createdById;
+      // Build dynamic UPDATE with only provided fields
+      const updates = [];
+      const values = [];
+      let paramIndex = 1;
 
-      // Filter out undefined, null, and empty values
-      const cleanFields = {};
-      Object.keys(fields).forEach(key => {
-        if (fields[key] !== undefined && fields[key] !== null && fields[key] !== '') {
-          cleanFields[key] = fields[key];
-        }
-      });
+      if (passport_number !== undefined) {
+        updates.push(`passport_number = $${paramIndex++}`);
+        values.push(passport_number);
+      }
+      if (full_name !== undefined) {
+        updates.push(`full_name = $${paramIndex++}`);
+        values.push(full_name);
+      }
+      if (nationality !== undefined) {
+        updates.push(`nationality = $${paramIndex++}`);
+        values.push(nationality);
+      }
+      if (date_of_birth !== undefined) {
+        updates.push(`date_of_birth = $${paramIndex++}`);
+        values.push(date_of_birth);
+      }
+      if (issue_date !== undefined) {
+        updates.push(`issue_date = $${paramIndex++}`);
+        values.push(issue_date);
+      }
+      if (expiry_date !== undefined) {
+        updates.push(`expiry_date = $${paramIndex++}`);
+        values.push(expiry_date);
+      }
+      if (passport_type !== undefined) {
+        updates.push(`passport_type = $${paramIndex++}`);
+        values.push(passport_type);
+      }
 
-      const updates = Object.keys(cleanFields).map((key, i) => `"${key}" = $${i + 1}`);
-      updates.push('"updatedAt" = CURRENT_TIMESTAMP');
-      const values = [...Object.values(cleanFields), id];
+      if (updates.length === 0) {
+        return res.status(400).json({ error: 'No fields to update' });
+      }
+
+      // Add updated_at
+      updates.push('updated_at = CURRENT_TIMESTAMP');
+
+      // Add id as final parameter
+      values.push(id);
 
       const result = await db.query(
-        `UPDATE "Passport" SET ${updates.join(', ')} WHERE id = $${values.length} RETURNING *`,
+        `UPDATE passports SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
         values
       );
 
@@ -149,7 +252,11 @@ router.put('/:id',
       });
     } catch (error) {
       console.error('Update passport error:', error);
-      res.status(500).json({ error: 'Failed to update passport' });
+      if (error.code === '23505') { // Unique violation
+        res.status(409).json({ error: 'Passport number already exists' });
+      } else {
+        res.status(500).json({ error: 'Failed to update passport' });
+      }
     }
   }
 );
@@ -163,7 +270,7 @@ router.delete('/:id',
   async (req, res) => {
     try {
       const { id } = req.params;
-      const result = await db.query('DELETE FROM "Passport" WHERE id = $1 RETURNING *', [id]);
+      const result = await db.query('DELETE FROM passports WHERE id = $1 RETURNING *', [id]);
 
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Passport not found' });

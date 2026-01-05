@@ -17,10 +17,15 @@ import ResetPassword from '@/pages/ResetPassword';
 import PublicRegistration from '@/pages/PublicRegistration';
 import PublicRegistrationSuccess from '@/pages/PublicRegistrationSuccess';
 import ScannerTest from '@/pages/ScannerTest';
+import PublicScannerTest from '@/pages/PublicScannerTest';
+import TesseractScannerTest from '@/pages/TesseractScannerTest';
 // Public voucher purchase pages (no auth required)
 import PublicVoucherPurchase from '@/pages/PublicVoucherPurchase';
 import PublicPurchaseCallback from '@/pages/PublicPurchaseCallback';
 import MockBSPPayment from '@/pages/MockBSPPayment';
+import Terms from '@/pages/Terms';
+import Privacy from '@/pages/Privacy';
+import Refunds from '@/pages/Refunds';
 
 // Lazy load pages for code splitting and better performance
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -61,6 +66,7 @@ const AgentLanding = lazy(() => import('@/pages/AgentLanding'));
 const CashReconciliation = lazy(() => import('@/pages/CashReconciliation'));
 const Invoices = lazy(() => import('@/pages/Invoices'));
 const VouchersList = lazy(() => import('@/pages/VouchersList'));
+const MrzScannerTest = lazy(() => import('@/pages/MrzScannerTest'));
 
 // Loading component for suspense fallback
 const PageLoader = () => (
@@ -132,6 +138,7 @@ const AppRoutes = () => {
         {/* Staff Login */}
         <Route path="/login" element={<LoginRoute />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/scanner-test" element={<PublicScannerTest />} />
         <Route path="/payment-callback" element={<PaymentCallback />} />
 
         {/* Public routes - No authentication required */}
@@ -144,6 +151,9 @@ const AppRoutes = () => {
         <Route path="/register/:voucherCode" element={<PublicRegistration />} />
         <Route path="/register/success/:voucherCode" element={<PublicRegistrationSuccess />} />
         <Route path="/voucher-registration" element={<CorporateVoucherRegistration />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/refunds" element={<Refunds />} />
 
         {/* All authenticated routes under MainLayout */}
         <Route path="/app" element={
@@ -187,6 +197,16 @@ const AppRoutes = () => {
           <Route path="scanner-test" element={
             <PrivateRoute roles={['Flex_Admin', 'IT_Support', 'Counter_Agent']}>
               <ScannerTest />
+            </PrivateRoute>
+          } />
+          <Route path="mrz-scanner-test" element={
+            <PrivateRoute roles={['Flex_Admin', 'IT_Support']}>
+              <MrzScannerTest />
+            </PrivateRoute>
+          } />
+          <Route path="tesseract-scanner-test" element={
+            <PrivateRoute roles={['Flex_Admin', 'IT_Support']}>
+              <TesseractScannerTest />
             </PrivateRoute>
           } />
           <Route path="vouchers-list" element={

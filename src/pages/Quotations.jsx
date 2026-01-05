@@ -8,11 +8,13 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { getQuotations } from '@/lib/quotationsService';
 import { getQuotationStatistics, markQuotationAsSent } from '@/lib/quotationWorkflowService';
 import { convertQuotationToInvoice } from '@/lib/invoiceService';
-import { formatPGK } from '@/lib/gstUtils';
+import { formatPGK, calculateGST } from '@/lib/gstUtils';
 import QuotationPDF from '@/components/QuotationPDF';
+import { downloadQuotationPDF, emailQuotationPDF } from '@/lib/quotationPdfService';
 
 const StatCard = ({ title, value }) => {
   return (
@@ -41,6 +43,7 @@ const Quotations = () => {
 
   // Action states
   const [dueDays, setDueDays] = useState(30);
+  const [applyGst, setApplyGst] = useState(true);
   const [convertingToInvoice, setConvertingToInvoice] = useState(false);
 
   useEffect(() => {
@@ -82,6 +85,24 @@ const Quotations = () => {
     setSelectedAction(value);
   };
 
+  const handleDownloadPDF = async (quotation) => {
+    try {
+      await downloadQuotationPDF(quotation.id, quotation.quotation_number);
+      toast({
+        title: 'Success',
+        description: 'Quotation PDF downloaded successfully'
+      });
+      setSelectedAction('');
+    } catch (error) {
+      console.error('Error downloading quotation:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to download quotation PDF'
+      });
+    }
+  };
+
   const handlePerformAction = () => {
     if (!selectedQuotationId) {
       toast({
@@ -100,7 +121,7 @@ const Quotations = () => {
         navigate(`/app/quotations/${quotation.id}`);
         break;
       case 'download_pdf':
-        setPdfDialogOpen(true);
+        handleDownloadPDF(quotation);
         break;
       case 'email':
         setEmailDialogOpen(true);
@@ -163,13 +184,15 @@ const Quotations = () => {
       setConvertingToInvoice(true);
       const result = await convertQuotationToInvoice({
         quotation_id: quotation.id,
-        due_days: dueDays
+        due_days: dueDays,
+        apply_gst: applyGst
       });
 
       setInvoiceDialogOpen(false);
       setSelectedQuotationId(null);
       setSelectedAction('');
       setDueDays(30);
+      setApplyGst(true);
 
       await loadQuotations();
       await loadStatistics();
@@ -438,21 +461,51 @@ const Quotations = () => {
                     })()}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-600">GST (10%):</span>
-                  <span className="text-sm font-semibold">
-                    {(() => {
-                      const total = parseFloat(getSelectedQuotation().total_amount) || 0;
-                      const gst = parseFloat(getSelectedQuotation().gst_amount) || (total - total / 1.10);
-                      return formatPGK(gst);
-                    })()}
-                  </span>
-                </div>
+                {applyGst && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600">GST (10%):</span>
+                    <span className="text-sm font-semibold">
+                      {(() => {
+                        const total = parseFloat(getSelectedQuotation().total_amount) || 0;
+                        const subtotal = parseFloat(getSelectedQuotation().subtotal) || (total / 1.10);
+                        const gst = calculateGST(subtotal);
+                        return formatPGK(gst);
+                      })()}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between border-t pt-2">
                   <span className="text-sm font-bold">Total Amount:</span>
                   <span className="text-sm font-bold text-emerald-600">
-                    {formatPGK(parseFloat(getSelectedQuotation().total_amount) || 0)}
+                    {(() => {
+                      const total = parseFloat(getSelectedQuotation().total_amount) || 0;
+                      const subtotal = parseFloat(getSelectedQuotation().subtotal) || (total / 1.10);
+                      if (applyGst) {
+                        const gst = calculateGST(subtotal);
+                        return formatPGK(subtotal + gst);
+                      } else {
+                        return formatPGK(subtotal);
+                      }
+                    })()}
                   </span>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="gst-toggle" className="text-sm font-semibold text-amber-900">
+                      Apply GST (10%)
+                    </Label>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Toggle to include or exclude GST on this invoice
+                    </p>
+                  </div>
+                  <Switch
+                    id="gst-toggle"
+                    checked={applyGst}
+                    onCheckedChange={setApplyGst}
+                  />
                 </div>
               </div>
 

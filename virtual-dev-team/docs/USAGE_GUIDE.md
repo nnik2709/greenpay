@@ -249,3 +249,7 @@ Edit `scripts/generate-prompts.js` to add new placeholder replacements.
 
 Add project-specific information to `config/project-config.json` and reference it in prompts using `{{PLACEHOLDER}}` syntax.
 
+
+
+
+

@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { initiateBSPPayment } from '@/lib/bspPaymentService';
 import api from '@/lib/api/client';
@@ -27,7 +29,15 @@ const PublicVoucherPurchase = () => {
       email: '',
       phone: '',
       quantity: 1,
-      preferSMS: true // SMS-first for PNG
+      preferSMS: true, // SMS-first for PNG
+      // Optional passport fields
+      includePassport: false,
+      passportNumber: '',
+      surname: '',
+      givenName: '',
+      dateOfBirth: '',
+      nationality: 'Papua New Guinea',
+      sex: 'Male'
     };
   });
 
@@ -119,6 +129,28 @@ const PublicVoucherPurchase = () => {
       return false;
     }
 
+    // Validate passport fields if includePassport is checked
+    if (formData.includePassport) {
+      if (!formData.passportNumber || !formData.surname || !formData.givenName) {
+        toast({
+          variant: "destructive",
+          title: "Incomplete Passport Details",
+          description: "Please provide passport number, surname, and given name"
+        });
+        return false;
+      }
+
+      // Validate passport number format (basic check)
+      if (formData.passportNumber.length < 6) {
+        toast({
+          variant: "destructive",
+          title: "Invalid Passport Number",
+          description: "Passport number seems too short"
+        });
+        return false;
+      }
+    }
+
     return true;
   };
 
@@ -143,6 +175,19 @@ const PublicVoucherPurchase = () => {
       // Format phone number for PNG
       const formattedPhone = formData.phone ? `+675${formatPNGPhone(formData.phone)}` : null;
 
+      // Prepare passport data if included
+      let passportData = null;
+      if (formData.includePassport) {
+        passportData = {
+          passportNumber: formData.passportNumber.toUpperCase().trim(),
+          surname: formData.surname.toUpperCase().trim(),
+          givenName: formData.givenName.toUpperCase().trim(),
+          dateOfBirth: formData.dateOfBirth || null,
+          nationality: formData.nationality,
+          sex: formData.sex
+        };
+      }
+
       // Create purchase session (lightweight - just contact info)
       const sessionData = {
         customerEmail: formData.email || null,
@@ -150,7 +195,8 @@ const PublicVoucherPurchase = () => {
         quantity: formData.quantity,
         amount: 50 * formData.quantity,
         deliveryMethod: formData.preferSMS ? 'SMS+Email' : 'Email',
-        currency: 'PGK'
+        currency: 'PGK',
+        passportData: passportData // Include passport data if provided
       };
 
       console.log('Creating payment session:', sessionData);
@@ -319,15 +365,157 @@ const PublicVoucherPurchase = () => {
                   id="quantity"
                   type="number"
                   min="1"
-                  max="20"
+                  max="1"
                   value={formData.quantity}
                   onChange={(e) => handleFieldChange('quantity', parseInt(e.target.value) || 1)}
                   className="text-lg"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || formData.includePassport}
                 />
                 <p className="text-xs text-slate-500">
-                  Each voucher is for one traveler (PGK 50.00 per voucher)
+                  {formData.includePassport ? 'One voucher per passport' : 'Each voucher is for one traveler (PGK 50.00 per voucher)'}
                 </p>
+              </div>
+
+              {/* Option to include passport details */}
+              <div className="space-y-4 border-t border-slate-200 pt-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="includePassport"
+                    checked={formData.includePassport}
+                    onCheckedChange={(checked) => {
+                      handleFieldChange('includePassport', checked);
+                      if (checked) {
+                        handleFieldChange('quantity', 1); // Force quantity to 1 when passport included
+                      }
+                    }}
+                    disabled={isSubmitting}
+                  />
+                  <Label htmlFor="includePassport" className="cursor-pointer">
+                    <span className="font-semibold text-emerald-700">✓ Include passport details now</span>
+                    <span className="block text-xs text-slate-500 mt-1">
+                      Skip the registration step - your voucher will be ready to scan immediately!
+                    </span>
+                  </Label>
+                </div>
+
+                {/* Passport Fields (conditionally shown) */}
+                {formData.includePassport && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-4 bg-emerald-50 border border-emerald-200 rounded-lg p-4"
+                  >
+                    <p className="text-sm font-semibold text-emerald-900">
+                      📋 Passport Details
+                    </p>
+
+                    {/* Passport Number */}
+                    <div className="space-y-2">
+                      <Label htmlFor="passportNumber">
+                        Passport Number <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="passportNumber"
+                        type="text"
+                        value={formData.passportNumber}
+                        onChange={(e) => handleFieldChange('passportNumber', e.target.value.toUpperCase())}
+                        placeholder="AB123456"
+                        className="text-lg"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    {/* Surname */}
+                    <div className="space-y-2">
+                      <Label htmlFor="surname">
+                        Surname (Family Name) <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="surname"
+                        type="text"
+                        value={formData.surname}
+                        onChange={(e) => handleFieldChange('surname', e.target.value.toUpperCase())}
+                        placeholder="DOE"
+                        className="text-lg"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    {/* Given Name */}
+                    <div className="space-y-2">
+                      <Label htmlFor="givenName">
+                        Given Name(s) <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="givenName"
+                        type="text"
+                        value={formData.givenName}
+                        onChange={(e) => handleFieldChange('givenName', e.target.value.toUpperCase())}
+                        placeholder="JOHN MICHAEL"
+                        className="text-lg"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    {/* Date of Birth */}
+                    <div className="space-y-2">
+                      <Label htmlFor="dateOfBirth">Date of Birth (Optional)</Label>
+                      <Input
+                        id="dateOfBirth"
+                        type="date"
+                        value={formData.dateOfBirth}
+                        onChange={(e) => handleFieldChange('dateOfBirth', e.target.value)}
+                        className="text-lg"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    {/* Nationality */}
+                    <div className="space-y-2">
+                      <Label htmlFor="nationality">Nationality</Label>
+                      <Input
+                        id="nationality"
+                        type="text"
+                        value={formData.nationality}
+                        onChange={(e) => handleFieldChange('nationality', e.target.value)}
+                        placeholder="Papua New Guinea"
+                        className="text-lg"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    {/* Sex */}
+                    <div className="space-y-2">
+                      <Label htmlFor="sex">Sex</Label>
+                      <Select
+                        value={formData.sex}
+                        onValueChange={(value) => handleFieldChange('sex', value)}
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger className="text-lg">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Alert className="bg-white border-emerald-300">
+                      <AlertDescription className="text-sm text-emerald-900">
+                        <strong>✓ Benefits:</strong>
+                        <ul className="mt-2 space-y-1 ml-4 list-disc">
+                          <li>No registration step required</li>
+                          <li>Voucher ready to scan immediately</li>
+                          <li>Faster airport processing</li>
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  </motion.div>
+                )}
               </div>
 
               {/* Total Amount Display */}
@@ -366,13 +554,23 @@ const PublicVoucherPurchase = () => {
               <Alert className="bg-slate-50 border-slate-200">
                 <AlertDescription>
                   <p className="font-semibold text-slate-800 mb-2">📋 What Happens Next:</p>
-                  <ol className="text-sm text-slate-700 space-y-1 ml-4 list-decimal">
-                    <li>Click "Proceed to Payment" below</li>
-                    <li>You'll be redirected to BSP secure payment page</li>
-                    <li>Complete payment using your preferred method</li>
-                    <li>Receive voucher code(s) via SMS + Email instantly</li>
-                    <li>Register passport details using voucher code (valid 30 days)</li>
-                  </ol>
+                  {formData.includePassport ? (
+                    <ol className="text-sm text-slate-700 space-y-1 ml-4 list-decimal">
+                      <li>Click "Proceed to Payment" below</li>
+                      <li>You'll be redirected to secure payment page</li>
+                      <li>Complete payment using your preferred method</li>
+                      <li>Receive voucher code via SMS + Email instantly</li>
+                      <li><strong className="text-emerald-700">✓ Voucher ready to scan at airport - no registration needed!</strong></li>
+                    </ol>
+                  ) : (
+                    <ol className="text-sm text-slate-700 space-y-1 ml-4 list-decimal">
+                      <li>Click "Proceed to Payment" below</li>
+                      <li>You'll be redirected to secure payment page</li>
+                      <li>Complete payment using your preferred method</li>
+                      <li>Receive voucher code(s) via SMS + Email instantly</li>
+                      <li>Register passport details using voucher code (valid 30 days)</li>
+                    </ol>
+                  )}
                 </AlertDescription>
               </Alert>
 

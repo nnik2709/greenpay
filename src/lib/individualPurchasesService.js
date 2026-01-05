@@ -59,3 +59,5 @@ export const markVoucherAsUsed = async (voucherCode) => {
     throw error;
   }
 };
+
+// getVouchersByPassport function removed - feature deprecated

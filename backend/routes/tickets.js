@@ -4,6 +4,7 @@ const { body } = require('express-validator');
 const db = require('../config/database');
 const validate = require('../middleware/validator');
 const { auth, checkRole } = require('../middleware/auth');
+const { sendTicketNotification } = require('../services/notificationService');
 
 // Get all tickets
 router.get('/',
@@ -15,7 +16,7 @@ router.get('/',
       let query = `
         SELECT t.*, u.name as created_by_name, a.name as assigned_to_name
         FROM tickets t
-        LEFT JOIN "User" u ON t.created_by = u.id
+        LEFT JOIN "User" u ON t.user_id = u.id
         LEFT JOIN "User" a ON t.assigned_to = a.id
         WHERE 1=1
       `;
@@ -31,7 +32,7 @@ router.get('/',
 
       const userRole = userRoleResult.rows[0]?.name;
       if (!['Flex_Admin', 'IT_Support'].includes(userRole)) {
-        query += ` AND t.created_by = $${paramCount++}`;
+        query += ` AND t.user_id = $${paramCount++}`;
         params.push(req.userId);
       }
 
@@ -71,7 +72,7 @@ router.get('/:id',
       const result = await db.query(
         `SELECT t.*, u.name as created_by_name, a.name as assigned_to_name
          FROM tickets t
-         LEFT JOIN "User" u ON t.created_by = u.id
+         LEFT JOIN "User" u ON t.user_id = u.id
          LEFT JOIN "User" a ON t.assigned_to = a.id
          WHERE t.id = $1`,
         [id]
@@ -90,7 +91,7 @@ router.get('/:id',
       );
 
       const userRole = userRoleResult.rows[0]?.name;
-      if (!['Flex_Admin', 'IT_Support'].includes(userRole) && ticket.created_by !== req.userId) {
+      if (!['Flex_Admin', 'IT_Support'].includes(userRole) && ticket.user_id !== req.userId) {
         return res.status(403).json({ error: 'Access denied' });
       }
 
@@ -118,28 +119,67 @@ router.post('/',
         title,
         description,
         category,
-        priority,
-        attachments
+        priority
       } = req.body;
+
+      // Generate ticket number
+      const timestamp = Date.now().toString(36).toUpperCase();
+      const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const ticketNumber = `TKT-${timestamp}-${random}`;
 
       const result = await db.query(
         `INSERT INTO tickets (
-          title, description, category, priority, status,
-          attachments, created_by, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+          ticket_number, subject, description, category, priority, status,
+          user_id, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
         RETURNING *`,
         [
-          title,
+          ticketNumber,
+          title,  // Map title to subject column
           description,
           category,
           priority || 'medium',
           'open',
-          JSON.stringify(attachments || []),
           req.userId
         ]
       );
 
-      res.status(201).json({ data: result.rows[0] });
+      const ticket = result.rows[0];
+
+      // Get user information for email notification
+      const userResult = await db.query(
+        'SELECT id, name, email FROM "User" WHERE id = $1',
+        [req.userId]
+      );
+
+      const user = userResult.rows[0];
+
+      // Send email notification to IT Support (non-blocking)
+      if (user) {
+        // Map production schema to expected format for email
+        const ticketForEmail = {
+          ...ticket,
+          title: ticket.subject,  // Map subject back to title for email template
+          created_by: ticket.user_id
+        };
+
+        sendTicketNotification(ticketForEmail, user)
+          .then(() => {
+            console.log('✅ Ticket notification email sent');
+          })
+          .catch((error) => {
+            console.error('⚠️ Ticket notification email failed (non-critical):', error.message);
+          });
+      }
+
+      // Return ticket with title mapped from subject for frontend compatibility
+      res.status(201).json({
+        data: {
+          ...ticket,
+          title: ticket.subject,  // Frontend expects 'title'
+          created_by: ticket.user_id
+        }
+      });
     } catch (error) {
       console.error('Create ticket error:', error);
       res.status(500).json({ error: 'Failed to create ticket' });
@@ -165,13 +205,11 @@ router.put('/:id',
         category,
         priority,
         status,
-        assigned_to,
-        resolution_notes,
-        attachments
+        assigned_to
       } = req.body;
 
       // Check if user has permission to update this ticket
-      const ticketResult = await db.query('SELECT created_by FROM tickets WHERE id = $1', [id]);
+      const ticketResult = await db.query('SELECT user_id FROM tickets WHERE id = $1', [id]);
       if (ticketResult.rows.length === 0) {
         return res.status(404).json({ error: 'Ticket not found' });
       }
@@ -182,7 +220,7 @@ router.put('/:id',
       );
 
       const userRole = userRoleResult.rows[0]?.name;
-      const isOwner = ticketResult.rows[0].created_by === req.userId;
+      const isOwner = ticketResult.rows[0].user_id === req.userId;
 
       // Only owner or admin/IT can update
       if (!['Flex_Admin', 'IT_Support'].includes(userRole) && !isOwner) {
@@ -195,7 +233,7 @@ router.put('/:id',
       let paramCount = 1;
 
       if (title !== undefined) {
-        updates.push(`title = $${paramCount++}`);
+        updates.push(`subject = $${paramCount++}`);  // Map title to subject
         values.push(title);
       }
       if (description !== undefined) {
@@ -214,22 +252,14 @@ router.put('/:id',
         updates.push(`status = $${paramCount++}`);
         values.push(status);
 
-        // Set resolved_at when status changes to resolved
-        if (status === 'resolved') {
-          updates.push(`resolved_at = NOW()`);
+        // Set closed_at when status changes to closed
+        if (status === 'closed') {
+          updates.push(`closed_at = NOW()`);
         }
       }
       if (assigned_to !== undefined && ['Flex_Admin', 'IT_Support'].includes(userRole)) {
         updates.push(`assigned_to = $${paramCount++}`);
         values.push(assigned_to);
-      }
-      if (resolution_notes !== undefined) {
-        updates.push(`resolution_notes = $${paramCount++}`);
-        values.push(resolution_notes);
-      }
-      if (attachments !== undefined) {
-        updates.push(`attachments = $${paramCount++}`);
-        values.push(JSON.stringify(attachments));
       }
 
       if (updates.length === 0) {
@@ -245,7 +275,16 @@ router.put('/:id',
       `;
 
       const result = await db.query(query, values);
-      res.json({ data: result.rows[0] });
+
+      // Map subject to title for frontend compatibility
+      const ticket = result.rows[0];
+      res.json({
+        data: {
+          ...ticket,
+          title: ticket.subject,
+          created_by: ticket.user_id
+        }
+      });
     } catch (error) {
       console.error('Update ticket error:', error);
       res.status(500).json({ error: 'Failed to update ticket' });
@@ -274,63 +313,6 @@ router.delete('/:id',
     } catch (error) {
       console.error('Delete ticket error:', error);
       res.status(500).json({ error: 'Failed to delete ticket' });
-    }
-  }
-);
-
-// Add comment to ticket
-router.post('/:id/comments',
-  auth,
-  [
-    body('comment').notEmpty().withMessage('Comment is required')
-  ],
-  validate,
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { comment } = req.body;
-
-      // Check if ticket exists and user has access
-      const ticketResult = await db.query('SELECT created_by FROM tickets WHERE id = $1', [id]);
-      if (ticketResult.rows.length === 0) {
-        return res.status(404).json({ error: 'Ticket not found' });
-      }
-
-      const userRoleResult = await db.query(
-        'SELECT r.name FROM "User" u JOIN "Role" r ON u."roleId" = r.id WHERE u.id = $1',
-        [req.userId]
-      );
-
-      const userRole = userRoleResult.rows[0]?.name;
-      const isOwner = ticketResult.rows[0].created_by === req.userId;
-
-      if (!['Flex_Admin', 'IT_Support'].includes(userRole) && !isOwner) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
-
-      // Get current comments
-      const ticket = await db.query('SELECT comments FROM tickets WHERE id = $1', [id]);
-      const currentComments = ticket.rows[0].comments || [];
-
-      const newComment = {
-        id: Date.now(),
-        user_id: req.userId,
-        comment,
-        created_at: new Date().toISOString()
-      };
-
-      currentComments.push(newComment);
-
-      // Update ticket with new comment
-      const result = await db.query(
-        'UPDATE tickets SET comments = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-        [JSON.stringify(currentComments), id]
-      );
-
-      res.json({ data: result.rows[0] });
-    } catch (error) {
-      console.error('Add comment error:', error);
-      res.status(500).json({ error: 'Failed to add comment' });
     }
   }
 );

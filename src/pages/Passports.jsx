@@ -74,6 +74,7 @@ const Passports = () => {
     setIsEmailModalOpen(true);
   };
 
+
   const fillPlaceholders = (html) => {
     if (!selectedPassport) return html;
     return html
@@ -281,23 +282,21 @@ const Passports = () => {
                               />
                             </td>
                             <td className="py-4 font-semibold">
-                              {passport.given_name || passport.givenName} {passport.surname}
+                              {passport.full_name || (passport.given_name || passport.givenName) + ' ' + (passport.surname || '')}
                             </td>
                             <td className="py-4">
-                              <span className="font-mono text-sm">{passport.passportNo || passport.passport_number || passport.passportNumber}</span>
+                              <span className="font-mono text-sm">{passport.passport_number || passport.passportNo || passport.passportNumber}</span>
                             </td>
-                            <td className="py-4">{passport.nationality}</td>
-                            <td className="py-4">{passport.sex}</td>
+                            <td className="py-4">{passport.nationality || '—'}</td>
+                            <td className="py-4">{passport.sex || '—'}</td>
                             <td className="py-4">
-                              {passport.date_of_birth ? new Date(passport.date_of_birth).toLocaleDateString() : passport.dob}
-                            </td>
-                            <td className="py-4">
-                              {passport.date_of_expiry ? new Date(passport.date_of_expiry).toLocaleDateString() : passport.dateOfExpiry}
+                              {passport.date_of_birth ? new Date(passport.date_of_birth).toLocaleDateString() : (passport.dob ? new Date(passport.dob).toLocaleDateString() : '—')}
                             </td>
                             <td className="py-4">
-                              <Button size="sm" variant="outline" onClick={() => openSendEmail(passport)}>
-                                Send Email
-                              </Button>
+                              {passport.expiry_date ? new Date(passport.expiry_date).toLocaleDateString() : (passport.date_of_expiry ? new Date(passport.date_of_expiry).toLocaleDateString() : (passport.dateOfExpiry ? new Date(passport.dateOfExpiry).toLocaleDateString() : '—'))}
+                            </td>
+                            <td className="py-4">
+                              {/* View Vouchers feature removed */}
                             </td>
                           </tr>
                         ))}
@@ -376,23 +375,21 @@ const Passports = () => {
                             />
                           </td>
                           <td className="py-4 font-semibold">
-                            {passport.given_name || passport.givenName} {passport.surname}
+                            {passport.full_name || (passport.given_name || passport.givenName) + ' ' + (passport.surname || '')}
                           </td>
                           <td className="py-4">
-                            <span className="font-mono text-sm">{passport.passportNo || passport.passport_number || passport.passportNumber}</span>
+                            <span className="font-mono text-sm">{passport.passport_number || passport.passportNo || passport.passportNumber}</span>
                           </td>
-                          <td className="py-4">{passport.nationality}</td>
-                          <td className="py-4">{passport.sex}</td>
+                          <td className="py-4">{passport.nationality || '—'}</td>
+                          <td className="py-4">{passport.sex || '—'}</td>
                           <td className="py-4">
-                            {passport.date_of_birth ? new Date(passport.date_of_birth).toLocaleDateString() : passport.dob}
-                          </td>
-                          <td className="py-4">
-                            {passport.date_of_expiry ? new Date(passport.date_of_expiry).toLocaleDateString() : passport.dateOfExpiry}
+                            {passport.date_of_birth ? new Date(passport.date_of_birth).toLocaleDateString() : (passport.dob ? new Date(passport.dob).toLocaleDateString() : '—')}
                           </td>
                           <td className="py-4">
-                            <Button size="sm" variant="outline" onClick={() => openSendEmail(passport)}>
-                              Send Email
-                            </Button>
+                            {passport.expiry_date ? new Date(passport.expiry_date).toLocaleDateString() : (passport.date_of_expiry ? new Date(passport.date_of_expiry).toLocaleDateString() : (passport.dateOfExpiry ? new Date(passport.dateOfExpiry).toLocaleDateString() : '—'))}
+                          </td>
+                          <td className="py-4">
+                            {/* Actions placeholder */}
                           </td>
                         </tr>
                       ))}
@@ -507,6 +504,7 @@ const Passports = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </>
   );
 };

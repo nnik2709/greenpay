@@ -41,7 +41,8 @@ router.post('/create-payment-session', async (req, res) => {
       deliveryMethod,
       currency,
       returnUrl,
-      cancelUrl
+      cancelUrl,
+      passportData // 🆕 NEW: Optional passport data
     } = req.body;
 
     // Validation
@@ -86,9 +87,10 @@ router.post('/create-payment-session', async (req, res) => {
         currency,
         delivery_method,
         payment_status,
+        passport_data,
         expires_at,
         created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
       RETURNING *
     `;
 
@@ -101,6 +103,7 @@ router.post('/create-payment-session', async (req, res) => {
       currency || 'PGK',
       deliveryMethod || 'Email',
       'pending',
+      passportData ? JSON.stringify(passportData) : null, // 🆕 Store passport data if provided
       expiresAt
     ];
 
@@ -110,6 +113,9 @@ router.post('/create-payment-session', async (req, res) => {
     // Get payment gateway
     const gateway = PaymentGatewayFactory.getGateway();
     console.log(`💳 Using payment gateway: ${gateway.getName()}`);
+    if (passportData) {
+      console.log(`📋 Passport data included: ${passportData.passportNumber} (${passportData.surname}, ${passportData.givenName})`);
+    }
 
     // Create payment session with gateway
     const paymentSession = await gateway.createPaymentSession({

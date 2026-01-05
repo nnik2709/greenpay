@@ -87,3 +87,12 @@
     @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
   }
 }
+
+/* Hide Dynamsoft feedback/comment dialog */
+.dce-video-container iframe,
+.dce-video-container .dce-feedback,
+.dce-sel-camera + div[style*="position: absolute"],
+div[style*="background: white"][style*="position: absolute"][style*="z-index"] {
+  display: none !important;
+  visibility: hidden !important;
+}

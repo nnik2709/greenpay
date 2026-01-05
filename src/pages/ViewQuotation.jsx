@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { ArrowLeft, Download, Mail, FileText } from 'lucide-react';
 import api from '@/lib/api/client';
+import { downloadQuotationPDF, emailQuotationPDF } from '@/lib/quotationPdfService';
 
 const ViewQuotation = () => {
   const { id } = useParams();
@@ -38,18 +39,42 @@ const ViewQuotation = () => {
     window.print();
   };
 
-  const handleDownload = () => {
-    toast({
-      title: 'Download PDF',
-      description: 'PDF generation feature coming soon'
-    });
+  const handleDownload = async () => {
+    try {
+      await downloadQuotationPDF(quotation.id, quotation.quotation_number);
+      toast({
+        title: 'Success',
+        description: 'Quotation PDF downloaded successfully'
+      });
+    } catch (error) {
+      console.error('Error downloading quotation:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to download quotation PDF'
+      });
+    }
   };
 
-  const handleSendEmail = () => {
-    toast({
-      title: 'Send Email',
-      description: 'Email feature coming soon'
-    });
+  const handleSendEmail = async () => {
+    try {
+      // Prompt for email address
+      const email = prompt('Enter email address to send quotation:');
+      if (!email) return;
+
+      await emailQuotationPDF(quotation.quotation_number, email);
+      toast({
+        title: 'Success',
+        description: `Quotation sent to ${email}`
+      });
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to send quotation email'
+      });
+    }
   };
 
   if (loading) {

@@ -12,7 +12,12 @@
 const express = require('express');
 const router = express.Router();
 const PaymentGatewayFactory = require('../services/payment-gateways/PaymentGatewayFactory');
-const pool = require('../config/database');
+const db = require('../config/database');
+const QRCode = require('qrcode');
+const JsBarcode = require('jsbarcode');
+const { createCanvas } = require('canvas');
+const voucherConfig = require('../config/voucherConfig');
+const { sendVoucherNotification } = require('../services/notificationService');
 
 // Rate limiting for webhook endpoints (prevent abuse)
 const webhookCallCounts = new Map();
@@ -75,6 +80,31 @@ function isAllowedIp(ip) {
 }
 
 /**
+ * Generate Barcode (CODE-128) as Data URL
+ * @param {string} code - Voucher code
+ * @returns {string} Base64 data URL of barcode image
+ */
+function generateBarcodeDataURL(code) {
+  try {
+    const canvas = createCanvas(400, 120);
+    JsBarcode(canvas, code, {
+      format: 'CODE128',
+      width: 2,
+      height: 60,
+      displayValue: true,
+      fontSize: 16,
+      margin: 10,
+      background: '#ffffff',
+      lineColor: '#000000'
+    });
+    return canvas.toDataURL('image/png');
+  } catch (error) {
+    console.error('[DOKU] Barcode generation error:', error.message);
+    return null;
+  }
+}
+
+/**
  * Get client IP address from request
  * @param {Object} req - Express request object
  * @returns {string} Client IP address
@@ -85,6 +115,181 @@ function getClientIp(req) {
          req.connection.remoteAddress ||
          req.socket.remoteAddress ||
          'unknown';
+}
+
+/**
+ * Create voucher after successful payment
+ * This mirrors the voucher creation logic from buy-online.js
+ *
+ * @param {string} sessionId - Payment session ID (TRANSIDMERCHANT)
+ * @param {Object} paymentData - Payment details from DOKU
+ * @returns {Promise<Object>} Created voucher
+ */
+async function createVoucherFromPayment(sessionId, paymentData) {
+  const client = await db.getClient();
+
+  try {
+    await client.query('BEGIN');
+    console.log('[DOKU VOUCHER] Starting voucher creation for session:', sessionId);
+
+    // 1. Get purchase session with passport data
+    const sessionQuery = 'SELECT * FROM purchase_sessions WHERE id = $1 FOR UPDATE';
+    const sessionResult = await client.query(sessionQuery, [sessionId]);
+
+    if (sessionResult.rows.length === 0) {
+      throw new Error('Purchase session not found');
+    }
+
+    const session = sessionResult.rows[0];
+
+    // 2. Check if already completed (idempotency - prevent duplicate vouchers)
+    if (session.payment_status === 'completed') {
+      console.log('[DOKU VOUCHER] Session already completed - returning existing voucher');
+      const existingVoucher = await client.query(
+        'SELECT * FROM individual_purchases WHERE purchase_session_id = $1',
+        [sessionId]
+      );
+      await client.query('COMMIT');
+      return existingVoucher.rows[0];
+    }
+
+    // 3. Extract passport data from session
+    const passportData = session.passport_data;
+    if (!passportData) {
+      throw new Error('No passport data in session');
+    }
+
+    console.log('[DOKU VOUCHER] Passport data:', passportData.passportNumber);
+
+    // 4. Check if passport already exists
+    let passportId;
+    const existingPassport = await client.query(
+      'SELECT id FROM passports WHERE passport_number = $1',
+      [passportData.passportNumber]
+    );
+
+    if (existingPassport.rows.length > 0) {
+      passportId = existingPassport.rows[0].id;
+      console.log('[DOKU VOUCHER] Using existing passport ID:', passportId);
+    } else {
+      // Create new passport record
+      // Combine surname and given name into full_name
+      const fullName = `${passportData.surname}, ${passportData.givenName}`;
+
+      const newPassport = await client.query(
+        `INSERT INTO passports (
+          passport_number, full_name, nationality,
+          date_of_birth, expiry_date
+        ) VALUES ($1, $2, $3, $4, $5)
+        RETURNING id`,
+        [
+          passportData.passportNumber,
+          fullName,
+          passportData.nationality || null,
+          passportData.dateOfBirth || null, // Convert empty string to null
+          passportData.expiryDate || null    // Convert empty string to null
+        ]
+      );
+      passportId = newPassport.rows[0].id;
+      console.log('[DOKU VOUCHER] Created new passport ID:', passportId);
+    }
+
+    // 5. Generate voucher code (8-char alphanumeric)
+    const voucherCode = voucherConfig.helpers.generateVoucherCode('ONL');
+    const validFrom = new Date();
+    const validUntil = voucherConfig.helpers.calculateValidUntil(validFrom);
+
+    console.log('[DOKU VOUCHER] Generated voucher code:', voucherCode);
+
+    // 6. Create voucher (linked via passport_number)
+    const voucherQuery = `
+      INSERT INTO individual_purchases (
+        voucher_code,
+        passport_number,
+        amount,
+        payment_mode,
+        discount,
+        collected_amount,
+        returned_amount,
+        valid_until,
+        valid_from,
+        customer_name,
+        customer_email,
+        purchase_session_id,
+        status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      RETURNING *
+    `;
+
+    const voucherValues = [
+      voucherCode,
+      passportData.passportNumber,
+      session.amount,
+      'BSP DOKU Card', // Payment mode
+      0, // discount
+      session.amount, // collected_amount (full amount for online payment)
+      0, // returned_amount
+      validUntil,
+      validFrom,
+      `${passportData.surname}, ${passportData.givenName}`,
+      session.customer_email || null,
+      sessionId, // Link voucher to purchase session
+      'active' // status
+    ];
+
+    const voucherResult = await client.query(voucherQuery, voucherValues);
+    const voucher = voucherResult.rows[0];
+
+    console.log('[DOKU VOUCHER] Created voucher:', voucherCode, 'for passport', passportData.passportNumber);
+
+    // 8. Update session as completed
+    const updateSessionQuery = `
+      UPDATE purchase_sessions
+      SET payment_status = 'completed',
+          passport_created = TRUE,
+          payment_gateway_ref = $1,
+          session_data = $2,
+          completed_at = NOW()
+      WHERE id = $3
+    `;
+
+    await client.query(updateSessionQuery, [
+      paymentData.approvalCode || paymentData.responseCode || null,
+      JSON.stringify(paymentData),
+      sessionId
+    ]);
+
+    console.log('[DOKU VOUCHER] Updated session as completed');
+
+    // 9. Send email notification (async, don't wait)
+    if (session.customer_email) {
+      console.log('[DOKU VOUCHER] Sending email notification to:', session.customer_email);
+      sendVoucherNotification(
+        {
+          customerEmail: session.customer_email,
+          customerPhone: null,
+          quantity: 1
+        },
+        [voucher] // Pass as array
+      ).catch(err => {
+        console.error('[DOKU VOUCHER] Email notification failed:', err.message);
+        // Don't fail the transaction if email fails
+      });
+    }
+
+    await client.query('COMMIT');
+    console.log('[DOKU VOUCHER] ✅ Voucher creation completed successfully');
+
+    return voucher;
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('[DOKU VOUCHER] ❌ Error creating voucher:', error.message);
+    console.error('[DOKU VOUCHER] Stack:', error.stack);
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 /**
@@ -153,14 +358,14 @@ router.post('/notify', async (req, res) => {
 
     // Update transaction status in database with proper error handling
     try {
-      const updateResult = await pool.query(
+      const updateResult = await db.query(
         `UPDATE payment_gateway_transactions
          SET
-           status = $1,
-           gateway_response = $2,
-           completed_at = CASE WHEN $1 = 'completed' THEN NOW() ELSE completed_at END,
+           status = $1::text,
+           gateway_response = $2::jsonb,
+           completed_at = CASE WHEN $1::text = 'completed' THEN NOW() ELSE completed_at END,
            updated_at = NOW()
-         WHERE session_id = $3
+         WHERE session_id = $3::text
          RETURNING id, status`,
         [status, JSON.stringify(data), sessionId]
       );
@@ -178,6 +383,25 @@ router.post('/notify', async (req, res) => {
       console.error('[DOKU NOTIFY] ❌ Database update error:', dbError.message);
       console.error('[DOKU NOTIFY] SQL State:', dbError.code);
       // Still return CONTINUE to avoid DOKU retries causing duplicate notifications
+    }
+
+    // Create voucher if payment was successful
+    if (status === 'completed') {
+      console.log('[DOKU NOTIFY] Payment successful - creating voucher');
+      try {
+        const voucher = await createVoucherFromPayment(sessionId, data);
+        console.log('[DOKU NOTIFY] ✅ Voucher created successfully:', voucher.voucher_code);
+      } catch (voucherError) {
+        console.error('[DOKU NOTIFY] ❌ Voucher creation failed:', voucherError.message);
+        console.error('[DOKU NOTIFY] Stack:', voucherError.stack);
+        // IMPORTANT: Still return CONTINUE to DOKU even if voucher creation fails
+        // This prevents DOKU from retrying the webhook
+        // The transaction is marked as completed, so customer can contact support
+        console.warn('[DOKU NOTIFY] WARNING: Payment successful but voucher creation failed');
+        console.warn('[DOKU NOTIFY] WARNING: Customer should contact support with session ID:', sessionId);
+      }
+    } else {
+      console.log('[DOKU NOTIFY] Payment status:', status, '- no voucher created');
     }
 
     // Must respond with "CONTINUE" for DOKU to complete the transaction

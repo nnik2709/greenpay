@@ -1,12 +1,10 @@
 import { test as setup } from '@playwright/test';
-import path from 'path';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { createRequire } from 'module';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const require = createRequire(import.meta.url);
 
-const authFile = path.join(__dirname, '../playwright/.auth/counter-agent.json');
+const authFile = fileURLToPath(new URL('../playwright/.auth/counter-agent.json', import.meta.url));
 
 /**
  * Authentication Setup - Counter_Agent Role

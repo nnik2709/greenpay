@@ -248,6 +248,10 @@ class BSPGateway extends PaymentGatewayInterface {
     // Format: item_name,price,quantity,subtotal
     const basket = `Green Fee Voucher,${amount},${quantity},${amount}`;
 
+    // Webhook URL for DOKU to send payment notifications
+    const baseUrl = process.env.FRONTEND_URL || 'https://greenpay.eywademo.cloud';
+    const responseUrl = `${baseUrl}/api/payment/webhook/doku/notify`;
+
     // Build payment request parameters (as per DOKU API section 3.2.2)
     const paymentParams = {
       MALLID: this.config.mallId,
@@ -265,6 +269,7 @@ class BSPGateway extends PaymentGatewayInterface {
       BASKET: basket,
       PAYMENTCHANNEL: '15', // Credit Card (Visa/MasterCard/JCB)
       MOBILEPHONE: sanitizedPhone,
+      RESPONSEURL: responseUrl, // Webhook notification URL
     };
 
     // Payment URL for DOKU hosted page

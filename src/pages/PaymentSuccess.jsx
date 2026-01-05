@@ -32,7 +32,8 @@ const PaymentSuccess = () => {
   const sessionId = searchParams.get('session_id');
   // Try to get payment session ID from URL first, then fallback to sessionStorage
   // Extract clean session ID without query parameters
-  const rawPaymentSessionId = searchParams.get('payment_session') || sessionStorage.getItem('paymentSessionId');
+  // Support both ?payment_session= (old) and ?session= (BSP DOKU redirect)
+  const rawPaymentSessionId = searchParams.get('payment_session') || searchParams.get('session') || sessionStorage.getItem('paymentSessionId');
   const paymentSessionId = rawPaymentSessionId ? rawPaymentSessionId.split('?')[0] : null;
 
   useEffect(() => {
@@ -152,31 +153,59 @@ const PaymentSuccess = () => {
           animate={{ opacity: 1, y: 0 }}
           className="relative z-10 max-w-md"
         >
-          <Card className="border-yellow-200 shadow-xl">
-            <CardHeader className="bg-yellow-50">
-              <CardTitle className="text-yellow-800 flex items-center gap-2">
-                <span className="text-3xl">⚠️</span>
-                Processing Payment
+          <Card className="border-emerald-200 shadow-xl">
+            <CardHeader className="bg-emerald-50">
+              <CardTitle className="text-emerald-800 flex items-center gap-2">
+                <span className="text-3xl">✅</span>
+                Payment Successful
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <p className="text-slate-700 mb-4">{error}</p>
-              <p className="text-sm text-slate-600 mb-6">
-                Your payment was successful. Please try refreshing the page.
-              </p>
-              <Button
-                onClick={() => window.location.reload()}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 mb-2"
-              >
-                Refresh Page
-              </Button>
-              <Button
-                onClick={() => navigate('/')}
-                variant="outline"
-                className="w-full"
-              >
-                Return to Home
-              </Button>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p className="text-blue-800 font-medium mb-2">
+                  Your payment was processed successfully!
+                </p>
+                <p className="text-sm text-blue-700">
+                  {error}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-slate-700">
+                  Your voucher is being generated. This usually takes just a few seconds.
+                </p>
+
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                  <p className="text-sm font-medium text-slate-800 mb-2">What's happening?</p>
+                  <ol className="text-sm text-slate-600 space-y-1 list-decimal list-inside">
+                    <li>Payment confirmed by BSP bank</li>
+                    <li>Generating your unique voucher code</li>
+                    <li>Creating QR code and receipt</li>
+                  </ol>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-4">
+                  <Button
+                    onClick={() => window.location.reload()}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    🔄 Check Voucher Status
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/')}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Return to Home
+                  </Button>
+                </div>
+
+                <div className="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-xs text-yellow-800">
+                    <strong>Note:</strong> If your voucher doesn't appear after refreshing, please contact support with your payment session ID: <code className="bg-yellow-100 px-1 rounded">{paymentSessionId}</code>
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
@@ -303,18 +332,7 @@ const PaymentSuccess = () => {
                     const blob = await response.blob();
                     const filename = `voucher-${voucher?.code}.pdf`;
 
-                    // Method 1: Try native share API (works on iOS/Android)
-                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: 'application/pdf' })] })) {
-                      const file = new File([blob], filename, { type: 'application/pdf' });
-                      await navigator.share({
-                        files: [file],
-                        title: 'Green Fee Voucher',
-                        text: `Voucher ${voucher?.code}`
-                      });
-                      return;
-                    }
-
-                    // Method 2: Blob URL download (iOS Safari, modern browsers)
+                    // Direct download (skip share API to avoid delays)
                     const blobUrl = window.URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = blobUrl;

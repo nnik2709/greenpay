@@ -85,18 +85,6 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
             height: 120px;
             object-fit: contain;
           }
-          .logo-placeholder {
-            width: 120px;
-            height: 120px;
-            border: 2px dashed #ccc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            color: #999;
-            text-align: center;
-            border-radius: 50%;
-          }
 
           /* Title */
           .title {
@@ -240,8 +228,8 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
         <div class="page">
           <!-- Logos -->
           <div class="logos">
-            <img src="https://ccda.gov.pg/wp-content/uploads/2025/01/ccda-logo.jpeg" alt="CCDA Logo" class="logo-image" />
-            <div class="logo-placeholder">National Emblem</div>
+            <img src="/assets/logos/ccda-logo.png" alt="CCDA Logo" class="logo-image" />
+            <img src="/assets/logos/png-emblem.png" alt="PNG Emblem" class="logo-image" />
           </div>
 
           <!-- Title -->
@@ -343,13 +331,15 @@ const PassportVoucherReceipt = ({ voucher, passport, isOpen, onClose }) => {
             {/* Logos */}
             <div className="flex justify-center items-center gap-24 mb-10">
               <img
-                src="https://ccda.gov.pg/wp-content/uploads/2025/01/ccda-logo.jpeg"
+                src="/assets/logos/ccda-logo.png"
                 alt="CCDA Logo"
                 className="w-28 h-28 object-contain"
               />
-              <div className="w-28 h-28 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center text-xs text-gray-400 text-center">
-                National<br/>Emblem
-              </div>
+              <img
+                src="/assets/logos/png-emblem.png"
+                alt="PNG Emblem"
+                className="w-28 h-28 object-contain"
+              />
             </div>
 
             {/* Title */}

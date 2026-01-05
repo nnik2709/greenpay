@@ -49,7 +49,7 @@ async function sendSMS(phoneNumber, message) {
  * - AWS SES (Asia Pacific region)
  * - SendGrid
  */
-async function sendEmail(to, subject, htmlBody, textBody) {
+async function sendEmail(to, subject, htmlBody, textBody, attachments = []) {
   console.log('📧 Sending email to:', to);
   console.log('📝 Subject:', subject);
 
@@ -79,7 +79,8 @@ async function sendEmail(to, subject, htmlBody, textBody) {
         to: to,
         subject: subject,
         text: textBody,
-        html: htmlBody
+        html: htmlBody,
+        attachments
       });
 
       console.log('✅ Email sent successfully:', info.messageId);
@@ -122,7 +123,15 @@ async function sendVoucherNotification(customerData, vouchers) {
     `${i + 1}. ${v.voucher_code} (Valid until ${new Date(v.valid_until).toLocaleDateString('en-GB')})`
   ).join('\n');
 
-  const registrationUrl = process.env.PUBLIC_URL || 'https://greenpay.eywademo.cloud';
+  const registrationUrl = process.env.PUBLIC_URL || 'https://pnggreenfees.gov.pg';
+  const policyLinks = `
+    <p style="margin-top:16px;font-size:12px;color:#4b5563;">
+      Policies:
+      <a href="${registrationUrl}/terms" style="color:#047857;text-decoration:underline;">Terms &amp; Conditions</a> •
+      <a href="${registrationUrl}/privacy" style="color:#047857;text-decoration:underline;">Privacy Policy</a> •
+      <a href="${registrationUrl}/refunds" style="color:#047857;text-decoration:underline;">Refund / Return Policy</a>
+    </p>
+  `;
 
   // SMS Message (160 characters max per SMS)
   const smsMessage = `PNG Green Fees: Your voucher code${quantity > 1 ? 's' : ''}: ${voucherCodes}. Register at ${registrationUrl}/register/[CODE]. Valid 30 days.`;
@@ -189,6 +198,7 @@ async function sendVoucherNotification(customerData, vouchers) {
       <div class="footer">
         <p>This is an automated message from PNG Green Fees System</p>
         <p>For support, contact: support@greenpay.gov.pg | +675 XXX XXXX</p>
+        ${policyLinks}
         <p>© 2025 PNG Green Fees System. All rights reserved.</p>
       </div>
     </div>
@@ -620,11 +630,190 @@ async function sendEmailWithAttachments(options) {
   }
 }
 
+/**
+ * Send ticket creation notification to IT Support
+ * Called when a new support ticket is created
+ */
+async function sendTicketNotification(ticketData, createdByUser) {
+  const {
+    id,
+    ticket_number,
+    title,
+    description,
+    category,
+    priority,
+    created_at
+  } = ticketData;
+
+  const {
+    name: userName,
+    email: userEmail
+  } = createdByUser;
+
+  // IT Support email - use environment variable or fallback to hardcoded
+  const itSupportEmail = process.env.IT_SUPPORT_EMAIL || 'meghana@vflex.com.pg';
+
+  console.log('📧 Sending ticket notification to IT Support:', itSupportEmail);
+  console.log('📝 Ticket:', ticket_number);
+
+  // Format category for display
+  const categoryLabels = {
+    'technical': 'Technical',
+    'billing': 'Billing',
+    'feature_request': 'Feature Request',
+    'other': 'Other'
+  };
+  const categoryLabel = categoryLabels[category] || category;
+
+  // Format priority for display with color
+  const priorityLabels = {
+    'low': { label: 'Low', color: '#10b981' },
+    'medium': { label: 'Medium', color: '#f59e0b' },
+    'high': { label: 'High', color: '#ef4444' },
+    'urgent': { label: 'Urgent', color: '#dc2626' }
+  };
+  const priorityInfo = priorityLabels[priority] || { label: priority, color: '#6b7280' };
+
+  // Email subject
+  const emailSubject = `New Ticket Created: ${title} [${ticket_number}]`;
+
+  // Email HTML
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 700px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+    .ticket-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669; }
+    .detail-row { display: flex; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
+    .detail-row:last-child { border-bottom: none; }
+    .label { color: #6b7280; font-weight: 500; width: 140px; flex-shrink: 0; }
+    .value { color: #111827; font-weight: 600; flex: 1; }
+    .priority-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; color: white; font-weight: 600; font-size: 12px; }
+    .description-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+    .button { display: inline-block; background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; }
+    .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">🎫 New Support Ticket</h1>
+      <p style="margin: 10px 0 0 0; opacity: 0.9;">PNG Green Fees System</p>
+    </div>
+    <div class="content">
+      <p>A new support ticket has been created and requires your attention.</p>
+
+      <div class="ticket-box">
+        <h2 style="margin-top: 0; color: #059669;">${title}</h2>
+
+        <div class="detail-row">
+          <span class="label">Ticket Number:</span>
+          <span class="value">${ticket_number}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Submitted By:</span>
+          <span class="value">${userName} (${userEmail})</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Category:</span>
+          <span class="value">${categoryLabel}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Priority:</span>
+          <span class="value">
+            <span class="priority-badge" style="background-color: ${priorityInfo.color};">${priorityInfo.label}</span>
+          </span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Submitted:</span>
+          <span class="value">${new Date(created_at).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}</span>
+        </div>
+      </div>
+
+      <div class="description-box">
+        <p style="margin: 0 0 10px 0;"><strong>Description:</strong></p>
+        <p style="margin: 0; white-space: pre-wrap;">${description}</p>
+      </div>
+
+      <div style="text-align: center; margin-top: 30px;">
+        <a href="${process.env.PUBLIC_URL || 'https://greenpay.eywademo.cloud'}/app/tickets" class="button">View Ticket</a>
+      </div>
+
+      <div class="footer">
+        <p><strong>PNG Green Fees System</strong></p>
+        <p>Support Ticket Notification</p>
+        <p style="margin-top: 10px;">© ${new Date().getFullYear()} PNG Green Fees System. All rights reserved.</p>
+        <p>This is an automated email notification.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  // Email plain text version
+  const emailText = `
+NEW SUPPORT TICKET CREATED
+
+Ticket Number: ${ticket_number}
+Title: ${title}
+
+Submitted By: ${userName} (${userEmail})
+Category: ${categoryLabel}
+Priority: ${priorityInfo.label}
+Submitted: ${new Date(created_at).toLocaleString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit'
+})}
+
+DESCRIPTION:
+${description}
+
+View this ticket at: ${process.env.PUBLIC_URL || 'https://greenpay.eywademo.cloud'}/app/tickets
+
+---
+PNG Green Fees System
+Support Ticket Notification
+© ${new Date().getFullYear()} PNG Green Fees System. All rights reserved.
+This is an automated email notification.
+  `;
+
+  // Send email
+  try {
+    const result = await sendEmail(itSupportEmail, emailSubject, emailHtml, emailText);
+    console.log('✅ Ticket notification sent successfully');
+    return result;
+  } catch (error) {
+    console.error('❌ Failed to send ticket notification:', error);
+    // Don't throw error - ticket creation should succeed even if email fails
+    return { success: false, error: error.message };
+  }
+}
+
 module.exports = {
   sendSMS,
   sendEmail,
   sendEmailWithAttachments,
   sendVoucherNotification,
   sendQuotationEmail,
-  sendInvoiceEmail
+  sendInvoiceEmail,
+  sendTicketNotification
 };

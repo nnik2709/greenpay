@@ -1,0 +1,41 @@
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>User Testing Run Sheet</title>
+</head>
+<body>
+  <table border="1" cellspacing="0" cellpadding="4">
+    <tr>
+      <th>Scenario ID</th>
+      <th>Role</th>
+      <th>Description</th>
+      <th>Pre-req data (auto)</th>
+      <th>Pre-req data (manual)</th>
+      <th>Steps (numbered, concise)</th>
+      <th>Expected result</th>
+      <th>Status</th>
+      <th>Notes/Evidence link</th>
+    </tr>
+    <tr><td>A1</td><td>Counter_Agent</td><td>Individual purchase with PDF</td><td>App deployed; payment methods enabled; inbox reachable</td><td>Test inbox address; sample passport number; payment method choice</td><td>1) Login 2) Create individual purchase 3) Download voucher PDF 4) Verify barcode/URL 5) Check email attachment</td><td>Purchase succeeds; PDF correct; email received with PDF; no console errors</td><td>TODO</td><td>Add screenshot/PDF/email link</td></tr>
+    <tr><td>A2</td><td>Counter_Agent</td><td>Scan and validate voucher (valid and invalid)</td><td>Valid existing voucher code</td><td>Invalid/expired voucher code sample</td><td>1) Login 2) Open scan/validate 3) Enter valid code 4) Enter invalid/expired code</td><td>Valid code shows success; invalid shows friendly error; no crashes</td><td>TODO</td><td>Add console/network log link</td></tr>
+    <tr><td>A3</td><td>Counter_Agent</td><td>Add passport to existing voucher</td><td>Voucher in pending_passport status</td><td>Passport number sample; traveler name</td><td>1) Login 2) Open add-passport flow 3) Enter passport details 4) Save</td><td>Voucher updated with passport; confirmation shown; no console errors</td><td>TODO</td><td>Add screenshot/log</td></tr>
+    <tr><td>RA-CA</td><td>Counter_Agent</td><td>Role activities smoke (landing, scan)</td><td>Auth state for agent; app reachable</td><td></td><td>1) Go /app/agent 2) Verify cards 3) Go /app/scan</td><td>Pages load; elements visible; no console/network errors</td><td>PASS</td><td>Playwright smoke (role-activities) passed</td></tr>
+    <tr><td>IP-CA</td><td>Counter_Agent</td><td>Individual purchase create + print PDF</td><td>Auth state for agent; payment modes active</td><td></td><td>1) Go /app/passports/create 2) Fill passport 3) Select payment 4) Process 5) Print voucher (saves PDF)</td><td>Voucher generated; print dialog opens; PDF saved</td><td>PASS</td><td>PDF saved test-results/voucher-*.pdf (Playwright smoke)</td></tr>
+    <tr><td>F1</td><td>Finance_Manager</td><td>Corporate vouchers invoice-first (GST ON)</td><td>GST enabled in settings; customer exists; email inbox reachable</td><td>Customer details (name/email/phone/address/TIN); payment method</td><td>1) Login 2) Create corporate invoice 3) Pay full amount 4) Generate vouchers 5) Bulk email PDF</td><td>Invoice status paid; vouchers generated; bulk PDF emailed; totals include GST</td><td>TODO</td><td>Add email/PDF link</td></tr>
+    <tr><td>F2</td><td>Finance_Manager</td><td>Corporate vouchers invoice-first (GST OFF)</td><td>GST disabled in settings; customer exists; email inbox reachable</td><td>Customer details; payment method</td><td>1) Login 2) Create corporate invoice 3) Pay full amount 4) Generate vouchers 5) Bulk email PDF</td><td>Invoice status paid; vouchers generated; totals exclude GST; email sent</td><td>TODO</td><td>Add email/PDF link</td></tr>
+    <tr><td>F3</td><td>Finance_Manager</td><td>Quotation to invoice to vouchers</td><td>Quotation feature enabled; email inbox reachable</td><td>Customer details; discount value (if any)</td><td>1) Create quotation 2) Convert to invoice 3) Pay invoice 4) Generate vouchers 5) Email vouchers</td><td>Quotation converted; invoice paid; vouchers generated once; email sent</td><td>TODO</td><td>Attach evidence</td></tr>
+    <tr><td>F4</td><td>Finance_Manager</td><td>Duplicate voucher prevention per invoice</td><td>Invoice with vouchers already generated</td><td>Invoice ID used in prior generation</td><td>1) Attempt regenerate vouchers for same invoice</td><td>System blocks duplicate generation with clear message</td><td>TODO</td><td>Add screenshot/log</td></tr>
+    <tr><td>RA-FM</td><td>Finance_Manager</td><td>Role activities smoke (corporate exit pass, vouchers, payments, quotations)</td><td>Auth state for finance; app reachable</td><td></td><td>1) Go /payments/corporate-exit-pass 2) Vouchers list 3) Payments 4) Quotations</td><td>Pages load; key elements visible; no console/network errors</td><td>PASS</td><td>Playwright smoke (role-activities) passed</td></tr>
+    <tr><td>FA1</td><td>Flex_Admin</td><td>Settings: GST toggle + policy content</td><td>Flex_Admin account; settings endpoint available</td><td>Policy text to update</td><td>1) Login 2) Toggle GST on/off 3) Save 4) Update terms/privacy/refunds content 5) Verify /terms /privacy /refunds</td><td>GST toggle persists; policies render sanitized content; links work</td><td>TODO</td><td>Add before/after screenshots</td></tr>
+    <tr><td>FA2</td><td>Flex_Admin</td><td>Policy links in voucher emails</td><td>Email inbox reachable</td><td>Recipient email</td><td>1) Trigger voucher email 2) Open email 3) Click Terms/Privacy/Refunds links</td><td>Email received with policy links; links open correctly</td><td>TODO</td><td>Add email/screenshot</td></tr>
+    <tr><td>RA-FA</td><td>Flex_Admin</td><td>Role activities smoke (settings, payment modes, email templates, users)</td><td>Auth state for flex admin; app reachable</td><td></td><td>1) Go /admin/settings 2) /admin/payment-modes 3) /admin/email-templates 4) /admin/users</td><td>Pages load; elements visible; no console/network errors</td><td>PASS</td><td>Playwright smoke (role-activities) passed</td></tr>
+    <tr><td>P1</td><td>Public</td><td>Public policy pages</td><td>Site reachable anonymously</td><td></td><td>1) Open /terms 2) /privacy 3) /refunds</td><td>Pages load; structured content; no console errors</td><td>TODO</td><td>Add screenshot</td></tr>
+    <tr><td>RA-PUB</td><td>Public</td><td>Role activities smoke (policy pages)</td><td>Public access</td><td>None</td><td>1) Open /terms 2) /privacy 3) /refunds</td><td>Pages load; headings visible; no console/network errors</td><td>PASS</td><td>Playwright role-activities project passed</td></tr>
+    <tr><td>E1</td><td>Any</td><td>Error handling for invalid voucher</td><td>App reachable; console capture on</td><td>Invalid voucher code</td><td>1) Enter invalid voucher code 2) Submit</td><td>Friendly error shown; no uncaught exceptions</td><td>TODO</td><td>Add console log</td></tr>
+    <tr><td>E2</td><td>Any</td><td>Network/API failure handling</td><td>Ability to simulate offline/500</td><td>Simulated outage steps</td><td>1) Trigger request while offline/500 2) Observe UI</td><td>User-facing error shown; no crash; retries or guidance present</td><td>TODO</td><td>Add console/network log</td></tr>
+  </table>
+</body>
+</html>
+
+
+

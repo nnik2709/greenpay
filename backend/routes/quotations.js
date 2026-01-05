@@ -428,6 +428,45 @@ router.post('/send-email',
   }
 );
 
+// Download quotation as PDF
+router.get('/:id/pdf',
+  auth,
+  checkRole('Flex_Admin', 'Finance_Manager', 'Counter_Agent'),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Get quotation details
+      const result = await db.query(
+        `SELECT q.*, u.name as created_by_name
+         FROM quotations q
+         LEFT JOIN "User" u ON q.created_by = u.id
+         WHERE q.id = $1`,
+        [id]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Quotation not found' });
+      }
+
+      const quotation = result.rows[0];
+
+      // Generate PDF using existing PDF generator
+      const { generateQuotationPDF } = require('../utils/pdfGenerator');
+      const pdfBuffer = await generateQuotationPDF(quotation);
+
+      // Send PDF as download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="Quotation_${quotation.quotation_number}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error('Generate quotation PDF error:', error);
+      res.status(500).json({ error: 'Failed to generate quotation PDF' });
+    }
+  }
+);
+
 // Convert quotation to invoice
 router.post('/:id/convert-to-invoice',
   auth,
@@ -451,25 +490,72 @@ router.post('/:id/convert-to-invoice',
       // Generate invoice number (could be more sophisticated)
       const invoiceNumber = `INV-${Date.now()}`;
 
-      // Create invoice from quotation
+      // Create invoice from quotation (align to existing invoices schema)
+      const invoiceDate = new Date();
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 30);
+
+      const customerName = q.customer_name || q.company_name || 'N/A';
+      const customerEmail = q.customer_email || q.contact_email || '';
+      const customerPhone = q.customer_phone || q.contact_phone || '';
+
+      const itemsArray = q.items
+        ? (typeof q.items === 'string' ? JSON.parse(q.items) : q.items)
+        : [{
+            description: `Green Fee Vouchers - ${q.number_of_vouchers || 1}`,
+            quantity: q.number_of_vouchers || 1,
+            unitPrice: q.unit_price || 50
+          }];
+      const items = JSON.stringify(itemsArray);
+
+      const subtotal = Number(q.total_amount || q.amount || (q.number_of_vouchers || 1) * (q.unit_price || 50)) || 0;
+      const gstRate = Number(q.gst_rate || 0);
+      const gstAmount = Number(q.gst_amount || 0);
+      const netAmount = subtotal;
+      const totalAmount = subtotal + gstAmount;
+
       const result = await db.query(
         `INSERT INTO invoices (
-          invoice_number, customer_name, customer_email, customer_phone,
-          amount, tax_amount, total_amount, status, notes, items,
-          created_by, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+          invoice_number,
+          customer_name,
+          invoice_date,
+          due_date,
+          status,
+          items,
+          subtotal,
+          gst_rate,
+          gst_amount,
+          net_amount,
+          total_amount,
+          amount_paid,
+          amount_due,
+          payment_terms,
+          notes,
+          created_by
+        ) VALUES (
+          $1, $2, $3, $4,
+          $5, $6,
+          $7, $8, $9, $10,
+          $11, $12, $13,
+          $14, $15, $16
+        )
         RETURNING *`,
         [
           invoiceNumber,
-          q.company_name,
-          q.contact_email,
-          q.contact_phone,
-          q.amount,
-          q.tax_amount,
-          q.total_amount,
+          customerName,
+          invoiceDate,
+          dueDate,
           'pending',
-          `Converted from quotation ${q.quotation_number}`,
-          q.items,
+          items,
+          subtotal,
+          gstRate,
+          gstAmount,
+          netAmount,
+          totalAmount,
+          0,
+          totalAmount,
+          'Net 30 days',
+          `Converted from quotation ${q.quotation_number || 'N/A'}`,
           req.userId
         ]
       );

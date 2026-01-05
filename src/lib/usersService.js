@@ -43,8 +43,10 @@ export const updateUser = async (id, updates) => {
   try {
     const updateData = {};
     if (updates.email !== undefined) updateData.email = updates.email;
-    if (updates.role !== undefined) updateData.role = updates.role;
-    if (updates.active !== undefined) updateData.active = updates.active;
+    if (updates.role !== undefined) updateData.roleId = updates.role; // Backend expects roleId
+    if (updates.roleId !== undefined) updateData.roleId = updates.roleId;
+    if (updates.active !== undefined) updateData.isActive = updates.active; // Backend expects isActive
+    if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
     if (updates.name !== undefined) updateData.name = updates.name;
 
     const response = await api.users.update(id, updateData);
@@ -57,7 +59,7 @@ export const updateUser = async (id, updates) => {
 
 export const deactivateUser = async (id) => {
   try {
-    const response = await api.users.update(id, { active: false });
+    const response = await api.users.update(id, { isActive: false }); // Changed from 'active' to 'isActive'
     return response.user || response.data || response;
   } catch (error) {
     console.error('Error deactivating user:', error);
@@ -67,7 +69,7 @@ export const deactivateUser = async (id) => {
 
 export const activateUser = async (id) => {
   try {
-    const response = await api.users.update(id, { active: true });
+    const response = await api.users.update(id, { isActive: true }); // Changed from 'active' to 'isActive'
     return response.user || response.data || response;
   } catch (error) {
     console.error('Error activating user:', error);

@@ -118,8 +118,7 @@ export const markCorporateVoucherAsUsed = async (voucherCode) => {
 };
 
 export const createBulkCorporateVouchers = async (bulkData) => {
-  // Calls PostgreSQL backend API: POST /api/vouchers/bulk-corporate
-  // bulkData: { companyName, count, amount, paymentMethod, validFrom?, validUntil }
+  // Legacy direct flow (kept for backward compatibility)
   try {
     const payload = {
       company_name: bulkData.companyName,
@@ -128,6 +127,8 @@ export const createBulkCorporateVouchers = async (bulkData) => {
       payment_method: bulkData.paymentMethod,
       valid_from: bulkData.validFrom || new Date().toISOString(),
       valid_until: bulkData.validUntil,
+      discount: bulkData.discount || 0,
+      collected_amount: bulkData.collectedAmount,
     };
 
     const response = await api.post('/vouchers/bulk-corporate', payload);
@@ -136,6 +137,33 @@ export const createBulkCorporateVouchers = async (bulkData) => {
     console.error('Error creating bulk corporate vouchers:', error);
     throw error;
   }
+};
+
+// Invoice-first flow
+export const createCorporateInvoice = async (payload) => {
+  return api.post('/invoices/corporate', payload);
+};
+
+export const payInvoice = async (invoiceId, payload) => {
+  return api.post(`/invoices/${invoiceId}/payments`, payload);
+};
+
+export const generateVouchersFromInvoice = async (invoiceId) => {
+  return api.post(`/invoices/${invoiceId}/generate-vouchers`, {});
+};
+
+export const emailVouchersForInvoice = async (invoiceId, recipientEmail) => {
+  return api.post(`/invoices/${invoiceId}/email-vouchers`, {
+    recipient_email: recipientEmail,
+  });
+};
+
+export const downloadInvoicePdf = async (invoiceId) => {
+  return api.get(`/invoices/${invoiceId}/pdf`, { responseType: 'blob' });
+};
+
+export const downloadVouchersPdf = async (invoiceId) => {
+  return api.get(`/invoices/${invoiceId}/vouchers/pdf`, { responseType: 'blob' });
 };
 
 export const emailCorporateVouchers = async (emailData) => {

@@ -4,8 +4,8 @@
  * Optimized for PNG network conditions (2G/3G, frequent dropouts)
  */
 
-const CACHE_NAME = 'greenpay-v1';
-const API_CACHE_NAME = 'greenpay-api-v1';
+const CACHE_NAME = 'greenpay-v3';
+const API_CACHE_NAME = 'greenpay-api-v3';
 
 // Assets to cache immediately
 const STATIC_ASSETS = [

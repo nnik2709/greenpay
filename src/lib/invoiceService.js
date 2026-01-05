@@ -184,6 +184,7 @@ export const emailInvoice = async (invoiceId, email = null) => {
   try {
     const payload = {};
     if (email) {
+      payload.recipient_email = email; // backend expects recipient_email; keep compatibility
       payload.email = email;
     }
 
@@ -191,6 +192,21 @@ export const emailInvoice = async (invoiceId, email = null) => {
     return response;
   } catch (error) {
     console.error('Error emailing invoice:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch vouchers linked to an invoice
+ * @param {number} invoiceId
+ * @returns {Promise<Object>} {success, vouchers}
+ */
+export const getInvoiceVouchers = async (invoiceId) => {
+  try {
+    const response = await api.get(`/invoices/${invoiceId}/vouchers`);
+    return response;
+  } catch (error) {
+    console.error('Error fetching invoice vouchers:', error);
     throw error;
   }
 };

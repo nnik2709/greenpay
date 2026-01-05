@@ -21,14 +21,12 @@ router.get('/', auth, async (req, res) => {
     const query = `
       SELECT
         ip.*,
-        p."passportNo" as passport_num,
+        p.passport_number as passport_num,
+        p.full_name,
         p.nationality,
-        p.surname,
-        p."givenName" as given_name,
-        p.dob,
-        p.sex
+        p.date_of_birth
       FROM individual_purchases ip
-      LEFT JOIN "Passport" p ON ip.passport_number = p."passportNo"
+      LEFT JOIN passports p ON ip.passport_number = p.passport_number
       ORDER BY ip.created_at DESC
     `;
 
@@ -161,14 +159,12 @@ router.get('/:id', auth, async (req, res) => {
     const query = `
       SELECT
         ip.*,
-        p."passportNo" as passport_num,
+        p.passport_number as passport_num,
+        p.full_name,
         p.nationality,
-        p.surname,
-        p."givenName" as given_name,
-        p.dob,
-        p.sex
+        p.date_of_birth
       FROM individual_purchases ip
-      LEFT JOIN "Passport" p ON ip.passport_number = p."passportNo"
+      LEFT JOIN passports p ON ip.passport_number = p.passport_number
       WHERE ip.id = $1
     `;
 

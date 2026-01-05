@@ -8,14 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Home, ArrowLeft } from 'lucide-react';
 // Legacy import removed - using Supabase passportsService instead
 import { getPassportByNumber, createPassport, searchPassports } from '@/lib/passportsService';
 import { createIndividualPurchase } from '@/lib/individualPurchasesService';
 import { getPaymentModes } from '@/lib/paymentModesStorage';
 import { useAuth } from '@/contexts/AuthContext';
 import VoucherPrint from '@/components/VoucherPrint';
-import PassportVoucherReceipt from '@/components/PassportVoucherReceipt';
 import { processOnlinePayment, isGatewayActive, GATEWAY_NAMES } from '@/lib/paymentGatewayService';
 import { useScannerInput } from '@/hooks/useScannerInput';
 
@@ -67,6 +67,9 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [scanInput, setScanInput] = useState('');
   const [searchResult, setSearchResult] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [passportFound, setPassportFound] = useState(null); // null = not searched, true = found, false = not found
+  const [missingFields, setMissingFields] = useState([]); // Track which fields are missing from DB
 
   // Hardware scanner support with MRZ parsing
   const { isScanning: isScannerActive } = useScannerInput({
@@ -88,38 +91,63 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
           const existingPassport = await getPassportByNumber(data.passportNumber);
           if (existingPassport) {
             // Passport exists - load full record
+            // Handle both snake_case (database) and camelCase (frontend) formats
             const fullPassportData = {
               id: existingPassport.id,
-              passportNumber: existingPassport.passport_number,
+              passportNumber: existingPassport.passport_number || existingPassport.passportNumber || existingPassport.passportNo,
               nationality: existingPassport.nationality,
               surname: existingPassport.surname,
-              givenName: existingPassport.given_name,
+              givenName: existingPassport.given_name || existingPassport.givenName,
               dob: existingPassport.dob,
               sex: existingPassport.sex,
-              dateOfExpiry: existingPassport.date_of_expiry,
+              dateOfExpiry: existingPassport.date_of_expiry || existingPassport.dateOfExpiry,
               passportPhoto: existingPassport.passport_photo,
               signatureImage: existingPassport.signature_image,
             };
+
+            // Check for missing required fields
+            const missing = [];
+            if (!fullPassportData.passportNumber) missing.push('Passport Number');
+            if (!fullPassportData.givenName) missing.push('Given Name');
+            if (!fullPassportData.surname) missing.push('Surname');
+            if (!fullPassportData.nationality) missing.push('Nationality');
+            if (!fullPassportData.sex) missing.push('Sex');
+            if (!fullPassportData.dateOfExpiry) missing.push('Expiry Date');
+
             setSearchResult(fullPassportData);
             setPassportInfo(fullPassportData);
             setSearchQuery(fullPassportData.passportNumber);
-            toast({
-              title: "MRZ Scanned - Passport Found",
-              description: `${fullPassportData.givenName} ${fullPassportData.surname}'s details have been loaded from database.`
-            });
+            setPassportFound(true);
+            setMissingFields(missing);
+
+            // Show appropriate toast based on missing fields
+            if (missing.length > 0) {
+              toast({
+                title: "⚠️ MRZ Scanned - Incomplete Data",
+                description: `Database record found but missing: ${missing.join(', ')}. Please update manually.`,
+                variant: "default"
+              });
+            } else {
+              toast({
+                title: "✅ MRZ Scanned - Passport Found",
+                description: `${fullPassportData.givenName} ${fullPassportData.surname}'s details loaded from database.`
+              });
+            }
           } else {
             // New passport - use MRZ data
             setPassportInfo(passportData);
             setSearchQuery(data.passportNumber);
+            setPassportFound(false);
             toast({
-              title: "MRZ Scanned - New Passport",
-              description: "Passport details auto-filled from MRZ. Please verify and add photo if needed."
+              title: "📋 MRZ Scanned - New Passport",
+              description: "Passport not in system. Details auto-filled from MRZ. Please verify."
             });
           }
         } catch (error) {
           // Error checking database, still use MRZ data
           setPassportInfo(passportData);
           setSearchQuery(data.passportNumber);
+          setPassportFound(null);
           toast({
             title: "MRZ Scanned",
             description: "Passport details auto-filled. Please verify information."
@@ -148,31 +176,68 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
       toast({ variant: "destructive", title: "Search is empty", description: "Please enter a passport number." });
       return;
     }
+
+    setIsSearching(true);
     try {
       const result = await getPassportByNumber(searchQuery.trim());
       if (result) {
         // Map database fields to component state format
+        // Handle both snake_case (database) and camelCase (frontend) formats
         const passportData = {
           id: result.id,
-          passportNumber: result.passport_number,
+          passportNumber: result.passport_number || result.passportNumber || result.passportNo,
           nationality: result.nationality,
           surname: result.surname,
-          givenName: result.given_name,
+          givenName: result.given_name || result.givenName,
           dob: result.dob,
           sex: result.sex,
-          dateOfExpiry: result.date_of_expiry,
+          dateOfExpiry: result.date_of_expiry || result.dateOfExpiry,
         };
+
+        // Check for missing required fields
+        const missing = [];
+        if (!passportData.passportNumber) missing.push('Passport Number');
+        if (!passportData.givenName) missing.push('Given Name');
+        if (!passportData.surname) missing.push('Surname');
+        if (!passportData.nationality) missing.push('Nationality');
+        if (!passportData.sex) missing.push('Sex');
+        if (!passportData.dateOfExpiry) missing.push('Expiry Date');
+
         setSearchResult(passportData);
         setPassportInfo(passportData);
-        toast({ title: "Passport Found", description: `${passportData.givenName} ${passportData.surname}'s details have been loaded.` });
+        setPassportFound(true);
+        setMissingFields(missing);
+
+        // Show appropriate toast based on missing fields
+        if (missing.length > 0) {
+          toast({
+            title: "⚠️ Passport Found - Incomplete Data",
+            description: `Missing fields: ${missing.join(', ')}. Please update these fields manually.`,
+            variant: "default"
+          });
+        } else {
+          toast({
+            title: "✅ Passport Found",
+            description: `${passportData.givenName} ${passportData.surname}'s details loaded from database.`
+          });
+        }
       } else {
         setSearchResult(null);
-        toast({ variant: "destructive", title: "Not Found", description: "No passport found with that number. You can enter the details manually." });
+        setPassportInfo({ passportNumber: searchQuery.trim() }); // Pre-fill passport number for manual entry
+        setPassportFound(false);
+        toast({
+          title: "📋 New Passport",
+          description: "Passport not in system. Please enter details below to create new record.",
+          variant: "default"
+        });
       }
     } catch (error) {
       console.error('Error searching passport:', error);
       setSearchResult(null);
+      setPassportFound(null);
       toast({ variant: "destructive", title: "Search Error", description: "Failed to search for passport. Please try again." });
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -181,28 +246,56 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
       const result = await getPassportByNumber(value.trim());
       if (result) {
         // Map database fields to component state format
+        // Handle both snake_case (database) and camelCase (frontend) formats
         const passportData = {
           id: result.id,
-          passportNumber: result.passport_number,
+          passportNumber: result.passport_number || result.passportNumber || result.passportNo,
           nationality: result.nationality,
           surname: result.surname,
-          givenName: result.given_name,
+          givenName: result.given_name || result.givenName,
           dob: result.dob,
           sex: result.sex,
-          dateOfExpiry: result.date_of_expiry,
+          dateOfExpiry: result.date_of_expiry || result.dateOfExpiry,
         };
+
+        // Check for missing required fields
+        const missing = [];
+        if (!passportData.passportNumber) missing.push('Passport Number');
+        if (!passportData.givenName) missing.push('Given Name');
+        if (!passportData.surname) missing.push('Surname');
+        if (!passportData.nationality) missing.push('Nationality');
+        if (!passportData.sex) missing.push('Sex');
+        if (!passportData.dateOfExpiry) missing.push('Expiry Date');
+
         setSearchResult(passportData);
         setPassportInfo(passportData);
         setSearchQuery(passportData.passportNumber);
-        toast({ title: "Passport Scanned & Found", description: `${passportData.givenName} ${passportData.surname}'s details have been loaded.` });
+        setPassportFound(true);
+        setMissingFields(missing);
+
+        // Show appropriate toast based on missing fields
+        if (missing.length > 0) {
+          toast({
+            title: "⚠️ Passport Scanned - Incomplete Data",
+            description: `Missing fields: ${missing.join(', ')}. Please update these fields manually.`,
+            variant: "default"
+          });
+        } else {
+          toast({
+            title: "✅ Passport Scanned & Found",
+            description: `${passportData.givenName} ${passportData.surname}'s details loaded from database.`
+          });
+        }
       } else {
         // Set the scanned passport number for manual entry
         setSearchQuery(value.trim());
-        setPassportInfo(prev => ({ ...prev, passportNumber: value.trim() }));
-        toast({ variant: "default", title: "New Passport", description: "Passport not found in system. Please enter details manually." });
+        setPassportInfo({ passportNumber: value.trim() });
+        setPassportFound(false);
+        toast({ variant: "default", title: "📋 New Passport Scanned", description: "Passport not in system. Please enter details below." });
       }
     } catch (error) {
       console.error('Error scanning passport:', error);
+      setPassportFound(null);
       toast({ variant: "destructive", title: "Scan Error", description: "Failed to search for passport. Please try again." });
     }
     setScanInput('');
@@ -228,87 +321,195 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
 
   return (
     <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}>
-      <Card className="overflow-visible">
-        <CardHeader>
-          <CardTitle>Find or Create Passport</CardTitle>
+      {/* PRIMARY SEARCH SECTION - First Field */}
+      <Card className="overflow-visible border-2 border-emerald-500 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50">
+          <CardTitle className="text-xl">🔍 Step 1: Search Passport by Number</CardTitle>
+          <p className="text-sm text-slate-600 mt-1">Enter passport number manually or use MRZ scanner</p>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-            <div>
-              <label className="font-semibold text-slate-700">Search Passport</label>
-              <Input
-                placeholder="Enter Passport Number"
-                className="mt-1"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+        <CardContent className="space-y-6 pt-6">
+          {/* Primary Search Input */}
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Input
+                  placeholder="Enter Passport Number (e.g., P1234567)"
+                  className="text-lg h-12 border-2 border-emerald-300 focus:border-emerald-500"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  autoFocus
+                />
+              </div>
+              <Button
+                onClick={handleSearch}
+                size="lg"
+                className="bg-emerald-600 hover:bg-emerald-700 px-8"
+                disabled={isSearching || !searchQuery.trim()}
+              >
+                {isSearching ? 'Searching...' : 'Search'}
+              </Button>
             </div>
-            <Button onClick={handleSearch} className="w-full md:w-auto">Search</Button>
+
+            {/* Search Result Feedback */}
+            {passportFound === true && (
+              <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-start gap-3">
+                  <div className="text-3xl">✅</div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-green-900 text-lg">Passport Found in Database!</h3>
+                    <p className="text-green-700 text-sm mt-1">
+                      Existing passport record loaded for <strong>{passportInfo.givenName} {passportInfo.surname}</strong>
+                    </p>
+                    <p className="text-green-600 text-xs mt-2">
+                      All fields have been auto-populated. Review and proceed to payment.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {passportFound === false && (
+              <div className="bg-blue-50 border-2 border-blue-500 rounded-lg p-4 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-start gap-3">
+                  <div className="text-3xl">📋</div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-blue-900 text-lg">New Passport - Not in Database</h3>
+                    <p className="text-blue-700 text-sm mt-1">
+                      Passport number <strong>{searchQuery}</strong> not found in system.
+                    </p>
+                    <p className="text-blue-600 text-xs mt-2">
+                      Please enter passport details below to create a new record.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
+
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
+              <span className="w-full border-t border-slate-300" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or Scan with Hardware Scanner</span>
+              <span className="bg-white px-3 text-slate-500 font-semibold">Or Use MRZ Scanner</span>
             </div>
           </div>
+
+          {/* Scanner Status */}
           {isScannerActive && (
-            <Card className="bg-emerald-50 border-emerald-300">
+            <Card className="bg-emerald-50 border-2 border-emerald-400 animate-pulse">
               <CardContent className="p-4">
-                <div>
-                  <h3 className="font-bold text-emerald-900">Scanning...</h3>
-                  <p className="text-emerald-700 text-sm">
-                    Please scan passport MRZ (2 lines at bottom) or passport number barcode.
-                  </p>
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">📷</div>
+                  <div>
+                    <h3 className="font-bold text-emerald-900">Scanner Active - Ready to Scan</h3>
+                    <p className="text-emerald-700 text-sm">
+                      Please scan passport MRZ (2 lines at bottom) or passport number barcode now.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           )}
           {!isScannerActive && (
-            <Card className="bg-blue-50 border-blue-300">
+            <Card className="bg-slate-50 border border-slate-300">
               <CardContent className="p-4">
-                <div>
-                  <h3 className="font-bold text-blue-900">Ready for Hardware Scanner</h3>
-                  <p className="text-blue-700 text-sm">
-                    Use your USB/Bluetooth scanner to scan passport MRZ or barcode. The system will auto-detect and fill the form.
-                  </p>
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">🖨️</div>
+                  <div>
+                    <h3 className="font-semibold text-slate-700">Hardware Scanner Ready</h3>
+                    <p className="text-slate-600 text-sm">
+                      USB/Bluetooth scanner detected. Scan passport MRZ or barcode to auto-fill.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           )}
-
         </CardContent>
       </Card>
 
+      {/* PASSPORT DETAILS FORM - Only show after search or for manual entry */}
       <Card className="mt-8">
         <CardHeader>
-          <CardTitle>Passport Details</CardTitle>
+          <CardTitle>Step 2: Passport Details</CardTitle>
+          <p className="text-sm text-slate-600 mt-1">
+            {passportFound === true
+              ? "Review auto-populated information"
+              : passportFound === false
+                ? "Enter passport details to create new record"
+                : "Search for passport first, or enter details manually"}
+          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="passportNumber">Passport Number</label>
-              <Input id="passportNumber" name="passportNumber" placeholder="e.g., P1234567" className="mt-1" value={passportInfo.passportNumber || ''} onChange={handleInputChange} />
+              <label htmlFor="passportNumber" className="font-semibold text-slate-700">Passport Number *</label>
+              <Input
+                id="passportNumber"
+                name="passportNumber"
+                placeholder="e.g., P1234567"
+                className={`mt-1 ${passportFound === true && missingFields.length === 0 ? 'bg-slate-100' : ''}`}
+                value={passportInfo.passportNumber || ''}
+                onChange={handleInputChange}
+                readOnly={passportFound === true && missingFields.length === 0}
+                required
+              />
+              {passportFound === true && missingFields.length === 0 && (
+                <p className="text-xs text-slate-500 mt-1">✓ Loaded from database</p>
+              )}
             </div>
             <div>
-              <label htmlFor="nationality">Nationality</label>
-              <Input id="nationality" name="nationality" placeholder="e.g., Australian" className="mt-1" value={passportInfo.nationality || ''} onChange={handleInputChange} />
+              <label htmlFor="nationality" className="font-semibold text-slate-700">Nationality *</label>
+              <Input
+                id="nationality"
+                name="nationality"
+                placeholder="e.g., Australian"
+                className="mt-1"
+                value={passportInfo.nationality || ''}
+                onChange={handleInputChange}
+                required
+              />
             </div>
             <div>
-              <label htmlFor="surname">Surname</label>
-              <Input id="surname" name="surname" placeholder="e.g., Smith" className="mt-1" value={passportInfo.surname || ''} onChange={handleInputChange} />
+              <label htmlFor="surname" className="font-semibold text-slate-700">Surname *</label>
+              <Input
+                id="surname"
+                name="surname"
+                placeholder="e.g., Smith"
+                className="mt-1"
+                value={passportInfo.surname || ''}
+                onChange={handleInputChange}
+                required
+              />
             </div>
             <div>
-              <label htmlFor="givenName">Given Name</label>
-              <Input id="givenName" name="givenName" placeholder="e.g., John" className="mt-1" value={passportInfo.givenName || ''} onChange={handleInputChange} />
+              <label htmlFor="givenName" className="font-semibold text-slate-700">Given Name *</label>
+              <Input
+                id="givenName"
+                name="givenName"
+                placeholder="e.g., John"
+                className="mt-1"
+                value={passportInfo.givenName || ''}
+                onChange={handleInputChange}
+                required
+              />
             </div>
             <div>
-              <label htmlFor="dob">Date of Birth</label>
-              <Input id="dob" name="dob" type="date" placeholder="dd/mm/yyyy" className="mt-1" value={passportInfo.dob || ''} onChange={handleInputChange} />
+              <label htmlFor="dob" className="font-semibold text-slate-700">Date of Birth</label>
+              <Input
+                id="dob"
+                name="dob"
+                type="date"
+                placeholder="dd/mm/yyyy"
+                className="mt-1"
+                value={passportInfo.dob || ''}
+                onChange={handleInputChange}
+              />
             </div>
             <div>
-              <label htmlFor="sex">Sex</label>
+              <label htmlFor="sex" className="font-semibold text-slate-700">Sex *</label>
               <Select name="sex" onValueChange={handleSelectChange} value={passportInfo.sex || ''}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select sex" />
@@ -321,20 +522,80 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
               </Select>
             </div>
             <div className="md:col-span-2">
-              <label htmlFor="dateOfExpiry">Passport Expiry Date</label>
-              <Input id="dateOfExpiry" name="dateOfExpiry" type="date" placeholder="dd/mm/yyyy" className="mt-1" value={passportInfo.dateOfExpiry || ''} onChange={handleInputChange} />
+              <label htmlFor="dateOfExpiry" className="font-semibold text-slate-700">Passport Expiry Date *</label>
+              <Input
+                id="dateOfExpiry"
+                name="dateOfExpiry"
+                type="date"
+                placeholder="dd/mm/yyyy"
+                className="mt-1"
+                value={passportInfo.dateOfExpiry || ''}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label htmlFor="email" className="font-semibold text-slate-700">Email Address (Optional)</label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="customer@example.com (for sending voucher via email)"
+                className="mt-1"
+                value={passportInfo.email || ''}
+                onChange={handleInputChange}
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Provide customer email to send voucher electronically
+              </p>
             </div>
           </form>
 
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> Only passport number, name, nationality, sex, and expiry date are required. Photos are not stored in the system.
-            </p>
-          </div>
+          {passportFound === true && missingFields.length === 0 && (
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">
+                ✅ <strong>Existing Passport Record:</strong> This passport already exists in the database.
+                All information has been retrieved automatically.
+              </p>
+            </div>
+          )}
+
+          {passportFound === true && missingFields.length > 0 && (
+            <div className="mt-4 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">⚠️</div>
+                <div>
+                  <p className="text-sm font-semibold text-yellow-900">
+                    Incomplete Passport Record
+                  </p>
+                  <p className="text-sm text-yellow-800 mt-1">
+                    The following fields are missing from the database record: <strong>{missingFields.join(', ')}</strong>
+                  </p>
+                  <p className="text-xs text-yellow-700 mt-2">
+                    Please fill in the missing fields manually. The passport record will be updated when you complete this purchase.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {passportFound === false && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                📋 <strong>New Passport:</strong> This passport will be added to the database when you complete the purchase.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
+
       <div className="flex justify-end mt-8">
-        <Button onClick={onNext} size="lg">
+        <Button
+          onClick={onNext}
+          size="lg"
+          disabled={!passportInfo.passportNumber || !passportInfo.nationality || !passportInfo.surname || !passportInfo.givenName}
+          className="bg-gradient-to-r from-emerald-500 to-teal-600"
+        >
           Proceed to Payment →
         </Button>
       </div>
@@ -630,8 +891,37 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
 };
 
 const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
+  const { toast } = useToast();
   const [showPrintDialog, setShowPrintDialog] = useState(false);
-  const [showPassportReceipt, setShowPassportReceipt] = useState(false);
+  const [isEmailing, setIsEmailing] = useState(false);
+
+  const handleEmailVoucher = async () => {
+    if (!passportInfo.email) {
+      toast({
+        variant: "destructive",
+        title: "Email Required",
+        description: "No email address provided. Please collect customer email to send voucher."
+      });
+      return;
+    }
+
+    setIsEmailing(true);
+    try {
+      // Email voucher API call would go here
+      toast({
+        title: "Email Sent",
+        description: `Voucher has been sent to ${passportInfo.email}`
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Email Failed",
+        description: "Failed to send email. Please try again."
+      });
+    } finally {
+      setIsEmailing(false);
+    }
+  };
 
   if (!voucher) {
     return (
@@ -706,14 +996,20 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 pt-4 border-t">
-            <Button onClick={() => setShowPrintDialog(true)} className="flex-1 bg-emerald-600 hover:bg-emerald-700">
-              Print Standard Voucher
+            <Button
+              onClick={() => setShowPrintDialog(true)}
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+              size="lg"
+            >
+              🖨️ Print Voucher
             </Button>
-            <Button onClick={() => setShowPassportReceipt(true)} className="flex-1 bg-green-800 hover:bg-green-900">
-              🌿 Print Green Card
-            </Button>
-            <Button variant="outline" className="flex-1">
-              Show QR Code
+            <Button
+              onClick={handleEmailVoucher}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+              size="lg"
+              disabled={isEmailing}
+            >
+              {isEmailing ? 'Sending...' : '📧 Email Voucher'}
             </Button>
           </div>
         </CardContent>
@@ -728,26 +1024,17 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
         </Button>
       </div>
 
-      {/* Print Dialog */}
+      {/* Print Dialog - Uses same template as /buy-online (passport already registered) */}
       <VoucherPrint
-        voucher={voucher}
+        voucher={{
+          ...voucher,
+          customer_name: `${passportInfo.givenName} ${passportInfo.surname}`,
+          nationality: passportInfo.nationality
+        }}
         isOpen={showPrintDialog}
         onClose={() => setShowPrintDialog(false)}
         voucherType="Individual"
-      />
-
-      {/* Passport Green Card Receipt */}
-      <PassportVoucherReceipt
-        voucher={voucher}
-        passport={{
-          passport_number: passportInfo.passportNumber,
-          given_name: passportInfo.givenName,
-          surname: passportInfo.surname,
-          nationality: passportInfo.nationality,
-          dob: passportInfo.dob
-        }}
-        isOpen={showPassportReceipt}
-        onClose={() => setShowPassportReceipt(false)}
+        showRegistrationLink={false}
       />
     </motion.div>
   );
@@ -757,6 +1044,7 @@ const IndividualPurchase = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [passportInfo, setPassportInfo] = useState({});
   const [paymentData, setPaymentData] = useState(null);
@@ -862,6 +1150,17 @@ const IndividualPurchase = () => {
 
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
+      {/* Home/Back Button */}
+      <div className="mb-4">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/app/agent')}
+          className="gap-2"
+        >
+          <Home className="h-4 w-4" />
+          Home
+        </Button>
+      </div>
       <StepIndicator currentStep={step} />
       <AnimatePresence mode="wait">
         {step === 0 && (

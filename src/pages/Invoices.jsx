@@ -13,8 +13,10 @@ import {
   canRecordPayment,
   canGenerateVouchers,
   downloadInvoicePDF,
-  emailInvoice
+  emailInvoice,
+  getInvoiceVouchers
 } from '@/lib/invoiceService';
+import { viewInvoicePDF } from '@/lib/invoicePdfService';
 import {
   formatPGK,
   getStatusBadgeClass,
@@ -86,6 +88,10 @@ const Invoices = () => {
   const [voucherEmailModalOpen, setVoucherEmailModalOpen] = useState(false);
   const [voucherEmailAddress, setVoucherEmailAddress] = useState('');
   const [sendingVoucherEmail, setSendingVoucherEmail] = useState(false);
+
+  // Generated Vouchers Modal
+  const [generatedVouchersModalOpen, setGeneratedVouchersModalOpen] = useState(false);
+  const [generatedVouchers, setGeneratedVouchers] = useState([]);
 
   useEffect(() => {
     loadInvoices();
@@ -172,11 +178,17 @@ const Invoices = () => {
 
       toast({
         title: 'Vouchers Generated Successfully',
-        description: `${result.message || `Generated ${result.vouchers?.length} green passes`}. Use the "Email Vouchers" button to send them to the customer.`
+        description: `${result.message || `Generated ${result.vouchers?.length} green passes`}`
       });
 
       setVoucherModalOpen(false);
-      setSelectedInvoice(null);
+
+      // Show generated vouchers in a new modal
+      if (result.vouchers && result.vouchers.length > 0) {
+        setGeneratedVouchers(result.vouchers);
+        setGeneratedVouchersModalOpen(true);
+      }
+
       loadInvoices();
     } catch (error) {
       const errorData = error.response?.data;
@@ -188,6 +200,7 @@ const Invoices = () => {
         title: errorTitle,
         description: errorMessage
       });
+      setSelectedInvoice(null);
     } finally {
       setGeneratingVouchers(false);
     }
@@ -197,6 +210,35 @@ const Invoices = () => {
     setSelectedInvoice(invoice);
     setVoucherEmailAddress(invoice.customer_email || '');
     setVoucherEmailModalOpen(true);
+  };
+
+  const handleDownloadVouchers = async (invoice) => {
+    try {
+      const response = await api.get(`/invoices/${invoice.id}/vouchers-pdf`, {
+        responseType: 'blob'
+      });
+
+      // Create a blob URL and trigger download
+      const url = window.URL.createObjectURL(response);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${invoice.customer_name.replace(/\s+/g, '_')}_Vouchers_${invoice.invoice_number}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Download Started',
+        description: `Downloading vouchers for invoice ${invoice.invoice_number}`
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.response?.data?.error || 'Failed to download vouchers'
+      });
+    }
   };
 
   const handleEmailVouchers = async () => {
@@ -257,6 +299,22 @@ const Invoices = () => {
         variant: 'destructive',
         title: 'Error',
         description: 'Failed to download PDF'
+      });
+    }
+  };
+
+  const handleViewInvoice = async (invoice) => {
+    try {
+      await viewInvoicePDF(invoice.id);
+      toast({
+        title: 'Opening Invoice',
+        description: `Opening invoice ${invoice.invoice_number} in new tab`
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to view invoice PDF'
       });
     }
   };
@@ -335,11 +393,7 @@ const Invoices = () => {
 
     switch (selectedAction) {
       case 'view':
-        // Navigate to view invoice details (can implement later)
-        toast({
-          title: 'View Invoice',
-          description: `Viewing invoice ${invoice.invoice_number}`
-        });
+        handleViewInvoice(invoice);
         break;
       case 'email':
         openEmailModal(invoice);
@@ -355,7 +409,15 @@ const Invoices = () => {
           });
         }
         break;
-      case 'generate':
+      case 'generate': {
+        if (invoice.vouchers_generated) {
+          toast({
+            variant: 'destructive',
+            title: 'Cannot Generate Vouchers',
+            description: 'Vouchers already generated for this invoice'
+          });
+          break;
+        }
         if (canGenerateVouchers(invoice)) {
           openVoucherModal(invoice);
         } else {
@@ -366,6 +428,41 @@ const Invoices = () => {
           });
         }
         break;
+      }
+      case 'view_vouchers': {
+        if (!invoice.vouchers_generated) {
+          toast({
+            variant: 'destructive',
+            title: 'No Vouchers',
+            description: 'Vouchers have not been generated for this invoice yet'
+          });
+          break;
+        }
+        setGeneratingVouchers(true);
+        getInvoiceVouchers(invoice.id)
+          .then((res) => {
+            const list = res?.vouchers || [];
+            if (list.length === 0) {
+              toast({
+                variant: 'destructive',
+                title: 'No Vouchers Found',
+                description: 'No vouchers are linked to this invoice'
+              });
+              return;
+            }
+            setGeneratedVouchers(list);
+            setGeneratedVouchersModalOpen(true);
+          })
+          .catch((error) => {
+            toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: error.response?.data?.error || 'Failed to load vouchers for this invoice'
+            });
+          })
+          .finally(() => setGeneratingVouchers(false));
+        break;
+      }
       default:
         break;
     }
@@ -500,13 +597,25 @@ const Invoices = () => {
                     <SelectItem value="email">Email Invoice</SelectItem>
                     <SelectItem value="register_payment">Register Payment</SelectItem>
                     <SelectItem value="generate">Generate Vouchers</SelectItem>
+                    <SelectItem value="view_vouchers">View Vouchers</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex gap-2">
                 <Button
                   onClick={handlePerformAction}
-                  disabled={!selectedInvoiceId || !selectedAction}
+                  disabled={
+                    !selectedInvoiceId ||
+                    !selectedAction ||
+                    (selectedAction === 'generate' && (() => {
+                      const inv = getSelectedInvoice();
+                      return inv ? !canGenerateVouchers(inv) || inv.vouchers_generated : true;
+                    })()) ||
+                    (selectedAction === 'view_vouchers' && (() => {
+                      const inv = getSelectedInvoice();
+                      return inv ? !inv.vouchers_generated : true;
+                    })())
+                  }
                   className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
                   Perform Action
@@ -546,6 +655,7 @@ const Invoices = () => {
                   <th scope="col" className="px-6 py-3">Total</th>
                   <th scope="col" className="px-6 py-3">Paid</th>
                   <th scope="col" className="px-6 py-3">Balance</th>
+                  <th scope="col" className="px-6 py-3">Vouchers Generated</th>
                   <th scope="col" className="px-6 py-3">Status</th>
                 </tr>
               </thead>
@@ -618,6 +728,17 @@ const Invoices = () => {
                         </td>
                         <td className="px-6 py-4 text-right">
                           {formatPGK(invoice.amount_due || 0)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {invoice.vouchers_generated ? (
+                            <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase bg-emerald-100 text-emerald-700">
+                              YES
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase bg-slate-200 text-slate-700">
+                              NO
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${getStatusBadgeClass(displayStatus)}`}>
@@ -863,6 +984,111 @@ const Invoices = () => {
                 {sendingEmail ? 'Sending...' : '✉️ Send Email'}
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Generated Vouchers Modal */}
+        <Dialog open={generatedVouchersModalOpen} onOpenChange={setGeneratedVouchersModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Generated Vouchers</DialogTitle>
+              <DialogDescription>
+                {generatedVouchers.length} green passes generated successfully for {selectedInvoice?.customer_name}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-emerald-700 font-medium">Invoice:</span>{' '}
+                    <span className="text-emerald-900">{selectedInvoice?.invoice_number}</span>
+                  </div>
+                  <div>
+                    <span className="text-emerald-700 font-medium">Company:</span>{' '}
+                    <span className="text-emerald-900">{selectedInvoice?.customer_name}</span>
+                  </div>
+                  <div>
+                    <span className="text-emerald-700 font-medium">Total Vouchers:</span>{' '}
+                    <span className="text-emerald-900">{generatedVouchers.length}</span>
+                  </div>
+                  <div>
+                    <span className="text-emerald-700 font-medium">Amount per Voucher:</span>{' '}
+                    <span className="text-emerald-900">PGK {generatedVouchers[0]?.amount || '0.00'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vouchers Table */}
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">#</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Voucher Code</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Amount</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Valid Until</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {generatedVouchers.map((voucher, index) => (
+                      <tr key={voucher.id} className="border-b hover:bg-slate-50">
+                        <td className="px-4 py-3 text-slate-600">{index + 1}</td>
+                        <td className="px-4 py-3">
+                          <span className="font-mono text-emerald-600 font-semibold">
+                            {voucher.voucher_code}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-medium">PGK {parseFloat(voucher.amount).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {new Date(voucher.valid_until).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                            {voucher.status.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 justify-end pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    handleDownloadVouchers(selectedInvoice);
+                  }}
+                  className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+                >
+                  Download All Vouchers
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Email vouchers
+                    setGeneratedVouchersModalOpen(false);
+                    openEmailVouchersModal(selectedInvoice);
+                  }}
+                  className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                >
+                  Email Vouchers to Customer
+                </Button>
+                <Button
+                  onClick={() => {
+                    setGeneratedVouchersModalOpen(false);
+                    setSelectedInvoice(null);
+                    setGeneratedVouchers([]);
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
 

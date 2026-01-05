@@ -95,36 +95,50 @@ const PublicRegistration = () => {
       setLoading(true);
       setError(null);
 
-      // Check voucher validity via API
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-      const url = `${API_URL}/public-purchases/validate/${voucherCode}`;
 
+      // First, try individual/online vouchers
       console.log('🔍 Validating voucher:', voucherCode);
-      console.log('📡 API URL:', url);
+      const individualUrl = `${API_URL}/public-purchases/validate/${voucherCode}`;
+      console.log('📡 Checking individual vouchers:', individualUrl);
 
-      const response = await fetch(url);
+      const individualResponse = await fetch(individualUrl);
 
-      console.log('📥 Response status:', response.status);
-      console.log('📥 Response OK:', response.ok);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          setError('Invalid voucher code. Please check and try again.');
-        } else {
-          throw new Error('Unable to validate voucher');
+      if (individualResponse.ok) {
+        const result = await individualResponse.json();
+        if (result.success && result.data) {
+          // Found as individual voucher
+          console.log('✅ Found as individual voucher');
+          setVoucher(result.data);
+          checkVoucherStatus(result.data);
+          return;
         }
-        return;
       }
 
-      const result = await response.json();
+      // Not found in individual vouchers, check corporate vouchers
+      console.log('📡 Checking corporate vouchers...');
+      const corporateUrl = `${API_URL}/voucher-registration/voucher/${voucherCode}`;
+      const corporateResponse = await fetch(corporateUrl);
 
-      if (!result.success || !result.data) {
-        setError('Invalid voucher code. Please check and try again.');
-        return;
+      if (corporateResponse.ok) {
+        const result = await corporateResponse.json();
+        if (result.voucher) {
+          // Found as corporate voucher - redirect to corporate registration
+          console.log('✅ Found as corporate voucher, redirecting...');
+          toast({
+            title: "Corporate Voucher Detected",
+            description: "Redirecting to corporate voucher registration..."
+          });
+          setTimeout(() => {
+            navigate(`/voucher-registration?code=${voucherCode}`);
+          }, 1500);
+          return;
+        }
       }
 
-      setVoucher(result.data);
-      checkVoucherStatus(result.data);
+      // Not found in either table
+      console.log('❌ Voucher not found in any table');
+      setError('Invalid voucher code. Please check and try again.');
 
     } catch (err) {
       console.error('Error validating voucher:', err);

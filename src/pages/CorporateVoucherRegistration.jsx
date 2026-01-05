@@ -5,7 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, CheckCircle2, AlertCircle, Camera, Scan, Printer, Mail, Download } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, CheckCircle2, AlertCircle, Camera, Scan, Printer, Mail, Download, Home } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import SimpleCameraScanner from '@/components/SimpleCameraScanner';
 import { NationalityCombobox } from '@/components/NationalityCombobox';
 import { useScannerInput } from '@/hooks/useScannerInput';
@@ -25,10 +27,12 @@ import VoucherPrint from '@/components/VoucherPrint';
 
 const CorporateVoucherRegistration = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // Step 1: Voucher lookup
   const [step, setStep] = useState(1); // 1: Enter code, 2: Enter passport, 3: Success
-  const [voucherCode, setVoucherCode] = useState('');
+  const [voucherCode, setVoucherCode] = useState(searchParams.get('code') || ''); // Pre-fill from query param
   const [voucher, setVoucher] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -53,6 +57,11 @@ const CorporateVoucherRegistration = () => {
 
   // Voucher print dialog
   const [showVoucherPrint, setShowVoucherPrint] = useState(false);
+
+  // Email dialog
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailAddress, setEmailAddress] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   // Detect mobile device
   useEffect(() => {
@@ -258,21 +267,59 @@ const CorporateVoucherRegistration = () => {
    * Email voucher to customer
    */
   const handleEmailVoucher = async () => {
-    try {
-      setLoading(true);
-      // TODO: Implement email API call
+    // Validate email
+    if (!emailAddress.trim()) {
       toast({
-        title: "Email Sent",
-        description: "Voucher has been sent to your email address.",
+        title: "Email Required",
+        description: "Please enter an email address.",
+        variant: "destructive"
       });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailAddress)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSendingEmail(true);
+
+    try {
+      const response = await fetch(`/api/vouchers/email-single/${registeredVoucher.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipient_email: emailAddress.trim()
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send email');
+      }
+
+      toast({
+        title: "✅ Email Sent!",
+        description: `Voucher successfully emailed to ${emailAddress}`,
+      });
+
+      setShowEmailDialog(false);
+      setEmailAddress('');
     } catch (err) {
+      console.error('Email failed:', err);
       toast({
         title: "Email Failed",
-        description: err.message,
+        description: err.message || 'Failed to send email. Please try again.',
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setIsSendingEmail(false);
     }
   };
 
@@ -337,6 +384,17 @@ const CorporateVoucherRegistration = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Home/Back Button */}
+      <div className="mb-4">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/app/agent')}
+          className="gap-2"
+        >
+          <Home className="h-4 w-4" />
+          Home
+        </Button>
+      </div>
 
       {/* Header */}
       <div className="mb-8">
@@ -665,7 +723,7 @@ const CorporateVoucherRegistration = () => {
                   Print Voucher
                 </Button>
                 <Button
-                  onClick={handleEmailVoucher}
+                  onClick={() => setShowEmailDialog(true)}
                   variant="outline"
                   className="border-green-600 text-green-600 hover:bg-green-50"
                   disabled={loading}
@@ -743,6 +801,68 @@ const CorporateVoucherRegistration = () => {
           voucherType="corporate"
         />
       )}
+
+      {/* Email Voucher Dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Email Voucher</DialogTitle>
+            <DialogDescription>
+              Enter the email address where you'd like to receive this voucher
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="customer@example.com"
+                value={emailAddress}
+                onChange={(e) => setEmailAddress(e.target.value)}
+                disabled={isSendingEmail}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !isSendingEmail) {
+                    handleEmailVoucher();
+                  }
+                }}
+              />
+              <p className="text-xs text-slate-500">
+                The voucher PDF will be sent to this email address
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleEmailVoucher}
+                disabled={isSendingEmail}
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                {isSendingEmail ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Email
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEmailDialog(false);
+                  setEmailAddress('');
+                }}
+                disabled={isSendingEmail}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

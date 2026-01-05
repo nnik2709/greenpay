@@ -14,12 +14,12 @@ const TicketList = ({ tickets, onViewTicket, onTicketsUpdated }) => {
   const [filterPriority, setFilterPriority] = useState('all');
 
   const filteredTickets = tickets.filter(ticket => {
-    const matchesSearch = ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.ticketNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (ticket.title || ticket.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (ticket.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (ticket.ticketNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || ticket.status === filterStatus;
     const matchesPriority = filterPriority === 'all' || ticket.priority === filterPriority;
-    
+
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
@@ -136,7 +136,7 @@ const TicketList = ({ tickets, onViewTicket, onTicketsUpdated }) => {
                         {ticket.status}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-gray-800 mb-1">{ticket.subject}</h3>
+                    <h3 className="font-semibold text-gray-800 mb-1">{ticket.title || ticket.subject}</h3>
                     <p className="text-sm text-gray-600 line-clamp-2 mb-2">{ticket.description}</p>
                     <div className="flex items-center gap-4 text-xs text-gray-500">
                       <span>Category: {ticket.category}</span>

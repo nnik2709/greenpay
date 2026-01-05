@@ -1,12 +1,10 @@
 import { test as setup } from '@playwright/test';
-import path from 'path';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { createRequire } from 'module';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const require = createRequire(import.meta.url);
 
-const authFile = path.join(__dirname, '../playwright/.auth/it-support.json');
+const authFile = fileURLToPath(new URL('../playwright/.auth/it-support.json', import.meta.url));
 
 /**
  * Authentication Setup - IT_Support Role

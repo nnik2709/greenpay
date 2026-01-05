@@ -21,6 +21,18 @@ const reportSubItems = [
     { to: '/app/reports/cash-reconciliation', icon: <CreditCard className="h-4 w-4" />, label: 'Cash Reconciliation' },
 ];
 
+// IT_Support has limited report access (no quotations)
+const itSupportReportSubItems = [
+    { to: '/app/reports', icon: <BarChart2 className="h-4 w-4" />, label: 'Reports Dashboard' },
+    { to: '/app/reports/passports', icon: <FileText className="h-4 w-4" />, label: 'Passport Reports' },
+    { to: '/app/reports/individual-purchase', icon: <FilePlus className="h-4 w-4" />, label: 'Individual Purchase' },
+    { to: '/app/reports/corporate-vouchers', icon: <Building className="h-4 w-4" />, label: 'Corporate Vouchers' },
+    { to: '/app/reports/revenue-generated', icon: <CreditCard className="h-4 w-4" />, label: 'Revenue Generated' },
+    { to: '/app/reports/bulk-passport-uploads', icon: <UploadCloud className="h-4 w-4" />, label: 'Bulk Uploads' },
+    { to: '/app/reports/refunded', icon: <FileText className="h-4 w-4" />, label: 'Refunded' },
+    { to: '/app/reports/cash-reconciliation', icon: <CreditCard className="h-4 w-4" />, label: 'Cash Reconciliation' },
+];
+
 const navItemsByRole = {
   Flex_Admin: [{
     to: '/app/dashboard',
@@ -209,7 +221,11 @@ const navItemsByRole = {
     title: 'Reports',
     icon: <BarChart2 className="h-4 w-4" />,
     base_path: '/app/reports',
-    subItems: reportSubItems
+    subItems: itSupportReportSubItems
+  }, {
+    to: '/app/cash-reconciliation',
+    icon: <CreditCard className="h-4 w-4" />,
+    label: 'Cash Reconciliation'
   }, {
     to: '/app/tickets',
     icon: <Ticket className="h-4 w-4" />,

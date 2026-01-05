@@ -86,9 +86,14 @@ const HomePage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="text-center text-sm text-slate-500"
+          className="text-center text-sm text-slate-500 space-y-2"
         >
           <p>© 2025 Eywa Systems. All rights reserved.</p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center text-emerald-700 font-semibold">
+            <button className="hover:underline" onClick={() => navigate('/terms')}>Terms &amp; Conditions</button>
+            <button className="hover:underline" onClick={() => navigate('/privacy')}>Privacy Policy</button>
+            <button className="hover:underline" onClick={() => navigate('/refunds')}>Refund / Return Policy</button>
+          </div>
         </motion.div>
       </motion.div>
     </div>

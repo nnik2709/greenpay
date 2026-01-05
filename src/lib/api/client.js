@@ -250,7 +250,33 @@ export const api = {
 
   // Settings
   settings: {
-    get: () => fetchAPI('/settings'),
+    get: async () => {
+      const result = await fetchAPI('/settings');
+      if (result && result.settings) {
+        return {
+          voucherValidityDays: result.settings.voucher_validity_days,
+          defaultAmount: result.settings.default_amount,
+          gstEnabled: result.settings.gst_enabled,
+          termsContent: result.settings.terms_content,
+          privacyContent: result.settings.privacy_content,
+          refundsContent: result.settings.refunds_content,
+          createdAt: result.settings.created_at,
+          updatedAt: result.settings.updated_at,
+        };
+      }
+      return null;
+    },
+    getPublic: async () => {
+      const result = await fetchAPI('/settings/public');
+      if (result && result.settings) {
+        return {
+          termsContent: result.settings.terms_content,
+          privacyContent: result.settings.privacy_content,
+          refundsContent: result.settings.refunds_content,
+        };
+      }
+      return null;
+    },
     update: (data) => fetchAPI('/settings', {
       method: 'PUT',
       body: JSON.stringify(data),

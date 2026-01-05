@@ -51,3 +51,7 @@ Accessibility Checklist:
 - Alt text for images
 - Semantic HTML structure
 
+
+
+
+

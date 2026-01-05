@@ -26,8 +26,18 @@ build/
 # Test artifacts
 test-results/
 playwright-report/
+playwright-report-smoke/
 coverage/
 .nyc_output/
+
+# Test screenshots and debug images
+test-screenshots/
+reports/
+
+# Debug PNG files
+*.png
+!public/**/*.png
+!src/assets/**/*.png
 
 # Logs
 logs/
@@ -73,3 +83,6 @@ deployment-*.log
 *.tar.gz
 .env.bak
 *.bak
+docs/deployment/archives/
+docs/deployment/nginx/*.conf
+!docs/deployment/nginx/*.conf.example

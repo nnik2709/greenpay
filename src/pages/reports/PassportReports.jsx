@@ -39,7 +39,7 @@ const PassportReports = () => {
       setLoading(true);
 
       // Build query params for date filtering
-      const params = {};
+      const params = { limit: 10000 }; // Request all passports
       if (fromDate) params.dateFrom = fromDate;
       if (toDate) params.dateTo = toDate;
 
@@ -47,17 +47,43 @@ const PassportReports = () => {
       const passports = response.passports || response.data || [];
 
       // Transform data to match table format
-      const transformedData = passports.map(p => ({
-        id: p.id,
-        type: 'P', // Default type
-        nationality: p.nationality,
-        passportNo: p.passport_number || p.passportNo,
-        surname: p.surname,
-        givenName: p.given_name || p.givenName,
-        dob: p.date_of_birth || p.dob,
-        sex: p.sex,
-        dateOfExpiry: p.date_of_expiry || p.dateOfExpiry,
-      }));
+      const transformedData = passports.map(p => {
+        // Parse full_name into surname and given name if needed
+        let surname = p.surname || '';
+        let givenName = p.given_name || p.givenName || '';
+
+        // If we have full_name but not separate fields, parse it
+        if (!surname && !givenName && p.full_name) {
+          const parts = p.full_name.trim().split(' ');
+          if (parts.length > 1) {
+            surname = parts[parts.length - 1]; // Last word as surname
+            givenName = parts.slice(0, -1).join(' '); // Rest as given name
+          } else {
+            surname = p.full_name; // Single name goes to surname
+          }
+        }
+
+        // Format dates
+        const dob = p.date_of_birth
+          ? new Date(p.date_of_birth).toLocaleDateString()
+          : (p.dob || '');
+
+        const dateOfExpiry = p.expiry_date
+          ? new Date(p.expiry_date).toLocaleDateString()
+          : (p.date_of_expiry ? new Date(p.date_of_expiry).toLocaleDateString() : (p.dateOfExpiry || ''));
+
+        return {
+          id: p.id,
+          type: p.passport_type || 'P',
+          nationality: p.nationality || '',
+          passportNo: p.passport_number || p.passportNo || '',
+          surname,
+          givenName,
+          dob,
+          sex: p.sex || '',
+          dateOfExpiry,
+        };
+      });
 
       setData(transformedData);
     } catch (error) {
@@ -114,8 +140,8 @@ const PassportReports = () => {
 
   // Filter data based on search inputs
   const filteredData = data.filter(row => {
-    const matchesPassport = !passportFilter || row.passportNo.toLowerCase().includes(passportFilter.toLowerCase());
-    const matchesSurname = !surnameFilter || row.surname.toLowerCase().includes(surnameFilter.toLowerCase());
+    const matchesPassport = !passportFilter || (row.passportNo && row.passportNo.toLowerCase().includes(passportFilter.toLowerCase()));
+    const matchesSurname = !surnameFilter || (row.surname && row.surname.toLowerCase().includes(surnameFilter.toLowerCase()));
     return matchesPassport && matchesSurname;
   });
 

@@ -1,0 +1,22 @@
+# FastAPI Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+
+# PaddleOCR - Baidu's OCR AI Model
+paddleocr==2.7.3
+paddlepaddle==2.6.0
+
+# FastMRZ - ICAO 9303 MRZ Parser
+fastmrz==1.1.1
+
+# Image Processing
+opencv-python-headless==4.9.0.80
+Pillow==10.2.0
+
+# Utilities
+python-multipart==0.0.6  # For file uploads
+pydantic==2.5.3          # Data validation
+python-dotenv==1.0.0     # Environment variables
+
+# Optional: GPU acceleration (comment out if no GPU)
+# paddlepaddle-gpu==2.6.0

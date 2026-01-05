@@ -46,8 +46,10 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
   const passportNumber = voucher.passport_number || null;
 
   const handlePrint = () => {
-    // Create a new window for printing
     const printWindow = window.open('', '_blank');
+    const now = new Date();
+    const generatedOn = `${now.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}, ${now.toLocaleTimeString()}`;
+
     const voucherHTML = `
       <!DOCTYPE html>
       <html>
@@ -57,253 +59,136 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
             font-family: 'Times New Roman', Times, serif;
-            background: #f5f5f5;
-            padding: 40px 20px;
+            background: #ffffff;
+            padding: 30px 20px;
           }
           .page {
             background: white;
             max-width: 900px;
             margin: 0 auto;
-            padding: 60px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 36px 48px 56px 48px;
           }
-
-          /* Header with logos */
-          .logos {
+          .header-logos {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 100px;
-            margin-bottom: 40px;
+            gap: 80px;
+            margin-bottom: 12px;
           }
           .logo-image {
-            width: 120px;
-            height: 120px;
+            width: 110px;
+            height: 110px;
             object-fit: contain;
           }
-          .logo-placeholder {
-            width: 120px;
-            height: 120px;
-            border: 2px dashed #ccc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            color: #999;
+          h1.title {
             text-align: center;
-            border-radius: 50%;
+            color: #2d8a34;
+            font-size: 28px;
+            margin: 12px 0 6px 0;
+            letter-spacing: 1px;
           }
-
-          /* Title */
-          .title {
-            text-align: center;
-            margin-bottom: 10px;
-          }
-          .title h1 {
-            font-size: 42px;
-            font-weight: bold;
-            color: #4CAF50;
-            letter-spacing: 3px;
-            margin-bottom: 5px;
-          }
-          .title-underline {
-            width: 100%;
+          .divider {
             height: 3px;
-            background: #4CAF50;
-            margin: 15px 0 25px 0;
+            background: #2d8a34;
+            width: 100%;
+            margin: 12px 0 20px 0;
           }
-
-          /* Subtitle */
           .subtitle {
             text-align: center;
-            font-size: 22px;
-            font-weight: bold;
-            color: #000;
-            margin-bottom: 40px;
-          }
-
-          /* Coupon number */
-          .coupon-number {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 40px;
-            padding: 0 20px;
-          }
-          .coupon-label {
-            font-size: 18px;
-            font-weight: bold;
-            color: #000;
-          }
-          .coupon-value {
-            font-size: 22px;
-            font-weight: bold;
-            color: #000;
-            letter-spacing: 2px;
-          }
-
-          /* Passport Info */
-          .passport-info {
-            text-align: center;
-            margin: 30px 0;
-            padding: 20px;
-            background: #f9fafb;
-            border: 2px solid #4CAF50;
-            border-radius: 8px;
-          }
-          .passport-label {
-            font-size: 14px;
-            color: #666;
-            font-weight: bold;
-            margin-bottom: 5px;
-          }
-          .passport-value {
             font-size: 20px;
-            color: #000;
             font-weight: bold;
-            letter-spacing: 2px;
+            margin-bottom: 26px;
+          }
+          .row {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            font-size: 18px;
+            margin-bottom: 32px;
+          }
+          .label {
+            font-weight: bold;
+          }
+          .barcode-block {
+            text-align: center;
+            margin: 6px 0 18px 0;
+          }
+          .barcode-img {
+            display: block;
+            margin: 0 auto 10px auto;
+          }
+          .barcode-code {
+            font-size: 16px;
+            letter-spacing: 1px;
             font-family: 'Courier New', monospace;
           }
-
-          /* Barcode section */
-          .barcode-section {
+          .register {
             text-align: center;
-            margin: 50px 0;
-          }
-          .barcode-section img {
-            max-width: 600px;
-            height: auto;
-            margin: 0 auto 20px auto;
-          }
-          .scan-instruction {
             font-size: 18px;
-            font-weight: 500;
-            color: #000;
-            margin-top: 20px;
-            margin-bottom: 15px;
+            margin-top: 12px;
+            font-weight: bold;
           }
-          .registration-url {
-            font-size: 13px;
-            color: #666;
-            margin-top: 10px;
-          }
-
-          /* Footer */
-          .footer-line {
-            width: 100%;
-            height: 1px;
-            background: #ccc;
-            margin: 60px 0 25px 0;
+          .link {
+            text-align: center;
+            font-size: 10px;
+            margin-top: 8px;
+            color: #444;
+            word-break: break-all;
           }
           .footer {
+            margin-top: 60px;
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
-          }
-          .officer-info {
-            text-align: left;
-          }
-          .officer-name {
-            font-size: 14px;
-            font-weight: bold;
-            color: #000;
-            text-transform: uppercase;
-          }
-          .officer-title {
-            font-size: 12px;
-            color: #666;
-            margin-top: 2px;
-          }
-          .generation-info {
-            text-align: right;
             font-size: 11px;
-            color: #666;
-          }
-
-          @media print {
-            body {
-              padding: 0;
-              background: white;
-            }
-            .page {
-              box-shadow: none;
-              padding: 40px;
-            }
+            color: #444;
           }
         </style>
       </head>
       <body>
         <div class="page">
-          <!-- Logos -->
-          <div class="logos">
-            <img src="https://ccda.gov.pg/wp-content/uploads/2025/01/ccda-logo.jpeg" alt="CCDA Logo" class="logo-image" />
-            <div class="logo-placeholder">National Emblem</div>
+          <div class="header-logos">
+            <img src="/assets/logos/ccda-logo.png" alt="CCDA Logo" class="logo-image" />
+            <img src="/assets/logos/png-emblem.png" alt="PNG Emblem" class="logo-image" />
           </div>
-
-          <!-- Title -->
-          <div class="title">
-            <h1>GREEN CARD</h1>
-          </div>
-          <div class="title-underline"></div>
-
-          <!-- Subtitle -->
+          <h1 class="title">GREEN CARD</h1>
+          <div class="divider"></div>
           <div class="subtitle">Foreign Passport Holder</div>
-
-          <!-- Coupon Number -->
-          <div class="coupon-number">
-            <span class="coupon-label">Coupon Number:</span>
-            <span class="coupon-value">${voucher.voucher_code}</span>
+          <div class="row">
+            <span class="label">Coupon Number:</span>
+            <span>${voucher.voucher_code}</span>
           </div>
-
-          <!-- Passport Info (if registered) -->
+          <div class="barcode-block">
+            ${barcodeDataUrl ? `<img class="barcode-img" src="${barcodeDataUrl}" alt="Barcode" />` : ''}
+            <div class="barcode-code">${voucher.voucher_code}</div>
+          </div>
           ${passportNumber ? `
-          <div class="passport-info">
-            <div class="passport-label">REGISTERED PASSPORT</div>
-            <div class="passport-value">${passportNumber}</div>
-          </div>
-          ` : ''}
-
-          <!-- Barcode -->
-          <div class="barcode-section">
-            ${barcodeDataUrl ? `<img src="${barcodeDataUrl}" alt="Barcode" />` : '<p style="color: #999;">Barcode not available</p>'}
-            <div class="scan-instruction">Scan to Register</div>
-            <div class="registration-url">${registrationUrl}</div>
-          </div>
-
-          <!-- Footer -->
-          <div class="footer-line"></div>
+            <div class="row">
+              <span class="label">Passport Number:</span>
+              <span>${passportNumber}</span>
+            </div>
+          ` : `
+            <div class="register">Scan to Register</div>
+            <div class="link">${registrationUrl}</div>
+          `}
           <div class="footer">
-            ${showAuthorizingOfficer ? `
-            <div class="officer-info">
-              <div class="officer-name">${authorizingOfficer}</div>
-              <div class="officer-title">Authorizing Officer</div>
-            </div>
-            ` : '<div></div>'}
-            <div class="generation-info">
-              Generated on ${new Date(voucher.created_at || voucher.issued_date || new Date()).toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-              })}
-            </div>
+            <div></div>
+            <div>Generated on ${generatedOn}</div>
           </div>
         </div>
       </body>
       </html>
     `;
 
+    printWindow.document.open();
     printWindow.document.write(voucherHTML);
     printWindow.document.close();
-    printWindow.onload = function() {
+    printWindow.focus();
+
+    setTimeout(() => {
       printWindow.print();
-      printWindow.onafterprint = function() {
-        printWindow.close();
-      };
-    };
-  };
+      printWindow.close();
+    }, 300);
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -339,13 +224,15 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
             {/* Logos */}
             <div className="flex justify-center items-center gap-24 mb-10">
               <img
-                src="https://ccda.gov.pg/wp-content/uploads/2025/01/ccda-logo.jpeg"
+                src="/assets/logos/ccda-logo.png"
                 alt="CCDA Logo"
                 className="w-28 h-28 object-contain"
               />
-              <div className="w-28 h-28 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center text-xs text-gray-400 text-center">
-                National<br/>Emblem
-              </div>
+              <img
+                src="/assets/logos/png-emblem.png"
+                alt="PNG National Emblem"
+                className="w-28 h-28 object-contain"
+              />
             </div>
 
             {/* Title */}
@@ -382,8 +269,19 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
                   <p className="text-gray-500 text-sm">Generating Barcode...</p>
                 </div>
               )}
-              <p className="text-xl font-medium text-black mt-6 mb-4">Scan to Register</p>
-              <p className="text-sm text-gray-600">{registrationUrl}</p>
+
+              {/* Show passport number if registered, otherwise show registration link */}
+              {passportNumber ? (
+                <div className="mt-8 p-4 bg-gray-100 rounded-lg border border-gray-300">
+                  <p className="text-sm font-semibold text-gray-600 mb-1">PASSPORT NUMBER</p>
+                  <p className="text-2xl font-bold text-black tracking-widest font-mono">{passportNumber}</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xl font-medium text-black mt-6 mb-4">Scan to Register</p>
+                  <p className="text-sm text-gray-600">{registrationUrl}</p>
+                </>
+              )}
             </div>
 
             {/* Footer */}

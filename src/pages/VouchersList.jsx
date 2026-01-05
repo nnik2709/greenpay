@@ -31,23 +31,31 @@ const VouchersList = () => {
     try {
       // Load individual vouchers
       const individualResponse = await api.get('/individual-purchases');
-      const individualVouchers = (individualResponse.data || []).map(v => ({
-        ...v,
-        type: 'Individual',
-        status: getVoucherStatus(v.used_at, v.valid_until),
-        customer_name: v.customer_name || v.full_name || 'N/A',
-        passport_number: v.passport_number || 'N/A'
-      }));
+      const individualVouchers = (individualResponse.data || []).map(v => {
+        const passportNumber = v.passport_number || null;
+        return {
+          ...v,
+          type: 'Individual',
+          status: getVoucherStatus(v.used_at, v.valid_until, passportNumber),
+          customer_name: v.customer_name || v.full_name || 'N/A',
+          passport_number: passportNumber,
+          invoice_number: 'NA'
+        };
+      });
 
       // Load corporate vouchers
       const corporateResponse = await api.get('/vouchers/corporate-vouchers');
-      const corporateVouchers = (corporateResponse.vouchers || []).map(v => ({
-        ...v,
-        type: 'Corporate',
-        status: getVoucherStatus(v.redeemed_date || v.used_at, v.valid_until),
-        customer_name: v.company_name || 'N/A',
-        passport_number: v.passport_number || v.employee_name || 'N/A'
-      }));
+      const corporateVouchers = (corporateResponse.vouchers || []).map(v => {
+        const passportNumber = v.passport_number || v.employee_name || null;
+        return {
+          ...v,
+          type: 'Corporate',
+          status: getVoucherStatus(v.redeemed_date || v.used_at, v.valid_until, passportNumber),
+          customer_name: v.company_name || 'N/A',
+          passport_number: passportNumber,
+          invoice_number: v.invoice_number || (v.invoice_id ? String(v.invoice_id) : 'NA')
+        };
+      });
 
       const allVouchers = [...individualVouchers, ...corporateVouchers].sort(
         (a, b) => new Date(b.created_at || b.issued_date) - new Date(a.created_at || a.issued_date)
@@ -67,7 +75,8 @@ const VouchersList = () => {
     }
   };
 
-  const getVoucherStatus = (usedDate, validUntil) => {
+  const getVoucherStatus = (usedDate, validUntil, passportNumber) => {
+    if (!passportNumber) return 'pending';
     if (usedDate) return 'used';
     if (new Date(validUntil) < new Date()) return 'expired';
     return 'active';
@@ -108,16 +117,18 @@ const VouchersList = () => {
     const badges = {
       active: 'bg-green-100 text-green-700',
       used: 'bg-blue-100 text-blue-700',
-      expired: 'bg-red-100 text-red-700'
+      expired: 'bg-red-100 text-red-700',
+      pending: 'bg-amber-100 text-amber-700'
     };
     const labels = {
       active: 'Active',
       used: 'Used',
-      expired: 'Expired'
+      expired: 'Expired',
+      pending: 'Pending'
     };
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-medium ${badges[status]}`}>
-        {labels[status]}
+      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badges[status] || 'bg-slate-100 text-slate-700'}`}>
+        {labels[status] || status || '—'}
       </span>
     );
   };
@@ -129,8 +140,8 @@ const VouchersList = () => {
         'Type': voucher.type,
         'Status': voucher.status.toUpperCase(),
         'Customer/Company': voucher.customer_name,
-        'Passport/Employee': voucher.passport_number,
-        'Amount (PGK)': voucher.amount,
+        'Passport/Employee': voucher.passport_number || 'Pending',
+        'Invoice #': voucher.invoice_number || 'NA',
         'Valid Until': new Date(voucher.valid_until).toLocaleDateString(),
         'Used Date': voucher.used_at || voucher.redeemed_date
           ? new Date(voucher.used_at || voucher.redeemed_date).toLocaleDateString()
@@ -145,7 +156,7 @@ const VouchersList = () => {
         { wch: 10 }, // Status
         { wch: 25 }, // Customer/Company
         { wch: 20 }, // Passport/Employee
-        { wch: 12 }, // Amount
+        { wch: 15 }, // Invoice #
         { wch: 15 }, // Valid Until
         { wch: 15 }, // Used Date
         { wch: 15 }, // Created Date
@@ -276,6 +287,7 @@ const VouchersList = () => {
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="used">Used</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -295,30 +307,33 @@ const VouchersList = () => {
             <div className="text-center py-8 text-slate-500">No vouchers found.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full text-sm text-slate-700">
                 <thead>
-                  <tr className="border-b text-left text-sm text-slate-600">
+                  <tr className="border-b text-left text-xs uppercase tracking-wide text-slate-500">
                     <th className="pb-3 font-semibold">Voucher Code</th>
                     <th className="pb-3 font-semibold">Type</th>
                     <th className="pb-3 font-semibold">Status</th>
                     <th className="pb-3 font-semibold">Customer/Company</th>
-                    <th className="pb-3 font-semibold">Passport/Employee</th>
-                    <th className="pb-3 font-semibold">Amount</th>
+                    <th className="pb-3 font-semibold">Passport</th>
+                    <th className="pb-3 font-semibold">Invoice #</th>
                     <th className="pb-3 font-semibold">Valid Until</th>
                     <th className="pb-3 font-semibold">Used Date</th>
                     <th className="pb-3 font-semibold">Created</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {filteredVouchers.map((voucher) => (
-                    <tr key={`${voucher.type}-${voucher.id}`} className="border-b hover:bg-slate-50 transition-colors">
-                      <td className="py-4">
+                <tbody className="divide-y divide-slate-100">
+                  {filteredVouchers.map((voucher, idx) => (
+                    <tr
+                      key={`${voucher.type}-${voucher.id}-${idx}`}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
+                      <td className="py-3">
                         <span className="font-mono text-sm font-semibold text-emerald-600">
                           {voucher.voucher_code}
                         </span>
                       </td>
-                      <td className="py-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      <td className="py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                           voucher.type === 'Individual'
                             ? 'bg-purple-100 text-purple-700'
                             : 'bg-orange-100 text-orange-700'
@@ -326,31 +341,34 @@ const VouchersList = () => {
                           {voucher.type}
                         </span>
                       </td>
-                      <td className="py-4">
+                      <td className="py-3">
                         {getStatusBadge(voucher.status)}
                       </td>
-                      <td className="py-4">
-                        <span>{voucher.customer_name}</span>
+                      <td className="py-3">
+                        <div className="font-medium text-slate-800">{voucher.customer_name}</div>
+                        <div className="text-xs text-slate-500">{voucher.customer_email || ''}</div>
                       </td>
-                      <td className="py-4">
-                        <span className="font-mono text-sm">{voucher.passport_number}</span>
+                      <td className="py-3">
+                        <span className="font-mono text-sm text-slate-800">
+                          {voucher.passport_number || 'Pending'}
+                        </span>
                       </td>
-                      <td className="py-4">
-                        <span className="font-semibold">PGK {voucher.amount}</span>
+                      <td className="py-3">
+                        <span className="text-sm font-medium text-slate-800">{voucher.invoice_number || 'NA'}</span>
                       </td>
-                      <td className="py-4">
-                        <span>{new Date(voucher.valid_until).toLocaleDateString()}</span>
+                      <td className="py-3">
+                        <span className="text-sm">{new Date(voucher.valid_until).toLocaleDateString()}</span>
                       </td>
-                      <td className="py-4">
+                      <td className="py-3">
                         {voucher.used_at || voucher.redeemed_date ? (
-                          <span className="text-blue-600">
+                          <span className="text-blue-600 font-medium">
                             {new Date(voucher.used_at || voucher.redeemed_date).toLocaleDateString()}
                           </span>
                         ) : (
                           <span className="text-slate-400">—</span>
                         )}
                       </td>
-                      <td className="py-4">
+                      <td className="py-3">
                         <span className="text-sm">
                           {new Date(voucher.created_at || voucher.issued_date).toLocaleDateString()}
                         </span>

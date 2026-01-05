@@ -1,63 +1,56 @@
-
 /**
- * Quotation PDF Generation Service
- * Handles PDF generation for quotations
+ * Quotation PDF Service
+ * Handles PDF generation and download for quotations using backend API
  */
 
-/**
- * Generate PDF for a quotation
- * @param {string} quotationId - Quotation ID
- * @returns {Promise<{success: boolean, pdfUrl?: string, error?: string}>}
- */
-export async function generateQuotationPDF(quotationId) {
-  if (!quotationId) {
-    throw new Error('Quotation ID is required');
-  }
+import api from './api/client';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://greenpay.eywademo.cloud/api';
+
+/**
+ * Download quotation as PDF
+ * @param {string|number} quotationId - Quotation ID
+ * @param {string} quotationNumber - Quotation number (for filename)
+ * @returns {Promise<{success: boolean}>}
+ */
+export async function downloadQuotationPDF(quotationId, quotationNumber) {
   try {
-    const { data, error } = await supabase.functions.invoke('generate-quotation-pdf', {
-      body: { quotation_id: quotationId }
+    // Get auth token (use the same key as the API client)
+    const token = localStorage.getItem('greenpay_auth_token');
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    // Fetch PDF from backend
+    const response = await fetch(`${API_URL}/quotations/${quotationId}/pdf`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
 
-    if (error) {
-      throw new Error(error.message || 'Failed to generate PDF');
-    }
-
-    if (!data || !data.success) {
-      throw new Error(data?.error || 'Failed to generate PDF');
-    }
-
-    return {
-      success: true,
-      pdfUrl: data.pdfUrl,
-      htmlUrl: data.htmlUrl,
-      filename: data.filename,
-      quotation: data.quotation
-    };
-
-  } catch (error) {
-    console.error('Error generating quotation PDF:', error);
-    throw error;
-  }
-}
-
-/**
- * Download PDF file to user's computer
- * @param {string} pdfUrl - URL of the PDF
- * @param {string} filename - Name for the downloaded file
- */
-export async function downloadQuotationPDF(pdfUrl, filename) {
-  try {
-    const response = await fetch(pdfUrl);
     if (!response.ok) {
-      throw new Error('Failed to download PDF');
+      const errorData = await response.json().catch(() => ({ error: 'Failed to download PDF' }));
+      throw new Error(errorData.error || 'Failed to download PDF');
     }
 
+    // Get filename from Content-Disposition header or use quotation number
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = `Quotation_${quotationNumber || quotationId}.pdf`;
+
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (filenameMatch && filenameMatch[1]) {
+        filename = filenameMatch[1].replace(/['"]/g, '');
+      }
+    }
+
+    // Download file
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = filename || 'quotation.pdf';
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -65,64 +58,71 @@ export async function downloadQuotationPDF(pdfUrl, filename) {
 
     return { success: true };
   } catch (error) {
-    console.error('Error downloading PDF:', error);
+    console.error('Error downloading quotation PDF:', error);
     throw error;
   }
 }
 
 /**
- * Open PDF in new window
- * @param {string} pdfUrl - URL of the PDF
+ * Open quotation PDF in new tab/window
+ * @param {string|number} quotationId - Quotation ID
+ * @returns {Promise<void>}
  */
-export function viewQuotationPDF(pdfUrl) {
-  window.open(pdfUrl, '_blank');
+export async function viewQuotationPDF(quotationId) {
+  try {
+    const token = localStorage.getItem('greenpay_auth_token');
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    // Open PDF in new window
+    const pdfUrl = `${API_URL}/quotations/${quotationId}/pdf`;
+    const newWindow = window.open('', '_blank');
+
+    if (!newWindow) {
+      throw new Error('Popup blocked. Please allow popups for this site.');
+    }
+
+    // Fetch and display PDF
+    const response = await fetch(pdfUrl, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to load PDF');
+    }
+
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    newWindow.location.href = blobUrl;
+
+  } catch (error) {
+    console.error('Error viewing quotation PDF:', error);
+    throw error;
+  }
 }
 
 /**
  * Send quotation PDF via email
- * @param {string} quotationId - Quotation ID
+ * @param {string} quotationId - Quotation number (not ID)
  * @param {string} recipientEmail - Recipient email address
- * @returns {Promise<{success: boolean, error?: string}>}
+ * @returns {Promise<{success: boolean}>}
  */
 export async function emailQuotationPDF(quotationId, recipientEmail) {
-  if (!quotationId || !recipientEmail) {
-    throw new Error('Quotation ID and recipient email are required');
-  }
-
   try {
-    // First generate the PDF
-    const pdfResult = await generateQuotationPDF(quotationId);
-    
-    if (!pdfResult.success) {
-      throw new Error('Failed to generate PDF');
-    }
-
-    // Then send via email Edge Function
-    const { data, error } = await supabase.functions.invoke('send-quotation', {
-      body: {
-        quotation_id: quotationId,
-        pdf_url: pdfResult.pdfUrl,
-        recipient_email: recipientEmail
-      }
+    const response = await api.post('/quotations/send-email', {
+      quotationId,
+      recipientEmail
     });
 
-    if (error) {
-      throw new Error(error.message || 'Failed to send email');
-    }
-
-    return { success: true };
-
+    return { success: true, data: response };
   } catch (error) {
     console.error('Error emailing quotation:', error);
     throw error;
   }
 }
 
-
-
-
-
-
-
-
-
+// Legacy function name for backward compatibility
+export const generateQuotationPDF = downloadQuotationPDF;

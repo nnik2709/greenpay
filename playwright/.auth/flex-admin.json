@@ -2,11 +2,11 @@
   "cookies": [],
   "origins": [
     {
-      "origin": "http://localhost:3000",
+      "origin": "https://greenpay.eywademo.cloud",
       "localStorage": [
         {
           "name": "greenpay_auth_token",
-          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjUsImlhdCI6MTc2NDU2NzQ4MSwiZXhwIjoxNzY0NjUzODgxfQ._ohsfY-rBT-YxIjt4l8b7bdg0BIEIy-d51LQphzs_ig"
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjUsImlhdCI6MTc2NTk4MjcwNywiZXhwIjoxNzY2MDY5MTA3fQ.HzKkBR3yQEUd8V3ewOiQmpcHe-OzjWzQ4MAJqTebyVU"
         },
         {
           "name": "greenpay_user",

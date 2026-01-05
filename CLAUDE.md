@@ -23,14 +23,21 @@ npm run preview
 
 The application is deployed on a VPS using PM2 and Nginx:
 
+### Frontend (React/Vite)
 - **Build location**: `/var/www/png-green-fees/dist`
 - **PM2 app name**: `png-green-fees`
 - **Server port**: 3000 (served via Vite preview mode)
 - **Domain**: eywademo.cloud with SSL
 
+### Backend (Node.js/Express)
+- **CRITICAL:** Actual backend location is `/home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/`
+- **PM2 app name**: `greenpay-api` (NOT greenpay-backend)
+- **Assets path**: `/home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/assets/`
+- **Script location**: `/home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/server.js`
+
 Deployment commands:
 ```bash
-# Quick deployment (uses deploy.sh script)
+# Frontend deployment (uses deploy.sh script)
 ./deploy.sh
 
 # Update existing deployment
@@ -38,9 +45,116 @@ Deployment commands:
 
 # PM2 process management
 pm2 status
-pm2 logs png-green-fees
-pm2 restart png-green-fees
+pm2 logs png-green-fees          # Frontend logs
+pm2 logs greenpay-api             # Backend logs (CORRECT name)
+pm2 restart png-green-fees        # Frontend restart
+pm2 restart greenpay-api          # Backend restart
+pm2 describe greenpay-api         # Show backend details and paths
 ```
+
+### Deployment & Testing Best Practices
+
+**CRITICAL DEPLOYMENT NOTES:**
+- Claude Code does NOT have direct SSH access to the server
+- User has an open SSH terminal session where commands can be pasted
+- Files are deployed manually using CloudPanel File Manager
+- DO NOT attempt automated SSH deployments - provide commands for user to copy/paste instead
+
+**CRITICAL: Always verify actual runtime paths before deploying**
+
+Common pitfalls and how to avoid them:
+
+1. **Verify Process Names First**
+   ```bash
+   # Don't assume - always check actual PM2 processes
+   pm2 list
+   # Use pm2 describe to find actual script paths
+   pm2 describe greenpay-api
+   ```
+
+2. **Database Schema Changes Checklist**
+   - [ ] Add new columns to existing INSERT statements
+   - [ ] Update all related queries (especially WHERE clauses)
+   - [ ] Test with NEW data (old data won't have new columns)
+   - [ ] Run database migration on production
+   - [ ] Verify columns populate correctly with test transaction
+
+3. **File Upload Verification**
+   ```bash
+   # After uploading files, verify they exist AND are valid
+   ssh root@165.22.52.100 "ls -lh /path/to/file"
+   ssh root@165.22.52.100 "file /path/to/image.png"  # Check file type
+   ```
+
+4. **Image/Asset Embedding (PDFKit, etc.)**
+   - Use `{ width: size }` NOT `{ width: size, height: size }` to preserve aspect ratio
+   - Always verify file paths with `fs.existsSync()` before loading
+   - Test with NEW transactions after code changes (old PDFs won't reflect changes)
+   - Check file size to confirm embedding: ~5KB = no images, ~80KB+ = images embedded
+
+5. **Testing After Deployment**
+   - Don't test with old data - create NEW test transactions
+   - Old database records won't have new columns/features
+   - Check actual API responses in browser DevTools Network tab
+   - Download fresh PDFs after changes, not cached versions
+
+6. **Type Conversion (JavaScript)**
+   - Always use `parseFloat()` or `Number()` for monetary values from database
+   - String concatenation (`"50" + "50"`) creates "5050", not 100
+   - Database often returns numeric fields as strings in API responses
+
+7. **Foreign Key Relationships**
+   - When adding session/tracking IDs, update BOTH:
+     - INSERT statement with the ID value
+     - Query WHERE clause to use the ID (not indirect lookups)
+   - Example: Don't use `WHERE passport = (SELECT passport FROM sessions...)`, use `WHERE session_id = $1`
+
+8. **Browser APIs (Share, Download, etc.)**
+   - Navigator Share API can cause 15-20 second delays waiting for user
+   - For instant downloads, use direct blob URL + programmatic click
+   - iOS requires `target="_blank"` fallback for downloads
+
+9. **PM2 Log Monitoring**
+   ```bash
+   # Watch logs in real-time during testing
+   pm2 logs greenpay-api --lines 100
+   # Check for specific errors
+   pm2 logs greenpay-api --err
+   ```
+
+10. **Null Safety in Reports**
+    - Always check for null/undefined before calling methods
+    - Example: `voucher.created_at ? voucher.created_at.split('T')[0] : 'unknown'`
+    - Wrap calculations in `parseFloat()` with `|| 0` fallback
+
+### Deployment Verification Script
+
+After deploying backend changes, provide these commands for the user to paste in their SSH terminal:
+
+```bash
+# 1. Verify correct path
+pm2 describe greenpay-api | grep script
+
+# 2. Verify files uploaded to correct location (after manual upload via CloudPanel)
+cd /home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/assets/logos/
+ls -lh
+
+# 3. Verify file types (especially images)
+file *.png
+
+# 4. Restart backend
+pm2 restart greenpay-api
+
+# 5. Monitor logs during test transaction
+pm2 logs greenpay-api --lines 50
+```
+
+**Deployment Workflow:**
+1. Claude Code prepares files locally
+2. User uploads files manually via CloudPanel File Manager to correct paths
+3. User pastes verification commands in their SSH terminal
+4. User confirms files are correct and restarts PM2
+5. Create NEW test transaction to verify changes (don't test with old data)
 
 ## Architecture
 

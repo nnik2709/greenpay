@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { generateTicketNumber } from '@/lib/ticketStorage';
 
 const CreateTicket = ({ onBack, onSubmit }) => {
-  const [subject, setSubject] = useState('');
+  const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState('');
   const [description, setDescription] = useState('');
@@ -18,7 +18,7 @@ const CreateTicket = ({ onBack, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!subject || !category || !priority || !description) {
+    if (!title || !category || !priority || !description) {
       toast({
         title: "Missing Fields",
         description: "Please fill out all required fields.",
@@ -28,7 +28,7 @@ const CreateTicket = ({ onBack, onSubmit }) => {
     }
     const ticketData = {
       ticketNumber: generateTicketNumber(),
-      subject,
+      title,
       category,
       priority,
       description,
@@ -54,8 +54,8 @@ const CreateTicket = ({ onBack, onSubmit }) => {
 
       <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-emerald-100 space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="subject">Subject *</Label>
-          <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Briefly describe your issue" />
+          <Label htmlFor="title">Title *</Label>
+          <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Briefly describe your issue" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -68,8 +68,8 @@ const CreateTicket = ({ onBack, onSubmit }) => {
               <SelectContent>
                 <SelectItem value="technical">Technical</SelectItem>
                 <SelectItem value="billing">Billing</SelectItem>
-                <SelectItem value="feature-request">Feature Request</SelectItem>
-                <SelectItem value="general">General</SelectItem>
+                <SelectItem value="feature_request">Feature Request</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -91,20 +91,6 @@ const CreateTicket = ({ onBack, onSubmit }) => {
         <div className="space-y-2">
           <Label htmlFor="description">Description *</Label>
           <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide a detailed description of the issue" className="min-h-[150px]" />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="attachment">Attachment (Optional)</Label>
-          <div className="flex items-center justify-center w-full">
-            <label htmlFor="attachment" className="flex flex-col items-center justify-center w-full h-32 border-2 border-emerald-300 border-dashed rounded-lg cursor-pointer bg-emerald-50/50 hover:bg-emerald-100/50">
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <Paperclip className="w-8 h-8 mb-3 text-emerald-500" />
-                <p className="mb-2 text-sm text-emerald-700"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                <p className="text-xs text-slate-500">Images, PDFs, Documents (MAX. 5MB)</p>
-              </div>
-              <Input id="attachment" type="file" className="hidden" />
-            </label>
-          </div>
         </div>
 
         <div className="flex justify-end gap-4 pt-4">
