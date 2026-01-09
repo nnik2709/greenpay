@@ -6,6 +6,7 @@ const { body } = require('express-validator');
 const db = require('../config/database');
 const validate = require('../middleware/validator');
 const { auth } = require('../middleware/auth');
+const { authLimiter } = require('../middleware/rateLimiter');
 
 // Helper function to record login event
 async function recordLoginEvent(userId, email, status, req, failureReason = null) {
@@ -26,6 +27,7 @@ async function recordLoginEvent(userId, email, status, req, failureReason = null
 
 // Login
 router.post('/login',
+  authLimiter,
   [
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').notEmpty().withMessage('Password is required')
@@ -97,6 +99,7 @@ router.post('/login',
 
 // Register new user
 router.post('/register',
+  authLimiter,
   [
     body('name').notEmpty().withMessage('Name is required'),
     body('email').isEmail().withMessage('Valid email is required'),

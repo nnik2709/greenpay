@@ -13,7 +13,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const { toast } = useToast();
 
   // Show toast if redirected due to token expiration
@@ -32,8 +32,8 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const success = await login(email, password);
-      if (success) {
+      const userData = await login(email, password);
+      if (userData) {
         toast({
           title: 'Login Successful!',
           description: 'Welcome back to the Green Fees System.',
@@ -44,7 +44,12 @@ const Login = () => {
         if (from && from !== '/login') {
           navigate(from);
         } else {
-          navigate('/app');
+          // Redirect based on user role
+          if (userData.role === 'Counter_Agent') {
+            navigate('/app/agent');
+          } else {
+            navigate('/app/dashboard');
+          }
         }
       } else {
         toast({

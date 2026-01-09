@@ -12,7 +12,6 @@ import SimpleCameraScanner from '@/components/SimpleCameraScanner';
 import { NationalityCombobox } from '@/components/NationalityCombobox';
 import { useScannerInput } from '@/hooks/useScannerInput';
 import { useToast } from '@/components/ui/use-toast';
-import VoucherPrint from '@/components/VoucherPrint';
 
 /**
  * Voucher Registration Page
@@ -54,9 +53,6 @@ const CorporateVoucherRegistration = () => {
   // Registration result
   const [registeredVoucher, setRegisteredVoucher] = useState(null);
   const [error, setError] = useState(null);
-
-  // Voucher print dialog
-  const [showVoucherPrint, setShowVoucherPrint] = useState(false);
 
   // Email dialog
   const [showEmailDialog, setShowEmailDialog] = useState(false);
@@ -227,7 +223,7 @@ const CorporateVoucherRegistration = () => {
       setRegisteredVoucher(data.voucher);
       setStep(3);
       toast({
-        title: "✅ Registration Successful",
+        title: "Registration Successful",
         description: "Voucher is now active and ready to use",
       });
 
@@ -257,8 +253,8 @@ const CorporateVoucherRegistration = () => {
       dateOfExpiry: scannedData.dateOfExpiry || ''
     });
     setShowScanner(false);
-    toast({
-      title: "✅ Passport Scanned",
+      toast({
+      title: "Passport Scanned",
       description: "Passport data captured successfully",
     });
   };
@@ -305,7 +301,7 @@ const CorporateVoucherRegistration = () => {
       }
 
       toast({
-        title: "✅ Email Sent!",
+        title: "Email Sent!",
         description: `Voucher successfully emailed to ${emailAddress}`,
       });
 
@@ -354,6 +350,63 @@ const CorporateVoucherRegistration = () => {
     } catch (err) {
       toast({
         title: "Download Failed",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Print voucher - uses backend PDF for consistency
+   */
+  const handlePrintVoucher = async () => {
+    if (!registeredVoucher) {
+      toast({
+        title: "Error",
+        description: "No voucher available to print.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/vouchers/download/${registeredVoucher.id}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load voucher for printing');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      // Open PDF in new window and trigger print dialog
+      const printWindow = window.open(url, '_blank');
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+        };
+      } else {
+        // Fallback if popup blocked
+        toast({
+          title: "Pop-up Blocked",
+          description: "Please allow pop-ups to print the voucher.",
+          variant: "destructive"
+        });
+      }
+
+      // Clean up blob URL after a delay to allow print dialog to open
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 1000);
+
+    } catch (err) {
+      toast({
+        title: "Print Failed",
         description: err.message,
         variant: "destructive"
       });
@@ -698,7 +751,7 @@ const CorporateVoucherRegistration = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Status</p>
-                  <p className="text-lg font-bold text-green-700">✓ ACTIVE</p>
+                  <p className="text-lg font-bold text-green-700">ACTIVE</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Passport</p>
@@ -715,7 +768,7 @@ const CorporateVoucherRegistration = () => {
               <h3 className="font-semibold text-blue-900 mb-2">Your Voucher Actions:</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
                 <Button
-                  onClick={() => setShowVoucherPrint(true)}
+                  onClick={handlePrintVoucher}
                   className="bg-green-600 hover:bg-green-700 text-white"
                   disabled={loading}
                 >
@@ -790,16 +843,6 @@ const CorporateVoucherRegistration = () => {
             />
           </div>
         </div>
-      )}
-
-      {/* Voucher Print Dialog */}
-      {registeredVoucher && (
-        <VoucherPrint
-          voucher={registeredVoucher}
-          isOpen={showVoucherPrint}
-          onClose={() => setShowVoucherPrint(false)}
-          voucherType="corporate"
-        />
       )}
 
       {/* Email Voucher Dialog */}

@@ -395,7 +395,6 @@ const ScanAndValidate = () => {
     if (!result) return null;
 
     const isSuccess = result.status === 'success';
-    const icon = isSuccess ? '✓' : '✗';
     const color = isSuccess ? 'green' : 'red';
 
     return (
@@ -403,27 +402,27 @@ const ScanAndValidate = () => {
         <Card className={`border-${color}-500`}>
           <CardHeader className={`bg-${color}-50`}>
             <CardTitle className={`flex items-center gap-2 text-${color}-700`}>
-              <span className="text-2xl">{icon}</span> {isSuccess ? 'Validation Successful' : 'Validation Failed'}
+              {isSuccess ? 'Validation Successful' : 'Validation Failed'}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4">
             <p className="font-semibold mb-3">{result.message}</p>
             {result.type === 'passport' && result.data && (
               <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2"><span className="text-slate-500">#</span><strong>Passport No:</strong> {result.data.passportNumber}</div>
-                <div className="flex items-center gap-2"><span className="text-slate-500">👤</span><strong>Name:</strong> {result.data.givenName} {result.data.surname}</div>
-                <div className="flex items-center gap-2"><span className="text-slate-500">📅</span><strong>Expiry:</strong> {result.data.dateOfExpiry}</div>
+                <div className="flex items-center gap-2"><strong>Passport No:</strong> {result.data.passportNumber}</div>
+                <div className="flex items-center gap-2"><strong>Name:</strong> {result.data.givenName} {result.data.surname}</div>
+                <div className="flex items-center gap-2"><strong>Expiry:</strong> {result.data.dateOfExpiry}</div>
               </div>
             )}
             {result.type === 'voucher' && result.data && (
               <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2"><span className="text-slate-500">📄</span><strong>Type:</strong> {result.data.voucherType} Voucher</div>
-                <div className="flex items-center gap-2"><span className="text-slate-500">#</span><strong>Voucher Code:</strong> {result.data.voucher_code}</div>
-                <div className="flex items-center gap-2"><span className="text-slate-500">👤</span><strong>Passport:</strong> {result.data.passport_number}</div>
+                <div className="flex items-center gap-2"><strong>Type:</strong> {result.data.voucherType} Voucher</div>
+                <div className="flex items-center gap-2"><strong>Voucher Code:</strong> {result.data.voucher_code}</div>
+                <div className="flex items-center gap-2"><strong>Passport:</strong> {result.data.passport_number}</div>
                 {result.data.company_name && (
-                  <div className="flex items-center gap-2"><span className="text-slate-500">📄</span><strong>Company:</strong> {result.data.company_name}</div>
+                  <div className="flex items-center gap-2"><strong>Company:</strong> {result.data.company_name}</div>
                 )}
-                <div className="flex items-center gap-2"><span className="text-slate-500">📅</span><strong>Valid Until:</strong> {new Date(result.data.valid_until).toLocaleDateString()}</div>
+                <div className="flex items-center gap-2"><strong>Valid Until:</strong> {new Date(result.data.valid_until).toLocaleDateString()}</div>
               </div>
             )}
           </CardContent>
@@ -494,7 +493,6 @@ const ScanAndValidate = () => {
                        window.location.protocol !== 'https:'}
             >
               <div className="text-center">
-                <span className="block text-4xl sm:text-3xl mb-2 sm:mb-1">📷</span>
                 <span className="block text-xl sm:text-base font-bold">{showCameraScanner ? 'Close Camera' : 'Scan Voucher Barcode'}</span>
                 <span className="block text-sm sm:text-xs opacity-90 mt-1">Tap to open camera scanner</span>
               </div>
@@ -504,7 +502,6 @@ const ScanAndValidate = () => {
             {isScannerActive && (
               <div className="bg-emerald-50 border-2 border-emerald-300 rounded-lg p-4 text-center">
                 <div className="flex items-center justify-center gap-3">
-                  <span className="text-3xl animate-pulse">📱</span>
                   <div className="text-left">
                     <p className="font-bold text-emerald-900">USB Scanner Ready</p>
                     <p className="text-sm text-emerald-700">Simply scan a barcode or QR code</p>
@@ -517,7 +514,7 @@ const ScanAndValidate = () => {
           {/* Manual Input Option (Collapsed by default on mobile) */}
           <details className="border rounded-lg">
             <summary className="cursor-pointer p-4 hover:bg-slate-50 rounded-lg font-medium text-slate-700">
-              ⌨️ Manual Entry (Optional)
+              Manual Entry (Optional)
             </summary>
             <div className="p-4 pt-0">
               <p className="text-sm text-slate-600 mb-3">Type or paste voucher code manually</p>
@@ -550,7 +547,6 @@ const ScanAndValidate = () => {
                 <Card className="mb-4 bg-emerald-50 border-emerald-300">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <span className="text-3xl sm:text-2xl text-emerald-600 flex-shrink-0">📷</span>
                       <div>
                         <h3 className="font-bold text-emerald-900 mb-1 text-lg">Camera Scanner Active</h3>
                         <p className="text-emerald-800 text-sm mb-2">
@@ -579,13 +575,13 @@ const ScanAndValidate = () => {
       <Card className="mt-8 bg-blue-50 border-blue-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-blue-800 text-lg sm:text-base">
-            <span className="text-2xl sm:text-xl">ℹ️</span> How to Scan & Validate Vouchers
+            How to Scan & Validate Vouchers
           </CardTitle>
         </CardHeader>
         <CardContent className="text-blue-700 space-y-4">
           <div className="bg-white/50 p-3 rounded-lg">
             <p className="font-bold mb-2 text-base flex items-center gap-2">
-              <span className="text-2xl">📱</span> Mobile Phone Camera (Recommended)
+              Mobile Phone Camera (Recommended)
             </p>
             <ol className="text-sm space-y-1 list-decimal list-inside ml-6">
               <li>Tap the big green "Scan Voucher Barcode" button above</li>
@@ -598,7 +594,7 @@ const ScanAndValidate = () => {
 
           <div className="bg-white/50 p-3 rounded-lg">
             <p className="font-bold mb-2 text-base flex items-center gap-2">
-              <span className="text-2xl">🖥️</span> USB/Bluetooth Scanner (Desktop/Counter)
+              USB/Bluetooth Scanner (Desktop/Counter)
             </p>
             <p className="text-sm">
               Simply scan a barcode or QR code with your hardware scanner. The system automatically detects and validates the voucher with instant feedback (beep + flash).
@@ -607,7 +603,7 @@ const ScanAndValidate = () => {
 
           <div className="bg-white/50 p-3 rounded-lg">
             <p className="font-bold mb-2 text-base flex items-center gap-2">
-              <span className="text-2xl">⌨️</span> Manual Entry (Backup)
+              Manual Entry (Backup)
             </p>
             <p className="text-sm">
               If scanning doesn't work, expand "Manual Entry" above and type the voucher code manually.
@@ -617,8 +613,8 @@ const ScanAndValidate = () => {
           <div className="border-t border-blue-300 pt-3 mt-3">
             <p className="text-xs font-semibold text-blue-900 mb-1">Validation Results:</p>
             <ul className="text-xs space-y-1">
-              <li>✅ <strong>Green Flash + Beep:</strong> Valid voucher - proceed with exit clearance</li>
-              <li>❌ <strong>Red Flash + Alert:</strong> Invalid/Used/Expired - do not allow exit</li>
+              <li><strong>Green Flash + Beep:</strong> Valid voucher - proceed with exit clearance</li>
+              <li><strong>Red Flash + Alert:</strong> Invalid/Used/Expired - do not allow exit</li>
             </ul>
           </div>
         </CardContent>

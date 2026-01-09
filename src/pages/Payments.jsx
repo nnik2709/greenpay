@@ -560,7 +560,7 @@ const Payments = () => {
         </h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setShowSettings(true)}>
-            ⚙️ Settings
+            Settings
           </Button>
           <Button onClick={() => setShowAddPayment(true)} className="bg-gradient-to-r from-emerald-500 to-teal-600">
             + Add New Payment
@@ -573,10 +573,8 @@ const Payments = () => {
         <CardContent className="p-4">
           <div className="flex gap-4 items-center">
             <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
               <Input
                 placeholder="Search by passport number, payment ID, voucher code, or method..."
-                className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -595,7 +593,7 @@ const Payments = () => {
               </Select>
             </div>
             <Button variant="outline" onClick={handleExportToExcel}>
-              📥 Export
+              Export
             </Button>
           </div>
         </CardContent>
@@ -631,7 +629,6 @@ const Payments = () => {
                     <tr key={transaction.id} className="border-b hover:bg-slate-50 transition-colors">
                       <td className="py-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400">#</span>
                           <span className="font-mono text-sm">#{transaction.id}</span>
                         </div>
                       </td>
@@ -646,7 +643,6 @@ const Payments = () => {
                       </td>
                       <td className="py-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400">👤</span>
                           <span>{transaction.passport_number}</span>
                         </div>
                       </td>
@@ -664,19 +660,16 @@ const Payments = () => {
                       </td>
                       <td className="py-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400">💰</span>
                           <span className="font-semibold">PGK {transaction.amount}</span>
                         </div>
                       </td>
                       <td className="py-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400">💳</span>
                           <span>{transaction.payment_method}</span>
                         </div>
                       </td>
                       <td className="py-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400">📅</span>
                           <span>{new Date(transaction.created_at).toLocaleDateString()}</span>
                         </div>
                       </td>
@@ -687,7 +680,7 @@ const Payments = () => {
                           onClick={() => handlePrintVoucherFromList(transaction)}
                           disabled={!transaction.voucher}
                         >
-                          🖨️
+                          Print
                         </Button>
                       </td>
                     </tr>
@@ -717,7 +710,6 @@ const Payments = () => {
                 {/* Scanner Status Indicator */}
                 {isScannerActive && (
                   <Alert className="bg-emerald-50 border-emerald-300">
-                    <span className="text-emerald-600 text-xl animate-pulse">📱</span>
                     <AlertDescription className="text-emerald-900 font-medium">
                       Scanning... {newPassportMode ? 'Scan passport MRZ to auto-fill new passport form.' : 'Scan passport to search or create new.'}
                     </AlertDescription>
@@ -725,7 +717,6 @@ const Payments = () => {
                 )}
                 {!isScannerActive && (
                   <Alert className="bg-blue-50 border-blue-300">
-                    <span className="text-blue-600 text-xl">📱</span>
                     <AlertDescription className="text-blue-900">
                       <strong>Tip:</strong> Use hardware scanner to scan passport MRZ or barcode for automatic search/entry.
                     </AlertDescription>
@@ -894,7 +885,7 @@ const Payments = () => {
                   <div className="space-y-4 border-t pt-4">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                       <p className="text-sm text-blue-900">
-                        <strong>🔒 PCI-Compliant:</strong> Enter transaction details from POS terminal receipt.
+                        <strong>PCI-Compliant:</strong> Enter transaction details from POS terminal receipt.
                         <br />
                         <span className="text-xs text-blue-700">No full card numbers are stored for security compliance.</span>
                       </p>
@@ -985,7 +976,7 @@ const Payments = () => {
 
                 <div className="flex gap-2">
                   <Button className="flex-1" onClick={() => setShowPrintDialog(true)}>
-                    🖨️ Print Voucher
+                    Print Voucher
                   </Button>
                   <Button className="flex-1" variant="outline" onClick={resetDialog}>Done</Button>
                 </div>
@@ -1033,7 +1024,7 @@ const Payments = () => {
                   Saving...
                 </>
               ) : (
-                <>💾 Save Settings</>
+                <>Save Settings</>
               )}
             </Button>
           </DialogFooter>

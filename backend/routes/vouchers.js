@@ -6,12 +6,13 @@ const {
   voucherValidationLimiter,
   suspiciousActivityDetector
 } = require('../middleware/rateLimiter');
+const { body, param } = require('express-validator');
+const validate = require('../middleware/validator');
 const PDFDocument = require('pdfkit');
 const nodemailer = require('nodemailer');
 const QRCode = require('qrcode');
 const archiver = require('archiver');
 const voucherConfig = require('../config/voucherConfig');
-const { generateVoucherPDFBuffer } = require('../utils/pdfGenerator');
 
 // Email transporter
 const createTransporter = () => {
@@ -31,31 +32,105 @@ const createTransporter = () => {
 };
 
 // Generate voucher PDF (one voucher per page)
-// Uses centralized GREEN CARD template from pdfGenerator.js
+// Uses new unified PDF service with smart voucher types
 const generateVouchersPDF = async (vouchers, companyName) => {
-  // Use the centralized PDF generator with GREEN CARD template
+  // Use old PDF generator temporarily for bulk vouchers (multi-page)
+  // TODO: Optimize VoucherTemplate for batch generation
+  const { generateVoucherPDFBuffer } = require('../utils/pdfGenerator');
   return generateVoucherPDFBuffer(vouchers, companyName);
 };
 
 /**
  * GET /api/vouchers/corporate-vouchers
- * Get all corporate vouchers
+ * Get all corporate vouchers with pagination and search
  * Requires: Authentication
+ * Query params:
+ *   - page: page number (default: 1)
+ *   - limit: records per page (default: 50, max: 1000)
+ *   - search: search term for voucher_code, company_name, passport_number
+ *   - status: filter by status (all, pending, active, used)
  */
 router.get('/corporate-vouchers', auth, async (req, res) => {
   try {
-    const query = `
-      SELECT cv.*, inv.invoice_number
+    // Parse pagination params
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit) || 50));
+    const offset = (page - 1) * limit;
+
+    // Parse search params
+    const search = req.query.search ? req.query.search.trim() : '';
+    const status = req.query.status || '';
+
+    // Build WHERE clauses
+    let whereClause = 'WHERE 1=1';
+    const params = [];
+
+    if (search) {
+      params.push(`%${search}%`);
+      const searchIndex = params.length;
+      whereClause += ` AND (
+        cv.voucher_code ILIKE $${searchIndex} OR
+        cv.company_name ILIKE $${searchIndex} OR
+        cv.passport_number ILIKE $${searchIndex}
+      )`;
+    }
+
+    if (status && status !== 'all') {
+      switch(status) {
+        case 'pending':
+          whereClause += ` AND cv.passport_number IS NULL`;
+          break;
+        case 'active':
+          whereClause += ` AND cv.passport_number IS NOT NULL AND cv.redeemed_date IS NULL`;
+          break;
+        case 'used':
+          whereClause += ` AND cv.redeemed_date IS NOT NULL`;
+          break;
+      }
+    }
+
+    // Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM corporate_vouchers cv
+      ${whereClause}
+    `;
+    const countResult = await db.query(countQuery, params);
+    const total = parseInt(countResult.rows[0].total);
+
+    // Get paginated data
+    params.push(limit, offset);
+    const dataQuery = `
+      SELECT
+        cv.*,
+        inv.invoice_number,
+        u.name as created_by_name,
+        CASE
+          WHEN cv.redeemed_date IS NOT NULL THEN 'used'
+          WHEN cv.passport_number IS NULL THEN 'pending'
+          ELSE 'active'
+        END as status
       FROM corporate_vouchers cv
       LEFT JOIN invoices inv ON inv.id = cv.invoice_id
+      LEFT JOIN "User" u ON u.id = cv.created_by
+      ${whereClause}
       ORDER BY cv.id DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
     `;
 
-    const result = await db.query(query);
+    const result = await db.query(dataQuery, params);
 
     res.json({
       type: 'success',
-      vouchers: result.rows
+      vouchers: result.rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPreviousPage: page > 1
+      }
     });
   } catch (error) {
     console.error('Error fetching corporate vouchers:', error);
@@ -759,11 +834,12 @@ router.get('/download/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Get voucher from corporate_vouchers table
+    // Get voucher from corporate_vouchers table with Finance Manager name
     const result = await db.query(
-      `SELECT cv.*, p.full_name, p.nationality
+      `SELECT cv.*, p.full_name, p.nationality, u.name as created_by_name
        FROM corporate_vouchers cv
        LEFT JOIN passports p ON cv.passport_id = p.id
+       LEFT JOIN "User" u ON cv.created_by = u.id
        WHERE cv.id = $1`,
       [id]
     );
@@ -811,11 +887,12 @@ router.post('/email-single/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
-    // Get voucher from corporate_vouchers table
+    // Get voucher from corporate_vouchers table with Finance Manager name
     const result = await db.query(
-      `SELECT cv.*, p.full_name, p.nationality
+      `SELECT cv.*, p.full_name, p.nationality, u.name as created_by_name
        FROM corporate_vouchers cv
        LEFT JOIN passports p ON cv.passport_id = p.id
+       LEFT JOIN "User" u ON cv.created_by = u.id
        WHERE cv.id = $1`,
       [id]
     );
@@ -1089,5 +1166,89 @@ router.post('/email-batch', auth, checkRole('Flex_Admin', 'Finance_Manager', 'Co
 });
 
 // GET /api/vouchers/by-passport/:passportNumber endpoint removed - feature deprecated
+
+/**
+ * POST /api/vouchers/:voucherCode/email
+ * Email a single voucher by voucher code
+ * Requires: Authentication
+ */
+router.post('/:voucherCode/email',
+  auth,
+  [
+    param('voucherCode')
+      .trim()
+      .matches(/^[A-Z0-9]{8}$/)
+      .withMessage('Invalid voucher code format'),
+    body('recipient_email')
+      .trim()
+      .isEmail()
+      .normalizeEmail()
+      .withMessage('Valid email address required')
+      .isLength({ max: 254 })
+      .withMessage('Email address too long')
+  ],
+  validate,
+  async (req, res) => {
+  try {
+    const { voucherCode } = req.params;
+    const { recipient_email } = req.body;
+
+    // Find voucher in individual_purchases table
+    const result = await db.query(`
+      SELECT
+        ip.*
+      FROM individual_purchases ip
+      WHERE ip.voucher_code = $1
+    `, [voucherCode]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Voucher not found' });
+    }
+
+    const voucher = result.rows[0];
+
+    // Create email transporter
+    const transporter = createTransporter();
+    if (!transporter) {
+      return res.status(500).json({ error: 'Email service not configured' });
+    }
+
+    // Generate voucher PDF using working pdfGenerator
+    const pdfBuffer = await generateVoucherPDF(voucher);
+
+    // Send email with voucher PDF
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || 'noreply@greenpay.gov.pg',
+      to: recipient_email,
+      subject: `PNG Green Fee Voucher - ${voucherCode}`,
+      html: `
+        <h2>PNG Green Fee Voucher</h2>
+        <p>Dear Customer,</p>
+        <p>Please find attached your PNG Green Fee voucher.</p>
+        <p><strong>Voucher Code:</strong> ${voucherCode}</p>
+        ${voucher.passport_number ? `<p><strong>Passport:</strong> ${voucher.passport_number}</p>` : ''}
+        <p><strong>Amount:</strong> PGK ${parseFloat(voucher.amount || 0).toFixed(2)}</p>
+        <p>Please present this voucher at the airport.</p>
+        <p>Thank you,<br>PNG Green Fees Team</p>
+      `,
+      attachments: [{
+        filename: `voucher-${voucherCode}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }]
+    });
+
+    console.log(`Email sent successfully to ${recipient_email} for voucher ${voucherCode}`);
+
+    res.json({
+      success: true,
+      message: `Voucher ${voucherCode} emailed successfully to ${recipient_email}`
+    });
+
+  } catch (error) {
+    console.error('Error emailing voucher:', error);
+    res.status(500).json({ error: 'Failed to send email' });
+  }
+});
 
 module.exports = router;

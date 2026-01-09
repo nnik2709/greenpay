@@ -5,16 +5,59 @@ const db = require('../config/database');
 const validate = require('../middleware/validator');
 const { auth, checkRole } = require('../middleware/auth');
 
-// Get all passports
+/**
+ * GET /api/passports
+ * Get all passports with pagination and search
+ * Query params:
+ *   - page: page number (default: 1)
+ *   - limit: records per page (default: 50, max: 1000)
+ *   - search: search term for passport_number, full_name, nationality
+ *   - passport_number: exact passport number lookup (overrides search)
+ */
 router.get('/', auth, async (req, res) => {
   try {
-    const { page = 1, limit = 50, search = '', passport_number } = req.query;
-    // Convert limit and page to integers (query params are strings)
-    const pageInt = parseInt(page);
-    const limitInt = parseInt(limit);
-    const offset = (pageInt - 1) * limitInt;
+    // Parse pagination params
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit) || 50));
+    const offset = (page - 1) * limit;
 
-    let query = `
+    // Parse search params
+    const search = req.query.search ? req.query.search.trim() : '';
+    const passport_number = req.query.passport_number ? req.query.passport_number.trim() : '';
+
+    // Build WHERE clauses
+    let whereClause = 'WHERE 1=1';
+    const params = [];
+
+    // Search by passport number (exact match for lookups)
+    if (passport_number) {
+      params.push(passport_number);
+      const passportIndex = params.length;
+      whereClause += ` AND p.passport_number = $${passportIndex}`;
+    }
+    // General search
+    else if (search) {
+      params.push(`%${search}%`);
+      const searchIndex = params.length;
+      whereClause += ` AND (
+        p.passport_number ILIKE $${searchIndex} OR
+        p.full_name ILIKE $${searchIndex} OR
+        p.nationality ILIKE $${searchIndex}
+      )`;
+    }
+
+    // Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM passports p
+      ${whereClause}
+    `;
+    const countResult = await db.query(countQuery, params);
+    const total = parseInt(countResult.rows[0].total);
+
+    // Get paginated data
+    params.push(limit, offset);
+    const dataQuery = `
       SELECT
         p.id,
         p.passport_number,
@@ -30,35 +73,33 @@ router.get('/', auth, async (req, res) => {
         u.name as created_by_name
       FROM passports p
       LEFT JOIN "User" u ON p.created_by = u.id
-      WHERE 1=1
+      ${whereClause}
+      ORDER BY p.created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
     `;
-    const params = [];
 
-    // Search by passport number (exact match for lookups)
-    if (passport_number) {
-      query += ` AND p.passport_number = $${params.length + 1}`;
-      params.push(passport_number);
-    }
-    // General search
-    else if (search) {
-      query += ` AND (p.passport_number ILIKE $${params.length + 1} OR p.full_name ILIKE $${params.length + 1})`;
-      params.push(`%${search}%`);
-    }
-
-    query += ` ORDER BY p.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-    params.push(limitInt, offset);
-
-    const result = await db.query(query, params);
+    const result = await db.query(dataQuery, params);
 
     res.json({
-      passports: result.rows,
-      total: result.rows.length,
-      page: pageInt,
-      limit: limitInt
+      type: 'success',
+      data: result.rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPreviousPage: page > 1
+      }
     });
   } catch (error) {
     console.error('Get passports error:', error);
-    res.status(500).json({ error: 'Failed to fetch passports' });
+    res.status(500).json({
+      type: 'error',
+      status: 'error',
+      message: 'Failed to fetch passports',
+      error: error.message
+    });
   }
 });
 

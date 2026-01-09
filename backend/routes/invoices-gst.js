@@ -6,18 +6,15 @@ const { generateInvoicePDF, generateVoucherPDFBuffer } = require('../utils/pdfGe
 const { sendInvoiceEmail, sendEmailWithAttachments } = require('../services/notificationService');
 const voucherConfig = require('../config/voucherConfig');
 
-// Import voucher PDF generation functions
-const PDFDocument = require('pdfkit');
-const QRCode = require('qrcode');
-
 const ensureGstColumn = async () => {
   await db.query("ALTER TABLE settings ADD COLUMN IF NOT EXISTS gst_enabled boolean DEFAULT true");
 };
 
 const getEnvGstEnabled = () => {
-  if (process.env.GST_ENABLED === 'false') return false;
-  if (process.env.GST_ENABLED === '0') return false;
-  return true;
+  // Explicitly check for TRUE values, default to false (GST OFF)
+  if (process.env.GST_ENABLED === 'true') return true;
+  if (process.env.GST_ENABLED === '1') return true;
+  return false; // Default to false (GST OFF) as requested by user
 };
 
 const getGstEnabled = async () => {
@@ -32,75 +29,6 @@ const getGstEnabled = async () => {
     console.error('GST setting lookup failed, using fallback:', err.message);
     return fallback;
   }
-};
-
-// Helper function to generate vouchers PDF (same as in vouchers.js)
-const generateVouchersPDF = async (vouchers, companyName) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ size: 'A4', margin: 50 });
-      const chunks = [];
-
-      doc.on('data', chunk => chunks.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
-
-      for (let i = 0; i < vouchers.length; i++) {
-        const voucher = vouchers[i];
-
-        if (i > 0) doc.addPage();
-
-        // Header
-        doc.fontSize(24).font('Helvetica-Bold').text('PNG Green Fees', 50, 50);
-        doc.fontSize(16).font('Helvetica').text('Airport Exit Voucher', 50, 80);
-
-        // Company name
-        doc.fontSize(14).font('Helvetica-Bold').text(`Company: ${companyName}`, 50, 120);
-
-        // Generate QR code
-        const qrCodeDataUrl = await QRCode.toDataURL(voucher.voucher_code, {
-          width: 300,
-          margin: 2
-        });
-        const qrCodeBuffer = Buffer.from(qrCodeDataUrl.split(',')[1], 'base64');
-        doc.image(qrCodeBuffer, 150, 160, { width: 300 });
-
-        // Voucher details box
-        const boxY = 480;
-        doc.rect(100, boxY, 400, 120).stroke();
-
-        doc.fontSize(12).font('Helvetica-Bold').text('Voucher Code:', 120, boxY + 20);
-        doc.fontSize(11).font('Helvetica').text(voucher.voucher_code, 120, boxY + 40);
-
-        doc.fontSize(12).font('Helvetica-Bold').text(`Amount: PGK ${parseFloat(voucher.amount).toFixed(2)}`, 120, boxY + 65);
-        doc.fontSize(11).font('Helvetica').text(`Valid Until: ${new Date(voucher.valid_until).toLocaleDateString()}`, 120, boxY + 85);
-
-        // Instructions
-        doc.fontSize(10).font('Helvetica-Bold').text('⚠️ IMPORTANT:', 50, 620);
-        doc.fontSize(9).font('Helvetica').text('This voucher is valid for ONE airport exit only. Once scanned, it cannot be reused.', 50, 640, { width: 500 });
-
-        doc.fontSize(10).font('Helvetica-Bold').text('Instructions:', 50, 670);
-        const instructions = [
-          '1. Present at airport exit',
-          '2. Staff scans QR code',
-          '3. System validates voucher',
-          '4. Exit approved',
-          '5. Voucher marked as used'
-        ];
-        instructions.forEach((inst, idx) => {
-          doc.fontSize(9).font('Helvetica').text(inst, 50, 690 + (idx * 15));
-        });
-
-        // Footer
-        doc.fontSize(8).font('Helvetica').text(`Generated: ${new Date().toLocaleDateString()}`, 50, 770);
-        doc.text(`Voucher ${i + 1} of ${vouchers.length}`, 400, 770);
-      }
-
-      doc.end();
-    } catch (error) {
-      reject(error);
-    }
-  });
 };
 
 // Generate invoice number in format INV-YYYYMM-XXXX
@@ -175,11 +103,7 @@ router.get('/stats', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Suppor
 // GET /api/invoices - Get all invoices
 router.get('/', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Support'), async (req, res) => {
   try {
-    const { status, customer, from_date, to_date } = req.query;
-
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/393aee6e-ef35-424a-a035-9f1cded26861',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'H2',location:'invoices-gst.js:get/ start',message:'Fetching invoices start',data:{status,customer,from_date,to_date},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
+    const { status, customer, from_date, to_date} = req.query;
 
     let query = `
       SELECT 
@@ -221,16 +145,9 @@ router.get('/', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Support'), 
 
     const result = await db.query(query, params);
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/393aee6e-ef35-424a-a035-9f1cded26861',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'H2',location:'invoices-gst.js:get/ success',message:'Fetched invoices ok',data:{rows:result?.rows?.length || 0},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching invoices:', error);
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/393aee6e-ef35-424a-a035-9f1cded26861',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'H3',location:'invoices-gst.js:get/ error',message:'Error fetching invoices',data:{error:error?.message},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     res.status(500).json({ error: 'Failed to fetch invoices' });
   }
 });
@@ -355,8 +272,8 @@ router.post('/from-quotation', auth, checkRole('Flex_Admin', 'Finance_Manager'),
     dueDate.setDate(dueDate.getDate() + (due_days || 30));
 
     // Calculate totals (ensure all values are proper numbers) with GST toggle from request
-    // Default to true if not specified for backward compatibility
-    const applyGstFlag = apply_gst !== undefined ? apply_gst : true;
+    // Default to false (GST OFF) as requested by user
+    const applyGstFlag = apply_gst !== undefined ? apply_gst : false;
     const effectiveGstRate = applyGstFlag ? (quotation.gst_rate || 10.00) : 0;
     const subtotal = parseFloat(quotation.subtotal) || parseFloat((parseFloat(quotation.total_amount) / 1.10).toFixed(2));
     const gstAmount = applyGstFlag ? (parseFloat(quotation.gst_amount) || calculateGST(subtotal, effectiveGstRate)) : 0;
@@ -434,7 +351,8 @@ router.post('/corporate', auth, checkRole('Flex_Admin', 'Finance_Manager'), asyn
       count,
       amount, // unit price per voucher
       discount = 0, // percentage
-      valid_until
+      valid_until,
+      apply_gst // GST toggle parameter from frontend
     } = req.body;
 
     if (!customer_name || !count || !amount) {
@@ -453,13 +371,13 @@ router.post('/corporate', auth, checkRole('Flex_Admin', 'Finance_Manager'), asyn
       return res.status(400).json({ error: 'Invalid amount' });
     }
 
-    // Calculate amounts (GST configurable)
-    const gstEnabled = await getGstEnabled();
+    // Calculate amounts with GST toggle (default to false if not provided)
+    const applyGstFlag = apply_gst !== undefined ? apply_gst : false;
     const subtotal = quantity * unitPrice;
     const discountValue = subtotal * (parseFloat(discount) / 100);
     const subtotalAfterDiscount = subtotal - discountValue;
-    const gstRate = gstEnabled ? 10.0 : 0;
-    const gstAmount = gstEnabled ? calculateGST(subtotalAfterDiscount, gstRate) : 0;
+    const gstRate = applyGstFlag ? 10.0 : 0;
+    const gstAmount = applyGstFlag ? calculateGST(subtotalAfterDiscount, gstRate) : 0;
     const totalAmount = subtotalAfterDiscount + gstAmount;
 
     // Invoice metadata
@@ -723,6 +641,14 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
       paymentMethod = paymentResult.rows[0].payment_method;
     }
 
+    // Fetch Finance Manager's name for PDF authorizing officer
+    const userResult = await client.query(
+      'SELECT id, name FROM "User" WHERE id = $1',
+      [req.userId]
+    );
+    const financeManager = userResult.rows[0];
+    const createdByName = financeManager ? financeManager.name : 'System';
+
     // Generate vouchers (8-character alphanumeric) and link to invoice_id
     const vouchers = [];
     for (let i = 0; i < totalVouchers; i++) {
@@ -736,8 +662,9 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
           valid_from,
           valid_until,
           status,
-          invoice_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+          invoice_id,
+          created_by
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING *`,
         [
           voucherCode,
@@ -746,11 +673,17 @@ router.post('/:id/generate-vouchers', auth, checkRole('Flex_Admin', 'Finance_Man
           new Date(),
           new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Valid for 1 year
           'pending_passport', // Requires passport registration
-          id
+          id,
+          req.userId
         ]
       );
 
-      vouchers.push(voucherResult.rows[0]);
+      // Add created_by_name for PDF generation
+      const voucherWithName = {
+        ...voucherResult.rows[0],
+        created_by_name: createdByName
+      };
+      vouchers.push(voucherWithName);
 
       // Small delay to ensure unique timestamps
       if (i < totalVouchers - 1) {
@@ -886,11 +819,13 @@ router.post('/:id/email-vouchers', auth, checkRole('Flex_Admin', 'Finance_Manage
       return res.status(400).json({ error: 'Invoice must be fully paid before emailing vouchers' });
     }
 
-    // Get vouchers linked to this invoice_id
+    // Get vouchers linked to this invoice_id with Finance Manager name
     const vouchersResult = await db.query(
-      `SELECT * FROM corporate_vouchers
-       WHERE invoice_id = $1
-       ORDER BY voucher_code`,
+      `SELECT cv.*, u.name as created_by_name
+       FROM corporate_vouchers cv
+       LEFT JOIN "User" u ON cv.created_by = u.id
+       WHERE cv.invoice_id = $1
+       ORDER BY cv.voucher_code`,
       [invoice.id]
     );
 

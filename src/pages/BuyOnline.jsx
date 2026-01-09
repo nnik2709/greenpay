@@ -12,7 +12,6 @@ import api from '@/lib/api/client';
 import { useScannerInput } from '@/hooks/useScannerInput';
 import SimpleCameraScanner from '@/components/SimpleCameraScanner';
 import { Camera } from 'lucide-react';
-
 /**
  * Public Buy Online Page - Phase 2 Enhanced
  *
@@ -74,15 +73,20 @@ const BuyOnline = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Anti-bot verification
-  const [verificationAnswer, setVerificationAnswer] = useState('');
+  // Math verification for bot protection
+  const [mathQuestion, setMathQuestion] = useState({ num1: 0, num2: 0, answer: 0 });
+  const [mathAnswer, setMathAnswer] = useState('');
+
+  // Anti-bot measures
   const [honeypot, setHoneypot] = useState('');
   const [startTime] = useState(Date.now());
-  const [verificationQuestion] = useState(() => {
+
+  // Generate math question on component mount
+  useEffect(() => {
     const num1 = Math.floor(Math.random() * 10) + 1;
     const num2 = Math.floor(Math.random() * 10) + 1;
-    return { question: `${num1} + ${num2}`, answer: num1 + num2 };
-  });
+    setMathQuestion({ num1, num2, answer: num1 + num2 });
+  }, []);
 
   // Hardware scanner support with MRZ parsing (for desktop with USB scanners)
   const { isScanning: isScannerActive } = useScannerInput({
@@ -179,11 +183,11 @@ const BuyOnline = () => {
     }
 
     // 3. Math verification
-    if (parseInt(verificationAnswer) !== verificationQuestion.answer) {
+    if (!mathAnswer || parseInt(mathAnswer) !== mathQuestion.answer) {
       toast({
         variant: 'destructive',
-        title: 'Verification Failed',
-        description: 'Please answer the math question correctly.',
+        title: 'Incorrect Answer',
+        description: `Please solve the math problem: ${mathQuestion.num1} + ${mathQuestion.num2} = ?`,
       });
       return;
     }
@@ -207,11 +211,11 @@ const BuyOnline = () => {
         amount: 50.00, // Green fee voucher: PGK 50.00 per passport
         returnUrl: `${frontendUrl}/payment/success?payment_session={SESSION_ID}`,
         cancelUrl: `${frontendUrl}/payment/cancelled`,
-        // Verification data for backend validation
+        // Math verification for bot protection
         verification: {
-          answer: parseInt(verificationAnswer),
-          expected: verificationQuestion.answer,
-          timeSpent: (Date.now() - startTime) / 1000
+          mathAnswer: parseInt(mathAnswer),
+          honeypot,
+          startTime
         }
       });
 
@@ -295,24 +299,8 @@ const BuyOnline = () => {
             Buy Green Fee Online
           </h1>
           <p className="text-slate-600 text-lg">
-            Secure credit card payment - Your passport will be registered automatically
+            Your passport will be registered automatically after payment
           </p>
-        </motion.div>
-
-        {/* Back to Login Link */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="mb-6"
-        >
-          <Button
-            onClick={() => navigate('/login')}
-            variant="ghost"
-            className="text-slate-600 hover:text-emerald-600"
-          >
-            ← Back to Login
-          </Button>
         </motion.div>
 
         {/* Passport Details Form */}
@@ -458,51 +446,34 @@ const BuyOnline = () => {
                 </p>
               </div>
 
-              {/* Human Verification */}
+              {/* Honeypot field - Hidden from users, catches bots */}
+              <input
+                type="text"
+                name="website"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+                style={{ display: 'none' }}
+                tabIndex={-1}
+                autoComplete="off"
+              />
+
+              {/* Security Verification - Math Question */}
               <div className="border-t pt-4 mt-4">
-                <h3 className="font-semibold text-lg mb-3 text-slate-700">Verification</h3>
-                <div className="space-y-4">
-                  {/* Honeypot field (hidden from users, visible to bots) */}
-                  <div style={{ position: 'absolute', left: '-9999px' }} aria-hidden="true">
-                    <Input
-                      type="text"
-                      name="website"
-                      value={honeypot}
-                      onChange={(e) => setHoneypot(e.target.value)}
-                      tabIndex="-1"
-                      autoComplete="off"
-                    />
-                  </div>
-
-                  {/* Math question */}
-                  <div className="space-y-2">
-                    <Label htmlFor="verification">
-                      Please solve: What is {verificationQuestion.question}?
-                    </Label>
-                    <Input
-                      id="verification"
-                      type="number"
-                      value={verificationAnswer}
-                      onChange={(e) => setVerificationAnswer(e.target.value)}
-                      placeholder="Enter answer"
-                      required
-                      disabled={loading}
-                      className="w-32"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Payment Method Info */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-                <div>
-                  <h4 className="font-semibold text-blue-900 mb-1">Secure Payment Process</h4>
-                  <ul className="text-sm text-blue-700 space-y-1">
-                    <li>Passport registered after payment confirmation</li>
-                    <li>Voucher displayed with QR code immediately</li>
-                    <li>Optional: Email or SMS voucher to yourself</li>
-                    <li>If payment fails, no data is saved</li>
-                  </ul>
+                <h3 className="font-semibold text-lg mb-3 text-slate-700">Security Verification</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="mathAnswer">
+                    What is {mathQuestion.num1} + {mathQuestion.num2}? *
+                  </Label>
+                  <Input
+                    id="mathAnswer"
+                    type="number"
+                    value={mathAnswer}
+                    onChange={(e) => setMathAnswer(e.target.value)}
+                    placeholder="Enter answer"
+                    required
+                    className="max-w-xs"
+                  />
+                  <p className="text-xs text-slate-500">This helps us prevent automated abuse</p>
                 </div>
               </div>
 

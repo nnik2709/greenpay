@@ -12,6 +12,7 @@ import Login from '@/pages/Login';
 import BuyOnline from '@/pages/BuyOnline';
 import PaymentSuccess from '@/pages/PaymentSuccess';
 import PaymentCancelled from '@/pages/PaymentCancelled';
+import PaymentFailure from '@/pages/PaymentFailure';
 import NotFound from '@/pages/NotFound';
 import ResetPassword from '@/pages/ResetPassword';
 import PublicRegistration from '@/pages/PublicRegistration';
@@ -145,6 +146,7 @@ const AppRoutes = () => {
         <Route path="/buy-online" element={<BuyOnline />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/cancelled" element={<PaymentCancelled />} />
+        <Route path="/payment/failure" element={<PaymentFailure />} />
         <Route path="/buy-voucher" element={<PublicVoucherPurchase />} />
         <Route path="/purchase/callback" element={<PublicPurchaseCallback />} />
         <Route path="/mock-bsp-payment" element={<MockBSPPayment />} />

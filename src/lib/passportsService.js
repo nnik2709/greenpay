@@ -49,14 +49,14 @@ export const searchPassports = async (query) => {
 export const createPassport = async (passportData, userId) => {
   try {
     const payload = {
-      passportNo: passportData.passportNumber,
+      passport_number: passportData.passportNumber,
       nationality: passportData.nationality,
       surname: passportData.surname,
-      givenName: passportData.givenName,
-      dob: passportData.dob,
+      given_name: passportData.givenName,
+      date_of_birth: passportData.dob,
       sex: passportData.sex,
-      dateOfExpiry: passportData.dateOfExpiry,
-      createdById: userId,
+      date_of_expiry: passportData.dateOfExpiry,
+      created_by_id: userId,
     };
 
     const response = await api.passports.create(payload);

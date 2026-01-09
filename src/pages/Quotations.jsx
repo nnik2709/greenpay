@@ -43,7 +43,7 @@ const Quotations = () => {
 
   // Action states
   const [dueDays, setDueDays] = useState(30);
-  const [applyGst, setApplyGst] = useState(true);
+  const [applyGst, setApplyGst] = useState(false);
   const [convertingToInvoice, setConvertingToInvoice] = useState(false);
 
   useEffect(() => {
@@ -192,7 +192,7 @@ const Quotations = () => {
       setSelectedQuotationId(null);
       setSelectedAction('');
       setDueDays(30);
-      setApplyGst(true);
+      setApplyGst(false);
 
       await loadQuotations();
       await loadStatistics();

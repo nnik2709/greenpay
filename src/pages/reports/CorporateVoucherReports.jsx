@@ -28,14 +28,38 @@ const CorporateVoucherReports = () => {
   const [selectedVoucher, setSelectedVoucher] = useState(null);
   const [showPrint, setShowPrint] = useState(false);
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [limit] = useState(50);
+
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
   useEffect(() => {
     fetchVouchers();
-  }, []);
+  }, [page, statusFilter]);
 
-  const fetchVouchers = async () => {
+  const fetchVouchers = async (pageNum = page) => {
     try {
-      const response = await api.get('/vouchers/corporate-vouchers');
+      setLoading(true);
+      const params = {
+        page: pageNum,
+        limit,
+        search: searchQuery,
+        status: statusFilter !== 'all' ? statusFilter : ''
+      };
+
+      const response = await api.get('/vouchers/corporate-vouchers', { params });
       setData(response.vouchers || []);
+
+      if (response.pagination) {
+        setPage(response.pagination.page);
+        setTotalPages(response.pagination.totalPages);
+        setTotal(response.pagination.total);
+      }
     } catch (error) {
       console.error('Error fetching vouchers:', error);
       toast({
@@ -48,25 +72,78 @@ const CorporateVoucherReports = () => {
     }
   };
 
+  const handleSearch = () => {
+    setPage(1); // Reset to page 1 when searching
+    fetchVouchers(1);
+  };
+
   const handlePrintVoucher = (voucher) => {
     setSelectedVoucher(voucher);
     setShowPrint(true);
   };
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return 'N/A';
+      return date.toLocaleDateString();
+    } catch {
+      return 'N/A';
+    }
+  };
+
+  // Calculate actual status based on business rules
+  const calculateStatus = (row) => {
+    // Rule 1: If used/redeemed, status is "Used"
+    if (row.used_at || row.redeemed_date) {
+      return 'used';
+    }
+
+    // Rule 2: If no passport attached, status is "Pending"
+    if (!row.passport_number) {
+      return 'pending';
+    }
+
+    // Rule 3: Check if expired
+    if (row.valid_until) {
+      const expiryDate = new Date(row.valid_until);
+      const now = new Date();
+      if (expiryDate < now) {
+        return 'expired';
+      }
+    }
+
+    // Rule 4: Has passport, not used, not expired = "Active" (Valid)
+    return 'active';
+  };
+
   const columns = [
     { name: 'Voucher Code', selector: row => row.voucher_code, sortable: true, width: '150px' },
-    { name: 'Company', selector: row => row.company_name, sortable: true },
-    { name: 'Passport No', selector: row => row.passport_number, sortable: true },
-    { name: 'Quantity', selector: row => row.quantity, sortable: true, right: true },
-    { name: 'Amount', selector: row => `PGK ${row.amount}`, sortable: true, right: true },
-    { name: 'Payment Method', selector: row => row.payment_method, sortable: true },
-    { name: 'Created', selector: row => new Date(row.created_at).toLocaleDateString(), sortable: true },
-    { name: 'Valid Until', selector: row => new Date(row.valid_until).toLocaleDateString(), sortable: true },
-    { name: 'Status', selector: row => row.used_at ? 'Used' : 'Valid', sortable: true, cell: row => (
-      <span className={`px-2 py-1 rounded text-xs font-semibold ${row.used_at ? 'bg-gray-200 text-gray-700' : 'bg-green-100 text-green-700'}`}>
-        {row.used_at ? 'Used' : 'Valid'}
-      </span>
-    )},
+    { name: 'Company', selector: row => row.company_name || 'N/A', sortable: true },
+    { name: 'Passport No', selector: row => row.passport_number || 'Pending', sortable: true },
+    { name: 'Amount', selector: row => row.amount ? `PGK ${parseFloat(row.amount).toFixed(2)}` : 'PGK 0.00', sortable: true, right: true },
+    { name: 'Created', selector: row => formatDate(row.created_at), sortable: true },
+    { name: 'Valid Until', selector: row => formatDate(row.valid_until), sortable: true },
+    { name: 'Status', selector: row => {
+      const status = calculateStatus(row);
+      const labels = { used: 'Used', pending: 'Pending', expired: 'Expired', active: 'Active' };
+      return labels[status];
+    }, sortable: true, cell: row => {
+      const status = calculateStatus(row);
+      const statusConfig = {
+        used: { bg: 'bg-gray-200', text: 'text-gray-700', label: 'Used' },
+        pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Pending' },
+        expired: { bg: 'bg-red-100', text: 'text-red-700', label: 'Expired' },
+        active: { bg: 'bg-green-100', text: 'text-green-700', label: 'Active' }
+      };
+      const config = statusConfig[status];
+      return (
+        <span className={`px-2 py-1 rounded text-xs font-semibold ${config.bg} ${config.text}`}>
+          {config.label}
+        </span>
+      );
+    }},
     {
       name: 'Actions',
       cell: row => (
@@ -74,8 +151,8 @@ const CorporateVoucherReports = () => {
           size="sm"
           variant="outline"
           onClick={() => handlePrintVoucher(row)}
-          disabled={row.used_at !== null}
-          title={row.used_at ? 'Cannot print used voucher' : 'Print voucher'}
+          disabled={row.used_at !== null || row.redeemed_date !== null}
+          title={row.used_at || row.redeemed_date ? 'Cannot print used voucher' : 'Print voucher'}
         >
           Print
         </Button>
@@ -99,27 +176,93 @@ const CorporateVoucherReports = () => {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Records" value={data.length} />
-        <StatCard title="Total Quantity" value={data.reduce((sum, v) => sum + (v.quantity || 0), 0)} />
+        <StatCard title="Total Records" value={total} />
+        <StatCard title="Current Page" value={data.length} />
         <StatCard title="Total Amount" value={`PGK ${data.reduce((sum, v) => sum + parseFloat(v.amount || 0), 0).toFixed(2)}`} />
-        <StatCard title="Valid Vouchers" value={data.filter(v => !v.used_at).length} />
+        <StatCard title="Active Vouchers" value={data.filter(v => calculateStatus(v) === 'active').length} />
       </div>
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          <Input placeholder="Filter by Company..." />
-          <Input placeholder="Filter by Payment Mode..." />
-          <Input type="date" placeholder="Date From" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="md:col-span-2">
+            <Input
+              placeholder="Search by voucher code, company, or passport number..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
+            />
+          </div>
+          <div className="flex gap-2">
+            <select
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="active">Active</option>
+              <option value="used">Used</option>
+            </select>
+            <Button onClick={handleSearch}>Search</Button>
+          </div>
         </div>
         <DataTable
           columns={columns}
           data={data}
-          pagination
+          pagination={false}
           customStyles={customStyles}
           highlightOnHover
           pointerOnHover
           progressPending={loading}
         />
+
+        {/* Custom Backend Pagination Controls */}
+        <div className="flex items-center justify-between mt-4 pt-4 border-t">
+          <div className="text-sm text-gray-600">
+            Showing {data.length > 0 ? ((page - 1) * limit) + 1 : 0} to {Math.min(page * limit, total)} of {total} records
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => fetchVouchers(1)}
+              disabled={page === 1 || loading}
+              variant="outline"
+              size="sm"
+            >
+              First
+            </Button>
+            <Button
+              onClick={() => fetchVouchers(page - 1)}
+              disabled={page === 1 || loading}
+              variant="outline"
+              size="sm"
+            >
+              Previous
+            </Button>
+            <span className="px-4 py-2 text-sm">
+              Page {page} of {totalPages || 1}
+            </span>
+            <Button
+              onClick={() => fetchVouchers(page + 1)}
+              disabled={page >= totalPages || loading}
+              variant="outline"
+              size="sm"
+            >
+              Next
+            </Button>
+            <Button
+              onClick={() => fetchVouchers(totalPages)}
+              disabled={page >= totalPages || loading}
+              variant="outline"
+              size="sm"
+            >
+              Last
+            </Button>
+          </div>
+        </div>
       </div>
 
       <VoucherPrint

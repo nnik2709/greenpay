@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, ArrowLeft } from 'lucide-react';
 // Legacy import removed - using Supabase passportsService instead
 import { getPassportByNumber, createPassport, searchPassports } from '@/lib/passportsService';
-import { createIndividualPurchase } from '@/lib/individualPurchasesService';
+import { createIndividualPurchase, emailVoucher } from '@/lib/individualPurchasesService';
 import { getPaymentModes } from '@/lib/paymentModesStorage';
 import { useAuth } from '@/contexts/AuthContext';
 import VoucherPrint from '@/components/VoucherPrint';
@@ -465,12 +465,203 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
               <Input
                 id="nationality"
                 name="nationality"
-                placeholder="e.g., Australian"
+                placeholder="Type to search..."
                 className="mt-1"
                 value={passportInfo.nationality || ''}
                 onChange={handleInputChange}
+                list="nationalities-list"
+                autoComplete="off"
                 required
               />
+              <datalist id="nationalities-list">
+                <option value="Afghan" />
+                <option value="Albanian" />
+                <option value="Algerian" />
+                <option value="American" />
+                <option value="Andorran" />
+                <option value="Angolan" />
+                <option value="Argentinian" />
+                <option value="Armenian" />
+                <option value="Australian" />
+                <option value="Austrian" />
+                <option value="Azerbaijani" />
+                <option value="Bahamian" />
+                <option value="Bahraini" />
+                <option value="Bangladeshi" />
+                <option value="Barbadian" />
+                <option value="Belarusian" />
+                <option value="Belgian" />
+                <option value="Belizean" />
+                <option value="Beninese" />
+                <option value="Bhutanese" />
+                <option value="Bolivian" />
+                <option value="Bosnian" />
+                <option value="Brazilian" />
+                <option value="British" />
+                <option value="Bruneian" />
+                <option value="Bulgarian" />
+                <option value="Burkinabe" />
+                <option value="Burmese" />
+                <option value="Burundian" />
+                <option value="Cambodian" />
+                <option value="Cameroonian" />
+                <option value="Canadian" />
+                <option value="Cape Verdean" />
+                <option value="Central African" />
+                <option value="Chadian" />
+                <option value="Chilean" />
+                <option value="Chinese" />
+                <option value="Colombian" />
+                <option value="Comorian" />
+                <option value="Congolese" />
+                <option value="Costa Rican" />
+                <option value="Croatian" />
+                <option value="Cuban" />
+                <option value="Cypriot" />
+                <option value="Czech" />
+                <option value="Danish" />
+                <option value="Djiboutian" />
+                <option value="Dominican" />
+                <option value="Dutch" />
+                <option value="East Timorese" />
+                <option value="Ecuadorean" />
+                <option value="Egyptian" />
+                <option value="Emirati" />
+                <option value="English" />
+                <option value="Equatorial Guinean" />
+                <option value="Eritrean" />
+                <option value="Estonian" />
+                <option value="Ethiopian" />
+                <option value="Fijian" />
+                <option value="Filipino" />
+                <option value="Finnish" />
+                <option value="French" />
+                <option value="Gabonese" />
+                <option value="Gambian" />
+                <option value="Georgian" />
+                <option value="German" />
+                <option value="Ghanaian" />
+                <option value="Greek" />
+                <option value="Grenadian" />
+                <option value="Guatemalan" />
+                <option value="Guinean" />
+                <option value="Guyanese" />
+                <option value="Haitian" />
+                <option value="Honduran" />
+                <option value="Hungarian" />
+                <option value="Icelandic" />
+                <option value="Indian" />
+                <option value="Indonesian" />
+                <option value="Iranian" />
+                <option value="Iraqi" />
+                <option value="Irish" />
+                <option value="Israeli" />
+                <option value="Italian" />
+                <option value="Ivorian" />
+                <option value="Jamaican" />
+                <option value="Japanese" />
+                <option value="Jordanian" />
+                <option value="Kazakhstani" />
+                <option value="Kenyan" />
+                <option value="Kuwaiti" />
+                <option value="Kyrgyz" />
+                <option value="Laotian" />
+                <option value="Latvian" />
+                <option value="Lebanese" />
+                <option value="Liberian" />
+                <option value="Libyan" />
+                <option value="Liechtensteiner" />
+                <option value="Lithuanian" />
+                <option value="Luxembourger" />
+                <option value="Macedonian" />
+                <option value="Malagasy" />
+                <option value="Malawian" />
+                <option value="Malaysian" />
+                <option value="Maldivian" />
+                <option value="Malian" />
+                <option value="Maltese" />
+                <option value="Mauritanian" />
+                <option value="Mauritian" />
+                <option value="Mexican" />
+                <option value="Micronesian" />
+                <option value="Moldovan" />
+                <option value="Monacan" />
+                <option value="Mongolian" />
+                <option value="Montenegrin" />
+                <option value="Moroccan" />
+                <option value="Mozambican" />
+                <option value="Namibian" />
+                <option value="Nauruan" />
+                <option value="Nepalese" />
+                <option value="New Zealander" />
+                <option value="Nicaraguan" />
+                <option value="Nigerian" />
+                <option value="Nigerien" />
+                <option value="North Korean" />
+                <option value="Norwegian" />
+                <option value="Omani" />
+                <option value="Pakistani" />
+                <option value="Palauan" />
+                <option value="Palestinian" />
+                <option value="Panamanian" />
+                <option value="Papua New Guinean" />
+                <option value="Paraguayan" />
+                <option value="Peruvian" />
+                <option value="Polish" />
+                <option value="Portuguese" />
+                <option value="Qatari" />
+                <option value="Romanian" />
+                <option value="Russian" />
+                <option value="Rwandan" />
+                <option value="Saint Lucian" />
+                <option value="Salvadoran" />
+                <option value="Samoan" />
+                <option value="San Marinese" />
+                <option value="Saudi" />
+                <option value="Scottish" />
+                <option value="Senegalese" />
+                <option value="Serbian" />
+                <option value="Seychellois" />
+                <option value="Sierra Leonean" />
+                <option value="Singaporean" />
+                <option value="Slovak" />
+                <option value="Slovenian" />
+                <option value="Solomon Islander" />
+                <option value="Somali" />
+                <option value="South African" />
+                <option value="South Korean" />
+                <option value="South Sudanese" />
+                <option value="Spanish" />
+                <option value="Sri Lankan" />
+                <option value="Sudanese" />
+                <option value="Surinamese" />
+                <option value="Swazi" />
+                <option value="Swedish" />
+                <option value="Swiss" />
+                <option value="Syrian" />
+                <option value="Taiwanese" />
+                <option value="Tajik" />
+                <option value="Tanzanian" />
+                <option value="Thai" />
+                <option value="Togolese" />
+                <option value="Tongan" />
+                <option value="Trinidadian" />
+                <option value="Tunisian" />
+                <option value="Turkish" />
+                <option value="Turkmen" />
+                <option value="Tuvaluan" />
+                <option value="Ugandan" />
+                <option value="Ukrainian" />
+                <option value="Uruguayan" />
+                <option value="Uzbekistani" />
+                <option value="Vanuatuan" />
+                <option value="Venezuelan" />
+                <option value="Vietnamese" />
+                <option value="Welsh" />
+                <option value="Yemeni" />
+                <option value="Zambian" />
+                <option value="Zimbabwean" />
+              </datalist>
             </div>
             <div>
               <label htmlFor="surname" className="font-semibold text-slate-700">Surname *</label>
@@ -893,30 +1084,39 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
 const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
   const { toast } = useToast();
   const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailInput, setEmailInput] = useState(passportInfo.email || '');
   const [isEmailing, setIsEmailing] = useState(false);
 
   const handleEmailVoucher = async () => {
-    if (!passportInfo.email) {
+    // Open dialog to enter/confirm email
+    setShowEmailDialog(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailInput || !emailInput.includes('@')) {
       toast({
         variant: "destructive",
-        title: "Email Required",
-        description: "No email address provided. Please collect customer email to send voucher."
+        title: "Invalid Email",
+        description: "Please enter a valid email address."
       });
       return;
     }
 
     setIsEmailing(true);
     try {
-      // Email voucher API call would go here
+      // Call API to send voucher email
+      await emailVoucher(voucher.voucher_code, emailInput);
       toast({
         title: "Email Sent",
-        description: `Voucher has been sent to ${passportInfo.email}`
+        description: `Voucher has been sent to ${emailInput}`
       });
+      setShowEmailDialog(false);
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Email Failed",
-        description: "Failed to send email. Please try again."
+        description: error.message || "Failed to send email. Please try again."
       });
     } finally {
       setIsEmailing(false);
@@ -1009,7 +1209,7 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
               size="lg"
               disabled={isEmailing}
             >
-              {isEmailing ? 'Sending...' : '📧 Email Voucher'}
+              {isEmailing ? 'Sending...' : 'Email Voucher'}
             </Button>
           </div>
         </CardContent>
@@ -1020,7 +1220,7 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
           ← Create Another
         </Button>
         <Button onClick={() => window.location.href = '/'} size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-600">
-          Done ✓
+          Done
         </Button>
       </div>
 
@@ -1036,6 +1236,52 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
         voucherType="Individual"
         showRegistrationLink={false}
       />
+
+      {/* Email Dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Email Voucher</DialogTitle>
+            <DialogDescription>
+              Enter email address to send the voucher
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="customer@example.com"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                disabled={isEmailing}
+              />
+              <p className="text-xs text-slate-500">
+                {passportInfo.email
+                  ? `Pre-filled with: ${passportInfo.email}. You can change it if needed.`
+                  : 'Enter customer email address to send voucher'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSendEmail}
+                disabled={isEmailing || !emailInput}
+                className="flex-1"
+              >
+                {isEmailing ? 'Sending...' : 'Send Email'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowEmailDialog(false)}
+                disabled={isEmailing}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

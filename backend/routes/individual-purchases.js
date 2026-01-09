@@ -14,27 +14,101 @@ function generateVoucherCode(prefix = 'IND') {
 
 /**
  * GET /api/individual-purchases
- * Get all individual purchases (with optional filters)
+ * Get all individual purchases with pagination and search
+ * Query params:
+ *   - page: page number (default: 1)
+ *   - limit: records per page (default: 50, max: 1000)
+ *   - search: search term for voucher_code, passport_number, customer_name
+ *   - status: filter by status (all, active, used, expired, refunded)
  */
 router.get('/', auth, async (req, res) => {
   try {
-    const query = `
+    // Parse pagination params
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit) || 50));
+    const offset = (page - 1) * limit;
+
+    // Parse search params
+    const search = req.query.search ? req.query.search.trim() : '';
+    const status = req.query.status || '';
+
+    // Build WHERE clauses
+    let whereClause = 'WHERE 1=1';
+    const params = [];
+
+    if (search) {
+      params.push(`%${search}%`);
+      const searchIndex = params.length;
+      whereClause += ` AND (
+        ip.voucher_code ILIKE $${searchIndex} OR
+        ip.passport_number ILIKE $${searchIndex} OR
+        ip.customer_name ILIKE $${searchIndex}
+      )`;
+    }
+
+    if (status && status !== 'all') {
+      switch(status) {
+        case 'active':
+          whereClause += ` AND ip.used_at IS NULL AND ip.valid_until >= NOW() AND ip.refunded_at IS NULL`;
+          break;
+        case 'used':
+          whereClause += ` AND ip.used_at IS NOT NULL`;
+          break;
+        case 'expired':
+          whereClause += ` AND ip.used_at IS NULL AND ip.valid_until < NOW() AND ip.refunded_at IS NULL`;
+          break;
+        case 'refunded':
+          whereClause += ` AND ip.refunded_at IS NOT NULL`;
+          break;
+      }
+    }
+
+    // Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM individual_purchases ip
+      ${whereClause}
+    `;
+    const countResult = await db.query(countQuery, params);
+    const total = parseInt(countResult.rows[0].total);
+
+    // Get paginated data
+    params.push(limit, offset);
+    const dataQuery = `
       SELECT
         ip.*,
         p.passport_number as passport_num,
         p.full_name,
         p.nationality,
-        p.date_of_birth
+        p.date_of_birth,
+        u.name as created_by_name,
+        CASE
+          WHEN ip.refunded_at IS NOT NULL THEN 'refunded'
+          WHEN ip.used_at IS NOT NULL THEN 'used'
+          WHEN ip.valid_until < NOW() THEN 'expired'
+          ELSE 'active'
+        END as status
       FROM individual_purchases ip
       LEFT JOIN passports p ON ip.passport_number = p.passport_number
+      LEFT JOIN "User" u ON u.id = ip.created_by
+      ${whereClause}
       ORDER BY ip.created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
     `;
 
-    const result = await db.query(query);
+    const result = await db.query(dataQuery, params);
 
     res.json({
       type: 'success',
-      data: result.rows
+      data: result.rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPreviousPage: page > 1
+      }
     });
   } catch (error) {
     console.error('Error fetching individual purchases:', error);

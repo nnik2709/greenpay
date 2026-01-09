@@ -186,7 +186,7 @@ const AgentLanding = () => {
                     <div className="space-y-1.5 mb-3 bg-white/50 rounded-md p-2">
                       {action.benefits.slice(0, 2).map((benefit, i) => (
                         <div key={i} className="text-xs text-slate-700 flex items-start">
-                          <span className={`mr-2 ${action.iconColor} font-bold`}>✓</span>
+                          <span className={`mr-2 ${action.iconColor} font-bold`}>•</span>
                           <span className="leading-tight flex-1">{benefit}</span>
                         </div>
                       ))}

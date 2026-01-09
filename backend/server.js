@@ -71,6 +71,7 @@ app.use('/api/public-purchases', publicPurchasesRoutes); // Public routes (no au
 app.use('/api/buy-online', buyOnlineRoutes); // Buy Online with passport (no authentication)
 app.use('/api/cash-reconciliations', cashReconciliationRoutes); // Cash reconciliation
 app.use('/api/payment/webhook/doku', paymentWebhookDokuRoutes); // BSP DOKU webhooks (no authentication)
+app.use('/api/payment/doku-notify', paymentWebhookDokuRoutes); // ALIAS for BSP testing (bypasses ISP filters)
 app.use('/api/ocr', ocrRoutes); // Python OCR service (no authentication - public)
 
 // 404 handler

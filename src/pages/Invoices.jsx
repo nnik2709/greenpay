@@ -207,6 +207,14 @@ const Invoices = () => {
   };
 
   const openEmailVouchersModal = (invoice) => {
+    if (!invoice) {
+      toast({
+        title: 'Error',
+        description: 'Invoice data not available',
+        variant: 'destructive'
+      });
+      return;
+    }
     setSelectedInvoice(invoice);
     setVoucherEmailAddress(invoice.customer_email || '');
     setVoucherEmailModalOpen(true);
@@ -214,12 +222,23 @@ const Invoices = () => {
 
   const handleDownloadVouchers = async (invoice) => {
     try {
-      const response = await api.get(`/invoices/${invoice.id}/vouchers-pdf`, {
+      console.log('[VOUCHER DOWNLOAD] Starting download for invoice:', invoice.id);
+
+      // Note: api.get with responseType: 'blob' returns the Blob directly, not an axios-style response
+      const blob = await api.get(`/invoices/${invoice.id}/vouchers-pdf`, {
         responseType: 'blob'
       });
 
+      console.log('[VOUCHER DOWNLOAD] Blob received:', {
+        dataType: typeof blob,
+        dataSize: blob?.size,
+        isBlob: blob instanceof Blob
+      });
+
       // Create a blob URL and trigger download
-      const url = window.URL.createObjectURL(response);
+      const url = window.URL.createObjectURL(blob);
+      console.log('[VOUCHER DOWNLOAD] Blob URL created:', url);
+
       const link = document.createElement('a');
       link.href = url;
       link.download = `${invoice.customer_name.replace(/\s+/g, '_')}_Vouchers_${invoice.invoice_number}.pdf`;
@@ -228,15 +247,24 @@ const Invoices = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
+      console.log('[VOUCHER DOWNLOAD] Download triggered successfully');
+
       toast({
         title: 'Download Started',
         description: `Downloading vouchers for invoice ${invoice.invoice_number}`
       });
     } catch (error) {
+      console.error('[VOUCHER DOWNLOAD] Error:', {
+        message: error.message,
+        response: error.response,
+        responseData: error.response?.data,
+        stack: error.stack
+      });
+
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.response?.data?.error || 'Failed to download vouchers'
+        description: error.response?.data?.error || error.message || 'Failed to download vouchers'
       });
     }
   };
@@ -450,6 +478,7 @@ const Invoices = () => {
               });
               return;
             }
+            setSelectedInvoice(invoice);  // Store invoice reference for download/email
             setGeneratedVouchers(list);
             setGeneratedVouchersModalOpen(true);
           })

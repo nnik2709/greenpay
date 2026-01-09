@@ -363,7 +363,49 @@ const PaymentSuccess = () => {
                 Download PDF
               </Button>
               <Button
-                onClick={() => window.print()}
+                onClick={async () => {
+                  try {
+                    // Fetch PDF voucher and open in print dialog
+                    const response = await fetch(`/api/buy-online/voucher/${paymentSessionId}/pdf`);
+
+                    if (!response.ok) {
+                      throw new Error('Failed to fetch PDF');
+                    }
+
+                    const blob = await response.blob();
+                    const blobUrl = window.URL.createObjectURL(blob);
+
+                    // Open PDF in new window for printing
+                    const printWindow = window.open(blobUrl, '_blank');
+                    if (printWindow) {
+                      printWindow.onload = () => {
+                        printWindow.print();
+                        // Clean up blob URL after printing
+                        setTimeout(() => {
+                          window.URL.revokeObjectURL(blobUrl);
+                        }, 1000);
+                      };
+                    } else {
+                      // Popup blocked - fallback to direct print using iframe
+                      const iframe = document.createElement('iframe');
+                      iframe.style.display = 'none';
+                      iframe.src = blobUrl;
+                      document.body.appendChild(iframe);
+
+                      iframe.onload = () => {
+                        iframe.contentWindow.print();
+                        // Cleanup
+                        setTimeout(() => {
+                          document.body.removeChild(iframe);
+                          window.URL.revokeObjectURL(blobUrl);
+                        }, 1000);
+                      };
+                    }
+                  } catch (err) {
+                    console.error('Print failed:', err);
+                    alert('Unable to print PDF. Please download the voucher and print from your device.');
+                  }
+                }}
                 variant="outline"
                 className="border-emerald-600 text-emerald-700 hover:bg-emerald-50"
               >

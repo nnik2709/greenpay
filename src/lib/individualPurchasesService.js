@@ -60,4 +60,16 @@ export const markVoucherAsUsed = async (voucherCode) => {
   }
 };
 
+export const emailVoucher = async (voucherCode, recipientEmail) => {
+  try {
+    const response = await api.post(`/vouchers/${voucherCode}/email`, {
+      recipient_email: recipientEmail,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error sending voucher email:', error);
+    throw error;
+  }
+};
+
 // getVouchersByPassport function removed - feature deprecated

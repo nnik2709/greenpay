@@ -9,6 +9,8 @@
  * @module mrzParser
  */
 
+import { convertCountryCodeToNationality } from './countryCodeMapper';
+
 /**
  * Validates if a string is a valid MRZ format
  * @param {string} input - The input string to validate
@@ -71,7 +73,8 @@ export const parseMrz = (mrzString) => {
     const passportCheckDigit = line2.substring(9, 10);
 
     // Nationality (3 chars)
-    const nationality = line2.substring(10, 13);
+    const nationalityCode = line2.substring(10, 13);
+    const nationality = convertCountryCodeToNationality(nationalityCode);
 
     // Date of birth (6 chars: YYMMDD)
     const dobRaw = line2.substring(13, 19);
@@ -115,7 +118,8 @@ export const parseMrz = (mrzString) => {
       passportNumber: passportNumber,
       surname: surname,
       givenName: givenName,
-      nationality: nationality,
+      nationality: nationality, // Full nationality name (e.g., "Australian")
+      nationalityCode: nationalityCode, // 3-letter code (e.g., "AUS")
       dob: dob,
       sex: sex,
       dateOfExpiry: expiryDate,

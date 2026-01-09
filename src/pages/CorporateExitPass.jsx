@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getPaymentModes } from '@/lib/paymentModesStorage';
@@ -36,6 +37,7 @@ const CorporateExitPass = () => {
   const [discount, setDiscount] = useState(0);
   const [collectedAmount, setCollectedAmount] = useState(50);
   const [validUntil, setValidUntil] = useState('');
+  const [applyGst, setApplyGst] = useState(false);
 
   // Invoice & vouchers
   const [invoice, setInvoice] = useState(null);
@@ -132,7 +134,8 @@ const CorporateExitPass = () => {
         amount: voucherValue,
         discount: discount,
         valid_until: validUntil,
-        payment_method: selectedMode
+        payment_method: selectedMode,
+        apply_gst: applyGst
       };
 
       const response = await createCorporateInvoice(payload);
@@ -449,6 +452,25 @@ const CorporateExitPass = () => {
                     </div>
                   </div>
 
+                  {/* GST Toggle */}
+                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="gst-toggle" className="text-sm font-semibold text-slate-900">
+                          Apply GST (10%)
+                        </Label>
+                        <p className="text-xs text-slate-600 mt-1">
+                          Toggle to include or exclude GST on this invoice (default: OFF)
+                        </p>
+                      </div>
+                      <Switch
+                        id="gst-toggle"
+                        checked={applyGst}
+                        onCheckedChange={setApplyGst}
+                      />
+                    </div>
+                  </div>
+
                   {/* Payment Mode */}
                   <div className="space-y-3">
                     <Label className="text-base font-semibold">Intended Payment Method *</Label>
@@ -488,7 +510,7 @@ const CorporateExitPass = () => {
           >
             <Card className="border-green-200">
               <CardHeader className="bg-green-50">
-                <CardTitle className="text-green-700">✓ Invoice Created</CardTitle>
+                <CardTitle className="text-green-700">Invoice Created</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
@@ -580,7 +602,7 @@ const CorporateExitPass = () => {
             <Card className="border-green-200">
               <CardHeader className="bg-green-50">
                 <CardTitle className="text-green-700">
-                  ✓ Vouchers Generated Successfully
+                  Vouchers Generated Successfully
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-4">

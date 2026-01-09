@@ -29,32 +29,19 @@ const generateVoucherPDFBuffer = async (vouchers, companyName) => {
         // Two logos centered at top
         const logoY = margin;
         const logoSize = 90;
-        const logoGap = 80; // Gap between logos
-        const totalLogoWidth = (logoSize * 2) + logoGap;
-        const leftLogoX = (pageWidth - totalLogoWidth) / 2; // First logo position
-        const rightLogoX = leftLogoX + logoSize + logoGap; // Second logo position
+        const logoX = (pageWidth - logoSize) / 2; // Center the logo
 
-        // CCDA Logo (left)
+        // CCDA Logo (centered)
         try {
           const ccdaLogoPath = path.join(__dirname, '../assets/logos/ccda-logo.png');
           if (fs.existsSync(ccdaLogoPath)) {
-            doc.image(ccdaLogoPath, leftLogoX, logoY, { width: logoSize });
+            doc.image(ccdaLogoPath, logoX, logoY, { width: logoSize });
           }
         } catch (err) {
           console.error('❌ Error loading CCDA logo:', err.message);
         }
 
-        // PNG Emblem (right)
-        try {
-          const pngEmblemPath = path.join(__dirname, '../assets/logos/png-emblem.png');
-          if (fs.existsSync(pngEmblemPath)) {
-            doc.image(pngEmblemPath, rightLogoX, logoY, { width: logoSize });
-          }
-        } catch (err) {
-          console.error('❌ Error loading PNG emblem:', err.message);
-        }
-
-        yPos = logoY + logoSize + 30; // Position content below logos
+        yPos = logoY + logoSize + 30; // Position content below logo
 
         // GREEN CARD title
         doc.fontSize(48)
@@ -490,32 +477,19 @@ async function generateVoucherPDF(voucher) {
       // Two logos centered at top
       const logoY = margin;
       const logoSize = 90;
-      const logoGap = 80; // Gap between logos
-      const totalLogoWidth = (logoSize * 2) + logoGap;
-      const leftLogoX = (pageWidth - totalLogoWidth) / 2; // First logo position
-      const rightLogoX = leftLogoX + logoSize + logoGap; // Second logo position
+      const logoX = (pageWidth - logoSize) / 2; // Center the logo
 
-      // CCDA Logo (left)
+      // CCDA Logo (centered)
       try {
         const ccdaLogoPath = path.join(__dirname, '../assets/logos/ccda-logo.png');
         if (fs.existsSync(ccdaLogoPath)) {
-          doc.image(ccdaLogoPath, leftLogoX, logoY, { width: logoSize });
+          doc.image(ccdaLogoPath, logoX, logoY, { width: logoSize });
         }
       } catch (err) {
         console.error('❌ Error loading CCDA logo:', err.message);
       }
 
-      // PNG Emblem (right)
-      try {
-        const pngEmblemPath = path.join(__dirname, '../assets/logos/png-emblem.png');
-        if (fs.existsSync(pngEmblemPath)) {
-          doc.image(pngEmblemPath, rightLogoX, logoY, { width: logoSize });
-        }
-      } catch (err) {
-        console.error('❌ Error loading PNG emblem:', err.message);
-      }
-
-      yPos = logoY + logoSize + 30; // Position content below logos
+      yPos = logoY + logoSize + 30; // Position content below logo
 
       // GREEN CARD title
       doc.fontSize(48)

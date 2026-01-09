@@ -18,7 +18,7 @@ const JsBarcode = require('jsbarcode');
 const { createCanvas } = require('canvas');
 const PaymentGatewayFactory = require('../services/payment-gateways/PaymentGatewayFactory');
 const { sendVoucherNotification } = require('../services/notificationService');
-const { generateVoucherPDF } = require('../utils/pdfGenerator');
+const { generateVoucherPDFBuffer } = require('../utils/pdfGenerator');
 const voucherConfig = require('../config/voucherConfig');
 
 // Database connection
@@ -85,23 +85,32 @@ router.post('/prepare-payment', async (req, res) => {
       });
     }
 
-    // Human verification checks (backend validation)
+    // Bot protection verification
     if (verification) {
-      // Check time spent (should be at least 3 seconds)
-      if (verification.timeSpent < 3) {
+      // 1. Honeypot check (should be empty)
+      if (verification.honeypot && verification.honeypot.trim() !== '') {
+        console.warn('[BOT DETECTED] Honeypot field filled:', verification.honeypot);
         return res.status(400).json({
-          error: 'Verification failed',
-          message: 'Please review your information'
+          error: 'Security verification failed',
+          message: 'Please try again'
         });
       }
 
-      // Check math answer
-      if (verification.answer !== verification.expected) {
+      // 2. Timing check (minimum 3 seconds to fill form)
+      const timeSpent = Date.now() - verification.startTime;
+      if (timeSpent < 3000) {
+        console.warn('[BOT DETECTED] Form submitted too quickly:', timeSpent, 'ms');
         return res.status(400).json({
-          error: 'Verification failed',
-          message: 'Please answer the verification question correctly'
+          error: 'Security verification failed',
+          message: 'Please take your time filling the form'
         });
       }
+
+      // 3. Math verification - REMOVED: Server can't verify without storing answer
+      // Math answer is checked on client-side only
+      console.log('[SECURITY] Bot protection checks passed');
+    } else {
+      console.warn('⚠️ No verification data provided');
     }
 
     // Generate unique session ID
@@ -143,7 +152,7 @@ router.post('/prepare-payment', async (req, res) => {
         source: 'buy-online',
         userAgent: req.headers['user-agent'],
         ip: req.ip,
-        verification: verification ? 'passed' : 'none'
+        verification: 'turnstile'
       }),
       expiresAt
     ];
@@ -278,7 +287,7 @@ router.get('/voucher/:sessionId', async (req, res) => {
       });
     }
 
-    // Get voucher
+    // Get voucher by purchase_session_id (created by webhook)
     const voucherQuery = `
       SELECT
         ip.id,
@@ -295,16 +304,14 @@ router.get('/voucher/:sessionId', async (req, res) => {
         p.nationality
       FROM individual_purchases ip
       LEFT JOIN passports p ON ip.passport_number = p.passport_number
-      WHERE ip.passport_number = (
-        SELECT passport_data->>'passportNumber' FROM purchase_sessions WHERE id = $1
-      )
-      ORDER BY ip.created_at DESC
+      WHERE ip.purchase_session_id = $1
       LIMIT 1
     `;
 
     const voucherResult = await pool.query(voucherQuery, [sessionId]);
 
     if (voucherResult.rows.length === 0) {
+      console.error(`[BUY-ONLINE] ❌ Voucher not found for session ${sessionId}`);
       return res.status(404).json({
         error: 'Voucher not found'
       });
@@ -393,12 +400,12 @@ router.get('/voucher/:sessionId/pdf', async (req, res) => {
     // Generate barcode (replaces QR code)
     const barcodeDataUrl = generateBarcodeDataURL(voucher.voucher_code);
 
-    // Generate PDF
-    const pdfBuffer = await generateVoucherPDF({
+    // Generate PDF using unified GREEN CARD template
+    const pdfBuffer = await generateVoucherPDFBuffer([{
       ...voucher,
       barcode: barcodeDataUrl,
       qrCode: barcodeDataUrl // Keep for backward compatibility with PDF generator
-    });
+    }]);
 
     // Send PDF
     res.setHeader('Content-Type', 'application/pdf');
@@ -464,12 +471,12 @@ router.post('/voucher/:sessionId/email', async (req, res) => {
     // Generate barcode (replaces QR code)
     const barcodeDataUrl = generateBarcodeDataURL(voucher.voucher_code);
 
-    // Generate PDF with voucher details
-    const pdfBuffer = await generateVoucherPDF({
+    // Generate PDF with voucher details using unified GREEN CARD template
+    const pdfBuffer = await generateVoucherPDFBuffer([{
       ...voucher,
       barcode: barcodeDataUrl,
       qrCode: barcodeDataUrl // Keep for backward compatibility with PDF generator
-    });
+    }]);
 
     // Send email with PDF attachment
     const nodemailer = require('nodemailer');

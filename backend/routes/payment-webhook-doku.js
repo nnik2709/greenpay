@@ -144,13 +144,20 @@ async function createVoucherFromPayment(sessionId, paymentData) {
 
     // 2. Check if already completed (idempotency - prevent duplicate vouchers)
     if (session.payment_status === 'completed') {
-      console.log('[DOKU VOUCHER] Session already completed - returning existing voucher');
+      console.log('[DOKU VOUCHER] Session already completed - checking for existing voucher');
       const existingVoucher = await client.query(
         'SELECT * FROM individual_purchases WHERE purchase_session_id = $1',
         [sessionId]
       );
-      await client.query('COMMIT');
-      return existingVoucher.rows[0];
+
+      if (existingVoucher.rows.length > 0) {
+        console.log('[DOKU VOUCHER] Existing voucher found - returning:', existingVoucher.rows[0].voucher_code);
+        await client.query('COMMIT');
+        return existingVoucher.rows[0];
+      }
+
+      // Voucher doesn't exist yet - continue with creation
+      console.log('[DOKU VOUCHER] No voucher found - creating new voucher despite completed status');
     }
 
     // 3. Extract passport data from session
@@ -356,27 +363,26 @@ router.post('/notify', async (req, res) => {
     console.log('[DOKU NOTIFY] Status:', status);
     console.log('[DOKU NOTIFY] Response Code:', data.responseCode);
 
-    // Update transaction status in database with proper error handling
+    // Update purchase session status in database with proper error handling
     try {
       const updateResult = await db.query(
-        `UPDATE payment_gateway_transactions
+        `UPDATE purchase_sessions
          SET
-           status = $1::text,
-           gateway_response = $2::jsonb,
-           completed_at = CASE WHEN $1::text = 'completed' THEN NOW() ELSE completed_at END,
-           updated_at = NOW()
-         WHERE session_id = $3::text
-         RETURNING id, status`,
-        [status, JSON.stringify(data), sessionId]
+           payment_status = $1::text,
+           payment_gateway_ref = $2::text,
+           completed_at = CASE WHEN $1::text = 'completed' THEN NOW() ELSE completed_at END
+         WHERE id = $3::text
+         RETURNING id, payment_status`,
+        [status, data.approvalCode || data.responseCode || null, sessionId]
       );
 
       if (updateResult.rowCount === 0) {
-        console.warn('[DOKU NOTIFY] WARNING: Transaction not found in database:', sessionId);
+        console.warn('[DOKU NOTIFY] WARNING: Purchase session not found in database:', sessionId);
         // Still return CONTINUE to avoid DOKU retries
       } else {
-        console.log('[DOKU NOTIFY] ✅ Transaction updated successfully');
-        console.log('[DOKU NOTIFY] Record ID:', updateResult.rows[0].id);
-        console.log('[DOKU NOTIFY] New status:', updateResult.rows[0].status);
+        console.log('[DOKU NOTIFY] ✅ Purchase session updated successfully');
+        console.log('[DOKU NOTIFY] Session ID:', updateResult.rows[0].id);
+        console.log('[DOKU NOTIFY] New status:', updateResult.rows[0].payment_status);
       }
 
     } catch (dbError) {

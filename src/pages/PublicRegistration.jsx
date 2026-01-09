@@ -293,7 +293,6 @@ const PublicRegistration = () => {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-600">
-              <span className="text-3xl">⚠️</span>
               Voucher Validation Failed
             </CardTitle>
           </CardHeader>
@@ -344,7 +343,6 @@ const PublicRegistration = () => {
             {/* Scanner Status Indicator */}
             {isScannerActive && (
               <Alert className="mb-6 bg-emerald-50 border-emerald-300">
-                <span className="text-2xl">📱</span>
                 <AlertDescription className="text-emerald-900 font-medium">
                   Scanning passport MRZ... Please scan the 2 lines at the bottom of your passport.
                 </AlertDescription>
@@ -352,7 +350,6 @@ const PublicRegistration = () => {
             )}
             {!isScannerActive && (
               <Alert className="mb-6 bg-blue-50 border-blue-300">
-                <span className="text-2xl">💡</span>
                 <AlertDescription className="text-blue-900">
                   <strong>Tip:</strong> Use a hardware scanner to scan your passport MRZ for automatic form filling, or enter details manually below.
                 </AlertDescription>
@@ -444,7 +441,6 @@ const PublicRegistration = () => {
 
               {/* Voucher Info Display */}
               <Alert className="bg-emerald-50 border-emerald-200">
-                <span className="text-xl">✓</span>
                 <AlertDescription className="text-emerald-800">
                   <strong>Voucher Details:</strong>
                   <ul className="mt-2 space-y-1 text-sm">
@@ -468,7 +464,7 @@ const PublicRegistration = () => {
                     Registering...
                   </>
                 ) : (
-                  '✓ Register Passport'
+                  'Register Passport'
                 )}
               </Button>
 

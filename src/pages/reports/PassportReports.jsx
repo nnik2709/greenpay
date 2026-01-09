@@ -27,24 +27,35 @@ const PassportReports = () => {
   const [toDate, setToDate] = useState('');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [passportFilter, setPassportFilter] = useState('');
-  const [surnameFilter, setSurnameFilter] = useState('');
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [limit] = useState(50);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchPassports();
-  }, [fromDate, toDate]);
+  }, [page]);
 
-  const fetchPassports = async () => {
+  const fetchPassports = async (pageNum = page) => {
     try {
       setLoading(true);
 
-      // Build query params for date filtering
-      const params = { limit: 10000 }; // Request all passports
+      // Build query params with pagination and search
+      const params = {
+        page: pageNum,
+        limit,
+        search: searchQuery
+      };
       if (fromDate) params.dateFrom = fromDate;
       if (toDate) params.dateTo = toDate;
 
       const response = await api.get('/passports', { params });
-      const passports = response.passports || response.data || [];
+      const passports = response.data || [];
 
       // Transform data to match table format
       const transformedData = passports.map(p => {
@@ -86,11 +97,34 @@ const PassportReports = () => {
       });
 
       setData(transformedData);
+
+      // Handle pagination metadata
+      if (response.pagination) {
+        setPage(response.pagination.page);
+        setTotalPages(response.pagination.totalPages);
+        setTotal(response.pagination.total);
+      }
     } catch (error) {
       console.error('Error fetching passports:', error);
       alert('Failed to load passports');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    setPage(1); // Reset to page 1 when searching
+    fetchPassports(1);
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return 'N/A';
+      return date.toLocaleDateString();
+    } catch {
+      return 'N/A';
     }
   };
 
@@ -138,13 +172,6 @@ const PassportReports = () => {
     URL.revokeObjectURL(dlUrl);
   };
 
-  // Filter data based on search inputs
-  const filteredData = data.filter(row => {
-    const matchesPassport = !passportFilter || (row.passportNo && row.passportNo.toLowerCase().includes(passportFilter.toLowerCase()));
-    const matchesSurname = !surnameFilter || (row.surname && row.surname.toLowerCase().includes(surnameFilter.toLowerCase()));
-    return matchesPassport && matchesSurname;
-  });
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -160,30 +187,28 @@ const PassportReports = () => {
       </div>
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <div className="flex flex-col">
-            <label className="text-sm text-slate-600 mb-1">From</label>
-            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="md:col-span-2">
+            <Input
+              placeholder="Search by passport number, full name, or nationality..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
+            />
           </div>
-          <div className="flex flex-col">
-            <label className="text-sm text-slate-600 mb-1">To</label>
-            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+          <div className="flex gap-2">
+            <Input type="date" placeholder="From" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+            <Input type="date" placeholder="To" value={toDate} onChange={(e) => setToDate(e.target.value)} />
           </div>
-          <Input 
-            placeholder="Filter by Passport No..." 
-            value={passportFilter}
-            onChange={(e) => setPassportFilter(e.target.value)}
-          />
-          <Input 
-            placeholder="Filter by Surname..." 
-            value={surnameFilter}
-            onChange={(e) => setSurnameFilter(e.target.value)}
-          />
         </div>
         <DataTable
           columns={columns}
-          data={filteredData}
-          pagination
+          data={data}
+          pagination={false}
           customStyles={customStyles}
           highlightOnHover
           pointerOnHover
@@ -191,6 +216,46 @@ const PassportReports = () => {
           progressComponent={<div className="py-8">Loading passports...</div>}
           noDataComponent={<div className="py-8 text-slate-500">No passports found</div>}
         />
+
+        {/* Custom Backend Pagination Controls */}
+        <div className="flex items-center justify-between mt-4 pt-4 border-t">
+          <div className="text-sm text-gray-600">
+            Showing {data.length > 0 ? ((page - 1) * limit) + 1 : 0} to {Math.min(page * limit, total)} of {total} records
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => fetchPassports(1)}
+              disabled={page === 1 || loading}
+              className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+            >
+              First
+            </button>
+            <button
+              onClick={() => fetchPassports(page - 1)}
+              disabled={page === 1 || loading}
+              className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="px-4 py-2 text-sm">
+              Page {page} of {totalPages || 1}
+            </span>
+            <button
+              onClick={() => fetchPassports(page + 1)}
+              disabled={page >= totalPages || loading}
+              className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+            >
+              Next
+            </button>
+            <button
+              onClick={() => fetchPassports(totalPages)}
+              disabled={page >= totalPages || loading}
+              className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+            >
+              Last
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

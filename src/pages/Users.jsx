@@ -578,19 +578,19 @@ function Users() {
                         <p className="text-xs text-slate-600 font-medium mb-2">Password requirements:</p>
                         <ul className="text-xs space-y-1">
                           <li className={editingUser.password.length >= 8 ? 'text-emerald-600' : 'text-slate-400'}>
-                            {editingUser.password.length >= 8 ? '✓' : '○'} At least 8 characters
+                            {editingUser.password.length >= 8 ? '•' : '○'} At least 8 characters
                           </li>
                           <li className={/[A-Z]/.test(editingUser.password) ? 'text-emerald-600' : 'text-slate-400'}>
-                            {/[A-Z]/.test(editingUser.password) ? '✓' : '○'} One uppercase letter
+                            {/[A-Z]/.test(editingUser.password) ? '•' : '○'} One uppercase letter
                           </li>
                           <li className={/\d/.test(editingUser.password) ? 'text-emerald-600' : 'text-slate-400'}>
-                            {/\d/.test(editingUser.password) ? '✓' : '○'} One digit
+                            {/\d/.test(editingUser.password) ? '•' : '○'} One digit
                           </li>
                           <li className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(editingUser.password) ? 'text-emerald-600' : 'text-slate-400'}>
-                            {/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(editingUser.password) ? '✓' : '○'} One special character
+                            {/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(editingUser.password) ? '•' : '○'} One special character
                           </li>
                           <li className={editingUser.password && editingUser.password === editingUser.confirmPassword ? 'text-emerald-600' : 'text-slate-400'}>
-                            {editingUser.password && editingUser.password === editingUser.confirmPassword ? '✓' : '○'} Passwords match
+                            {editingUser.password && editingUser.password === editingUser.confirmPassword ? '•' : '○'} Passwords match
                           </li>
                         </ul>
                       </div>

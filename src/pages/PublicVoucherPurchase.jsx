@@ -269,7 +269,7 @@ const PublicVoucherPurchase = () => {
             className="mb-4"
           >
             <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-              🌿 PNG Green Fees
+              PNG Green Fees
             </h1>
           </motion.div>
           <p className="text-lg text-slate-600">
@@ -285,7 +285,6 @@ const PublicVoucherPurchase = () => {
           <Alert className="mb-6 bg-yellow-50 border-yellow-300 animate-pulse">
             <AlertDescription className="text-yellow-900">
               <div className="flex items-center gap-2">
-                <span className="text-xl">⚠️</span>
                 <div>
                   <p className="font-semibold">No Internet Connection</p>
                   <p className="text-sm">Your form data is saved. Payment will be available when connection is restored.</p>
@@ -299,7 +298,7 @@ const PublicVoucherPurchase = () => {
         {lastSaved && (
           <div className="text-center mb-4">
             <p className="text-xs text-slate-400">
-              ✓ Form auto-saved at {lastSaved}
+              Form auto-saved at {lastSaved}
             </p>
           </div>
         )}
@@ -354,7 +353,7 @@ const PublicVoucherPurchase = () => {
                   />
                 </div>
                 <p className="text-xs text-emerald-600 font-medium">
-                  📱 Voucher code will be sent via SMS (works on all phones)
+                  Voucher code will be sent via SMS (works on all phones)
                 </p>
               </div>
 
@@ -391,7 +390,7 @@ const PublicVoucherPurchase = () => {
                     disabled={isSubmitting}
                   />
                   <Label htmlFor="includePassport" className="cursor-pointer">
-                    <span className="font-semibold text-emerald-700">✓ Include passport details now</span>
+                    <span className="font-semibold text-emerald-700">Include passport details now</span>
                     <span className="block text-xs text-slate-500 mt-1">
                       Skip the registration step - your voucher will be ready to scan immediately!
                     </span>
@@ -407,7 +406,7 @@ const PublicVoucherPurchase = () => {
                     className="space-y-4 bg-emerald-50 border border-emerald-200 rounded-lg p-4"
                   >
                     <p className="text-sm font-semibold text-emerald-900">
-                      📋 Passport Details
+                      Passport Details
                     </p>
 
                     {/* Passport Number */}
@@ -506,7 +505,7 @@ const PublicVoucherPurchase = () => {
 
                     <Alert className="bg-white border-emerald-300">
                       <AlertDescription className="text-sm text-emerald-900">
-                        <strong>✓ Benefits:</strong>
+                        <strong>Benefits:</strong>
                         <ul className="mt-2 space-y-1 ml-4 list-disc">
                           <li>No registration step required</li>
                           <li>Voucher ready to scan immediately</li>
@@ -537,15 +536,15 @@ const PublicVoucherPurchase = () => {
               {/* Payment Methods Info */}
               <Alert className="bg-blue-50 border-blue-200">
                 <AlertDescription>
-                  <p className="font-semibold text-blue-900 mb-2">💳 Accepted Payment Methods:</p>
+                  <p className="font-semibold text-blue-900 mb-2">Accepted Payment Methods:</p>
                   <ul className="text-sm text-blue-800 space-y-1">
-                    <li>✓ Visa / Mastercard (Debit or Credit)</li>
-                    <li>✓ BSP Pay (Smartphone App)</li>
-                    <li>✓ Mobile Money (*131# USSD)</li>
-                    <li>✓ EFTPOS Online</li>
+                    <li>• Visa / Mastercard (Debit or Credit)</li>
+                    <li>• BSP Pay (Smartphone App)</li>
+                    <li>• Mobile Money (*131# USSD)</li>
+                    <li>• EFTPOS Online</li>
                   </ul>
                   <p className="text-xs text-blue-600 mt-3">
-                    🔒 Secure payment powered by BSP Bank PNG
+                    Secure payment powered by BSP Bank PNG
                   </p>
                 </AlertDescription>
               </Alert>
@@ -553,14 +552,14 @@ const PublicVoucherPurchase = () => {
               {/* What Happens Next */}
               <Alert className="bg-slate-50 border-slate-200">
                 <AlertDescription>
-                  <p className="font-semibold text-slate-800 mb-2">📋 What Happens Next:</p>
+                  <p className="font-semibold text-slate-800 mb-2">What Happens Next:</p>
                   {formData.includePassport ? (
                     <ol className="text-sm text-slate-700 space-y-1 ml-4 list-decimal">
                       <li>Click "Proceed to Payment" below</li>
                       <li>You'll be redirected to secure payment page</li>
                       <li>Complete payment using your preferred method</li>
                       <li>Receive voucher code via SMS + Email instantly</li>
-                      <li><strong className="text-emerald-700">✓ Voucher ready to scan at airport - no registration needed!</strong></li>
+                      <li><strong className="text-emerald-700">Voucher ready to scan at airport - no registration needed!</strong></li>
                     </ol>
                   ) : (
                     <ol className="text-sm text-slate-700 space-y-1 ml-4 list-decimal">
@@ -586,10 +585,10 @@ const PublicVoucherPurchase = () => {
                     Processing...
                   </>
                 ) : networkStatus === 'offline' ? (
-                  '⚠️ Waiting for Connection...'
+                  'Waiting for Connection...'
                 ) : (
                   <>
-                    🔒 Proceed to Secure Payment
+                    Proceed to Secure Payment
                     <span className="ml-2">→</span>
                   </>
                 )}
@@ -597,7 +596,7 @@ const PublicVoucherPurchase = () => {
 
               {/* Security Notice */}
               <p className="text-xs text-center text-slate-500">
-                🔐 Your payment is secured by BSP Bank PNG. We never store your card details.
+                Your payment is secured by BSP Bank PNG. We never store your card details.
               </p>
             </form>
           </CardContent>
@@ -607,7 +606,7 @@ const PublicVoucherPurchase = () => {
         <div className="mt-8 space-y-4">
           <Card className="bg-white/50 border-slate-200">
             <CardContent className="p-4">
-              <h3 className="font-semibold text-slate-800 mb-2">ℹ️ Important Information</h3>
+              <h3 className="font-semibold text-slate-800 mb-2">Important Information</h3>
               <ul className="text-sm text-slate-600 space-y-1">
                 <li>• Vouchers are valid for 30 days from purchase date</li>
                 <li>• You can register passport details anytime within the validity period</li>

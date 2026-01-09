@@ -61,22 +61,24 @@ export const AuthProvider = ({ children }) => {
 
       const mappedRole = mapBackendRoleToFrontend(data.user.role || data.user.role_name || 'Customer');
 
-      setUser({
+      const userData = {
         id: data.user.id,
         email: data.user.email,
         role: mappedRole,
         name: data.user.name,
-      });
+      };
+
+      setUser(userData);
       setIsAuthenticated(true);
 
       // Log the login event (handled by backend now)
       // But we can still log client-side info if needed
       await logLoginEvent(data.user.id, data.user.email);
 
-      return true;
+      return userData; // Return user data for immediate use
     } catch (error) {
       console.error('Login error:', error);
-      return false;
+      return null;
     }
   };
 

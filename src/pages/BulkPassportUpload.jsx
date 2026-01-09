@@ -231,7 +231,6 @@ const BulkPassportUpload = () => {
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <div className="text-center p-10 border-2 border-dashed border-emerald-300 rounded-xl bg-emerald-50/50">
-              <div className="text-6xl mb-4">📤</div>
               <h3 className="mt-2 text-lg font-medium text-slate-800">Drag & drop your file here</h3>
               <p className="mt-1 text-sm text-slate-500">or</p>
               <label htmlFor="file-upload" className={`relative rounded-md font-semibold text-emerald-600 hover:text-emerald-500 ${loading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
@@ -272,7 +271,6 @@ const BulkPassportUpload = () => {
         return (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-6 p-8 bg-white/80 rounded-xl">
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto text-4xl">
-                    ✓
                 </div>
                 <h2 className="text-2xl font-bold text-slate-800">Upload & Payment Successful!</h2>
                 <p className="text-slate-600">
@@ -313,7 +311,7 @@ const BulkPassportUpload = () => {
                 <li key={step.name} className={`flex-1 ${stepIdx !== steps.length - 1 ? 'pr-8 sm:pr-20' : ''} relative`}>
                   <div className="flex items-center">
                     <span className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${currentStep > step.id ? 'bg-emerald-600' : currentStep === step.id ? 'bg-emerald-500' : 'bg-slate-300'} text-white`}>
-                      {currentStep > step.id ? '✓' : step.id}
+                      {step.id}
                     </span>
                     <span className={`ml-4 text-sm font-medium ${currentStep >= step.id ? 'text-emerald-700' : 'text-slate-500'}`}>{step.name}</span>
                   </div>
