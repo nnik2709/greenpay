@@ -498,80 +498,47 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
 
   return (
     <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}>
-      {/* PRIMARY SEARCH SECTION - First Field */}
+      {/* STEP 1: SCAN PASSPORT */}
       <Card className="overflow-visible border-2 border-emerald-500 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50">
-          <CardTitle className="text-xl">🔍 Step 1: Search Passport by Number</CardTitle>
-          <p className="text-sm text-slate-600 mt-1">Enter passport number manually or use MRZ scanner</p>
+          <CardTitle className="text-xl">📷 Step 1: Scan Passport</CardTitle>
+          <p className="text-sm text-slate-600 mt-1">Place passport on scanner to auto-fill all details</p>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
-          {/* Primary Search Input */}
-          <div className="space-y-3">
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <Input
-                  placeholder="Enter Passport Number (e.g., P1234567)"
-                  className="text-lg h-12 border-2 border-emerald-300 focus:border-emerald-500"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  autoFocus
-                />
-              </div>
-              <Button
-                onClick={handleSearch}
-                size="lg"
-                className="bg-emerald-600 hover:bg-emerald-700 px-8"
-                disabled={isSearching || !searchQuery.trim()}
-              >
-                {isSearching ? 'Searching...' : 'Search'}
-              </Button>
-            </div>
-
-            {/* Search Result Feedback */}
-            {passportFound === true && (
-              <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-start gap-3">
-                  <div className="text-3xl">✅</div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-green-900 text-lg">Passport Found in Database!</h3>
-                    <p className="text-green-700 text-sm mt-1">
-                      Existing passport record loaded for <strong>{passportInfo.givenName} {passportInfo.surname}</strong>
-                    </p>
-                    <p className="text-green-600 text-xs mt-2">
-                      All fields have been auto-populated. Review and proceed to payment.
-                    </p>
-                  </div>
+          {/* Scan Result Feedback */}
+          {passportFound === true && (
+            <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-start gap-3">
+                <div className="text-3xl">✅</div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-green-900 text-lg">Passport Found in Database!</h3>
+                  <p className="text-green-700 text-sm mt-1">
+                    Existing passport record loaded for <strong>{passportInfo.givenName} {passportInfo.surname}</strong>
+                  </p>
+                  <p className="text-green-600 text-xs mt-2">
+                    All fields have been auto-populated. Review and proceed to payment.
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {passportFound === false && (
-              <div className="bg-blue-50 border-2 border-blue-500 rounded-lg p-4 animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-start gap-3">
-                  <div className="text-3xl">📋</div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-blue-900 text-lg">New Passport - Not in Database</h3>
-                    <p className="text-blue-700 text-sm mt-1">
-                      Passport number <strong>{searchQuery}</strong> not found in system.
-                    </p>
-                    <p className="text-blue-600 text-xs mt-2">
-                      Please enter passport details below to create a new record.
-                    </p>
-                  </div>
+          {passportFound === false && (
+            <div className="bg-blue-50 border-2 border-blue-500 rounded-lg p-4 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-start gap-3">
+                <div className="text-3xl">📋</div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-blue-900 text-lg">New Passport Scanned</h3>
+                  <p className="text-blue-700 text-sm mt-1">
+                    Passport not found in system. Details auto-filled from scan.
+                  </p>
+                  <p className="text-blue-600 text-xs mt-2">
+                    Review the information below and proceed to payment.
+                  </p>
                 </div>
               </div>
-            )}
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-slate-300" />
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-3 text-slate-500 font-semibold">Or Use MRZ Scanner</span>
-            </div>
-          </div>
+          )}
 
           {/* PrehKeyTec Hardware Scanner Status */}
           <ScannerStatusFull
@@ -584,26 +551,6 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
             isSupported={webSerialScanner.isSupported}
             reconnectAttempt={webSerialScanner.reconnectAttempt}
           />
-
-          {/* Scanner Ready Indicator */}
-          {webSerialScanner.isReady && (
-            <Card className="bg-emerald-50 border-2 border-emerald-400">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="text-2xl">✅</div>
-                  <div>
-                    <h3 className="font-bold text-emerald-900">PrehKeyTec Scanner Ready</h3>
-                    <p className="text-emerald-700 text-sm">
-                      Place passport on scanner. Data will auto-fill when scanned.
-                      {webSerialScanner.scanCount > 0 && (
-                        <span className="ml-2 font-semibold">({webSerialScanner.scanCount} scanned this session)</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Fallback keyboard wedge scanner indicator */}
           {!webSerialScanner.isSupported && isScannerActive && (
@@ -624,16 +571,16 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
         </CardContent>
       </Card>
 
-      {/* PASSPORT DETAILS FORM - Only show after search or for manual entry */}
+      {/* PASSPORT DETAILS FORM - Manual entry or review scanned data */}
       <Card className="mt-8">
         <CardHeader>
           <CardTitle>Step 2: Passport Details</CardTitle>
           <p className="text-sm text-slate-600 mt-1">
             {passportFound === true
-              ? "Review auto-populated information"
+              ? "Review auto-populated information from scan"
               : passportFound === false
-                ? "Enter passport details to create new record"
-                : "Search for passport first, or enter details manually"}
+                ? "Review scanned details or complete missing fields"
+                : "Enter passport details manually if scanner unavailable"}
           </p>
         </CardHeader>
         <CardContent>

@@ -38,7 +38,7 @@ const statusConfig = {
   [ConnectionState.READY]: {
     color: 'bg-green-500',
     label: 'Scanner Ready',
-    description: 'Ready to scan',
+    description: 'Place passport on scanner. Data will auto-fill when scanned.',
     showConnect: false,
   },
   [ConnectionState.RECONNECTING]: {

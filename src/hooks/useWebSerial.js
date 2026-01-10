@@ -19,6 +19,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { convertCountryCodeToNationality } from '@/lib/countryCodeMapper';
 
 // PrehKeyTec MC147 default serial settings
 const DEFAULT_SERIAL_OPTIONS = {
@@ -76,7 +77,8 @@ function parseMrz(mrzRaw) {
     const givenName = (namesParts.slice(1).join(' ') || '').replace(/</g, ' ').trim();
 
     const passportNo = line2.substring(0, 9).replace(/</g, '').trim();
-    const nationality = line2.substring(10, 13);
+    const nationalityCode = line2.substring(10, 13);
+    const nationality = convertCountryCodeToNationality(nationalityCode);
     const dobRaw = line2.substring(13, 19);
     const sex = line2.substring(20, 21);
     const expiryRaw = line2.substring(21, 27);
@@ -99,6 +101,7 @@ function parseMrz(mrzRaw) {
       surname: surname,
       given_name: givenName,
       nationality: nationality,
+      nationalityCode: nationalityCode,
       dob: dob,
       sex: sexMap[sex] || sex,
       date_of_expiry: dateOfExpiry,
