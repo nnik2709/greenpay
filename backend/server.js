@@ -74,6 +74,17 @@ app.use('/api/payment/webhook/doku', paymentWebhookDokuRoutes); // BSP DOKU webh
 app.use('/api/payment/doku-notify', paymentWebhookDokuRoutes); // ALIAS for BSP testing (bypasses ISP filters)
 app.use('/api/ocr', ocrRoutes); // Python OCR service (no authentication - public)
 
+// Laravel-compatible passport scan endpoint (for passport_ocr_service.exe)
+// Maps /passport-scan to /api/ocr/passport-scan for backwards compatibility
+app.post('/passport-scan', (req, res, next) => {
+  req.url = '/passport-scan';
+  ocrRoutes(req, res, next);
+});
+app.get('/passport-scan/status', (req, res, next) => {
+  req.url = '/passport-scan/status';
+  ocrRoutes(req, res, next);
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({

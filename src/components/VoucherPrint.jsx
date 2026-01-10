@@ -72,7 +72,6 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 80px;
             margin-bottom: 12px;
           }
           .logo-image {
@@ -148,7 +147,6 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
         <div class="page">
           <div class="header-logos">
             <img src="/assets/logos/ccda-logo.png" alt="CCDA Logo" class="logo-image" />
-            <img src="/assets/logos/png-emblem.png" alt="PNG Emblem" class="logo-image" />
           </div>
           <h1 class="title">GREEN CARD</h1>
           <div class="divider"></div>
@@ -157,19 +155,19 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
             <span class="label">Coupon Number:</span>
             <span>${voucher.voucher_code}</span>
           </div>
-          <div class="barcode-block">
-            ${barcodeDataUrl ? `<img class="barcode-img" src="${barcodeDataUrl}" alt="Barcode" />` : ''}
-            <div class="barcode-code">${voucher.voucher_code}</div>
-          </div>
           ${passportNumber ? `
-            <div class="row">
-              <span class="label">Passport Number:</span>
+            <div class="row" style="margin-bottom: 16px;">
+              <span class="label">Registered Passport:</span>
               <span>${passportNumber}</span>
             </div>
-          ` : `
+          ` : ''}
+          <div class="barcode-block">
+            ${barcodeDataUrl ? `<img class="barcode-img" src="${barcodeDataUrl}" alt="Barcode" />` : ''}
+          </div>
+          ${!passportNumber ? `
             <div class="register">Scan to Register</div>
             <div class="link">${registrationUrl}</div>
-          `}
+          ` : ''}
           <div class="footer">
             <div></div>
             <div>Generated on ${generatedOn}</div>
@@ -221,16 +219,11 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
         <div className="print-area">
           <div className="voucher-printable bg-white p-12 rounded-lg border-2 border-gray-300">
 
-            {/* Logos */}
-            <div className="flex justify-center items-center gap-24 mb-10">
+            {/* Logo - Centered CCDA only */}
+            <div className="flex justify-center items-center mb-10">
               <img
                 src="/assets/logos/ccda-logo.png"
                 alt="CCDA Logo"
-                className="w-28 h-28 object-contain"
-              />
-              <img
-                src="/assets/logos/png-emblem.png"
-                alt="PNG National Emblem"
                 className="w-28 h-28 object-contain"
               />
             </div>
@@ -270,13 +263,8 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
                 </div>
               )}
 
-              {/* Show passport number if registered, otherwise show registration link */}
-              {passportNumber ? (
-                <div className="mt-8 p-4 bg-gray-100 rounded-lg border border-gray-300">
-                  <p className="text-sm font-semibold text-gray-600 mb-1">PASSPORT NUMBER</p>
-                  <p className="text-2xl font-bold text-black tracking-widest font-mono">{passportNumber}</p>
-                </div>
-              ) : (
+              {/* Show registration link if passport not yet registered */}
+              {!passportNumber && (
                 <>
                   <p className="text-xl font-medium text-black mt-6 mb-4">Scan to Register</p>
                   <p className="text-sm text-gray-600">{registrationUrl}</p>

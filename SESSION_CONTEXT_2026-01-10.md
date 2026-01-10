@@ -1,309 +1,247 @@
-# Claude Code Session Context - January 10, 2026
+# Claude Code Session Context - January 10, 2026 (Updated)
 
 ## Session Overview
 This document captures the current session context, progress, and activities to enable seamless continuation on another computer.
 
-## Current Session Status: ✅ READY FOR DEPLOYMENT
-
-### Last Activity Timestamp
-2026-01-10 (Session continued from previous context)
+## Current Session Status: READY FOR DEPLOYMENT
 
 ---
 
-## Completed Tasks
+## Completed Tasks This Session
 
-### 1. ✅ Fixed Voucher Download Functionality
-**Problem:** Vouchers could not be downloaded from the Invoices page at https://greenpay.eywademo.cloud/app/invoices
+### 1. PrehKeyTec Passport Scanner Integration (Completed Earlier)
+- **useWebSerial.js** hook for Web Serial API communication with PrehKeyTec MC 147 A scanner
+- Auto-connect on page load (after first authorization)
+- Auto-reconnect on USB disconnect/reconnect
+- DTR/RTS signal handling for P6 hardware
+- MRZ parsing (ICAO 9303 TD3 format)
 
-**Root Cause:**
-- Frontend was using axios-style `response.data` but the custom API client uses native fetch
-- When `responseType: 'blob'` is used, fetch returns Blob directly (not wrapped in response object)
-- Missing `selectedInvoice` state when opening voucher modal
+### 2. Scanner Form Auto-Population Bug Fix
+**Problem:** Form fields weren't populating after scan despite successful scan data.
 
-**Files Modified:**
-- `src/pages/Invoices.jsx`
-  - Line 228-240: Changed from `response.data` to direct `blob` variable for fetch API
-  - Line 482: Added `setSelectedInvoice(invoice)` before opening voucher modal
-  - Added comprehensive console logging for debugging
+**Root Cause:** `mergedData` was using wrong keys from `fieldsToUpdate` (snake_case) when accessing values.
 
-**Technical Details:**
-```javascript
-// Before (BROKEN)
-const response = await api.get(`/invoices/${invoice.id}/vouchers-pdf`, {
-  responseType: 'blob'
-});
-const url = window.URL.createObjectURL(response.data); // ❌ undefined
+**Solution:** Use `scannedData` values directly (already in camelCase format).
 
-// After (FIXED)
-const blob = await api.get(`/invoices/${invoice.id}/vouchers-pdf`, {
-  responseType: 'blob'
-});
-const url = window.URL.createObjectURL(blob); // ✅ Works
-```
+**File:** `src/pages/IndividualPurchase.jsx`
 
-### 2. ✅ Removed PNG Flag Logo from Voucher PDFs
-**Problem:** PNG flag logo (Bird of Paradise emblem) was appearing in voucher PDFs alongside CCDA logo
+### 3. Voucher Template Fixes
+**Changes:**
+- Removed PNG emblem from voucher (only CCDA logo now, centered)
+- Removed duplicate passport number display (was showing twice)
+- Fixed both on-screen preview and print template
 
-**Solution:** Removed PNG emblem and centered CCDA logo
+**File:** `src/components/VoucherPrint.jsx`
 
-**Files Modified:**
-- `backend/utils/pdfGenerator.js`
-  - Removed PNG emblem code from `generateVoucherPDFBuffer` (lines 47-55)
-  - Removed PNG emblem code from `generateVoucherPDF` (lines 498-506)
-  - Changed logo positioning from two-logo layout to centered single logo
+### 4. Email Voucher Fix
+**Problem:** 500 error on `POST /api/vouchers/:code/email`
 
-**Before:**
-```javascript
-const totalLogoWidth = (logoSize * 2) + logoGap;
-const leftLogoX = (pageWidth - totalLogoWidth) / 2; // Two logos side by side
-```
+**Root Cause:** `generateVoucherPDF` was not imported - function didn't exist.
 
-**After:**
-```javascript
-const logoX = (pageWidth - logoSize) / 2; // Single centered logo
-```
+**Solution:** Import and use `generateVoucherPDFBuffer` from pdfGenerator.
 
-### 3. ✅ Code Organization & GitHub Sync
-- Moved `REPORTS_PAGINATION_PLAN.md` to `docs/archive/`
-- Committed all changes to GitHub (commit `f9198d9`)
-- Pushed to remote repository successfully
-- 86 files changed with comprehensive commit message
+**File:** `backend/routes/vouchers.js` (line ~1217)
+
+### 5. ReadableStream Already Locked Fix
+**Problem:** Error when navigating back to IndividualPurchase page after creating voucher.
+
+**Solution:** Added check for `port.readable.locked` before getting new reader.
+
+**File:** `src/hooks/useWebSerial.js` (lines 510-528)
+
+### 6. "No Fields to Update" Error Handling
+**Problem:** Console showed error when scanning passport that already has all fields.
+
+**Solution:** Made error handling graceful - shows success message instead of error.
+
+**File:** `src/pages/IndividualPurchase.jsx` (lines 173-198)
+
+### 7. Passport Number + Nationality Unique Constraint (NEW - IMPORTANT)
+**Problem:** Passport numbers are NOT globally unique - different countries can issue same number.
+
+**Solution:** Implemented composite unique constraint.
+
+#### Database Migration (NEW FILE - NOT YET RUN)
+**File:** `backend/migrations/add-passport-nationality-unique.sql`
+- Removes old `UNIQUE(passport_number)` constraint
+- Adds new `UNIQUE(passport_number, nationality)` composite constraint
+- Includes safety checks for existing duplicates
+
+#### Backend Update
+**File:** `backend/routes/passports.js`
+- Added `nationality` query parameter support to GET /api/passports
+- Can filter by both passport_number AND nationality
+
+#### Frontend Service
+**File:** `src/lib/passportsService.js`
+- Added `getPassportByNumberAndNationality(passportNumber, nationality)` function
+- Marked old `getPassportByNumber` as deprecated
+
+#### Updated Pages
+- `src/pages/IndividualPurchase.jsx` - All 4 scanner lookups now use nationality
+- `src/pages/Payments.jsx` - MRZ scanner lookup now uses nationality
 
 ---
 
-## Deployment Status
+## Files Modified This Session
 
-### ✅ Frontend - DEPLOYED
-**Location:** `/var/www/png-green-fees/dist`
-**PM2 App:** `png-green-fees`
-**Status:** Production build completed and ready (dist folder updated)
+### Frontend (need rebuild & deploy)
+```
+src/hooks/useWebSerial.js           - ReadableStream lock fix
+src/pages/IndividualPurchase.jsx    - Nationality-aware lookups, error handling
+src/pages/Payments.jsx              - Nationality-aware lookups
+src/lib/passportsService.js         - New getPassportByNumberAndNationality function
+src/components/VoucherPrint.jsx     - Template fixes (PNG emblem removed, centered logo)
+```
 
-### ⚠️ Backend - NEEDS DEPLOYMENT
-**Location:** `/home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/utils/pdfGenerator.js`
-**PM2 App:** `greenpay-api`
-**Status:** File updated locally, needs manual upload via CloudPanel
+### Backend (need deploy)
+```
+backend/routes/passports.js         - Nationality filter support
+backend/routes/vouchers.js          - Email voucher fix (generateVoucherPDFBuffer)
+backend/migrations/add-passport-nationality-unique.sql  - NEW FILE, needs to be run
+```
 
 ---
 
-## Manual Deployment Steps Required
+## Deployment Steps (DO IN ORDER)
 
-### Step 1: Upload Backend File
-Using CloudPanel File Manager:
-- **Local file:** `/Users/nikolay/github/greenpay/backend/utils/pdfGenerator.js`
-- **Server path:** `/home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/utils/pdfGenerator.js`
-
-### Step 2: Restart Backend Service
-In SSH terminal:
+### Step 1: Run Database Migration FIRST
 ```bash
-pm2 restart greenpay-api && pm2 logs greenpay-api --lines 20
+# SSH to server
+ssh root@165.22.52.100
+
+# Navigate to backend
+cd /home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend
+
+# Upload the migration file first via CloudPanel, then run:
+psql -U postgres -d greenpay -f migrations/add-passport-nationality-unique.sql
 ```
 
-### Step 3: Verify Deployment
-1. Go to https://greenpay.eywademo.cloud/app/invoices
-2. Click "Download All Vouchers" on any invoice
-3. Verify:
-   - ✅ Download works successfully
-   - ✅ CCDA logo is centered at top
-   - ✅ PNG flag logo is NOT present
+### Step 2: Deploy Backend Files
+Upload these files to `/home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/`:
+- `routes/passports.js`
+- `routes/vouchers.js`
+- `migrations/add-passport-nationality-unique.sql`
+
+Then restart:
+```bash
+pm2 restart greenpay-api
+pm2 logs greenpay-api --lines 20
+```
+
+### Step 3: Build & Deploy Frontend
+From Windows cmd.exe (NOT WSL):
+```cmd
+cd C:\users\nikol\github\greenpay
+npm run build
+```
+Then upload `dist` folder contents to server via CloudPanel.
 
 ---
 
-## Key Architecture Notes
+## Current Git Status (Uncommitted Changes)
+```
+M backend/routes/passports.js
+M backend/routes/vouchers.js
+M src/components/VoucherPrint.jsx
+M src/hooks/useWebSerial.js
+M src/lib/passportsService.js
+M src/pages/IndividualPurchase.jsx
+M src/pages/Payments.jsx
+?? backend/migrations/add-passport-nationality-unique.sql
+?? SESSION_CONTEXT_2026-01-10.md
+```
 
-### Frontend API Client (src/lib/api/client.js)
-- Uses **native fetch** (NOT axios)
-- When `responseType: 'blob'` is used, returns Blob directly
-- Does NOT wrap in `{ data: blob }` structure like axios
+---
 
-### Backend PDF Generation
-Two main functions in `backend/utils/pdfGenerator.js`:
-1. `generateVoucherPDFBuffer` - For bulk vouchers (multiple per PDF)
-2. `generateVoucherPDF` - For single voucher PDFs
+## Architecture Notes
 
-Both now use centered CCDA logo only.
+### Scanner Flow
+1. `useWebSerial` hook connects to PrehKeyTec scanner via Web Serial API
+2. Scanner sends MRZ data with START_MARKER (`\x1c\x02`) and END_MARKER (`\x03\x1d`)
+3. `parseMrz()` extracts: passport_no, surname, given_name, nationality, dob, sex, date_of_expiry
+4. `processScannedPassport()` in IndividualPurchase.jsx:
+   - Looks up passport by number + nationality (globally unique)
+   - If found: loads existing data, updates missing fields
+   - If not found: creates new passport record
+
+### Passport Lookup Strategy
+- **With Scanner (MRZ):** Use `getPassportByNumberAndNationality()` - globally unique
+- **Manual Entry:** Use `getPassportByNumber()` - may have duplicates across countries
 
 ### Server Paths (CRITICAL)
+```
+Backend: /home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/
+PM2 Name: greenpay-api (NOT greenpay-backend)
+Frontend: /var/www/png-green-fees/dist
+PM2 Name: png-green-fees
+```
+
+---
+
+## Known Issues / Minor Items
+
+1. **Missing PWA Icons** - `icon-192.png` and `icon-512.png` missing from public folder
+   - Causes 404 in console but app works fine
+   - Optional fix: Create these icons
+
+2. **Manual Search Without Nationality**
+   - When user types passport number manually, lookup uses `getPassportByNumber` only
+   - This is intentional - user doesn't know nationality when typing
+   - Scanner-based lookups are accurate (uses nationality from MRZ)
+
+---
+
+## To Continue on Another PC
+
+### Quick Start
 ```bash
-# Backend (ACTUAL location)
-/home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/
+# 1. Navigate to project (Windows)
+cd C:\users\nikol\github\greenpay
 
-# PM2 Process Names
-greenpay-api          # Backend (NOT greenpay-backend)
-png-green-fees        # Frontend
-
-# Frontend
-/var/www/png-green-fees/dist
-```
-
----
-
-## Recent Git History
-
-### Latest Commit: f9198d9
-```
-Fix voucher download and remove PNG emblem from voucher PDFs
-
-- Fixed voucher download functionality in Invoices page
-  - Fixed blob handling for fetch API (not axios-style response.data)
-  - Added setSelectedInvoice before opening voucher modal
-  - Added comprehensive console logging for debugging
-- Removed PNG flag logo from voucher PDF templates
-  - Centered CCDA logo in both generateVoucherPDFBuffer and generateVoucherPDF
-  - Updated both voucher generation functions in pdfGenerator.js
-- Organized documentation
-  - Moved REPORTS_PAGINATION_PLAN.md to docs/archive
-```
-
-### Previous Commits (for context)
-- `fa26907` - Earlier work on deployment and testing
-- `eee6494` - Add visual scanner detection indicator
-- `f13a4a9` - Add PCI-DSS & Banking Security Compliance Audit Report
-
----
-
-## Testing Checklist
-
-### Before Deployment
-- [x] Frontend build completed (`npm run build`)
-- [x] Backend file updated locally
-- [x] All changes committed to GitHub
-- [x] No console errors in development
-
-### After Deployment
-- [ ] Backend file uploaded to production
-- [ ] PM2 backend restarted
-- [ ] Download vouchers from Invoices page works
-- [ ] PDF shows centered CCDA logo only
-- [ ] No PNG flag logo in PDFs
-- [ ] No console errors in browser
-
----
-
-## Environment Information
-
-### Development
-- **Working Directory:** `/Users/nikolay/github/greenpay`
-- **Node Version:** (check with `node --version`)
-- **Platform:** macOS (Darwin 25.2.0)
-
-### Production
-- **Domain:** https://greenpay.eywademo.cloud
-- **Server:** 165.22.52.100
-- **SSL:** Active (via Nginx)
-- **Database:** PostgreSQL (host: 165.22.52.100)
-
-### Important Credentials (from CLAUDE.md)
-- Database: `greenpay` / password in production config
-- SSH: root@165.22.52.100
-
----
-
-## Known Issues & Warnings
-
-### ⚠️ Do NOT Assume Paths
-Always verify actual PM2 process names and paths:
-```bash
-pm2 list                    # List all processes
-pm2 describe greenpay-api   # Show backend details and paths
-```
-
-### ⚠️ Frontend vs Backend Deployment
-- Frontend: Automated via `./deploy.sh` or manual via PM2
-- Backend: **MANUAL ONLY** - Upload via CloudPanel, then restart PM2
-
-### ⚠️ Testing After Deployment
-- Always create NEW test transactions after code changes
-- Old database records won't reflect new features/changes
-- Clear browser cache if PDFs don't update
-
----
-
-## Next Session: Quick Start Commands
-
-### On New Computer
-```bash
-# 1. Clone repository
-git clone git@github.com:nnik2709/greenpay.git
-cd greenpay
-
-# 2. Install dependencies
-npm install
-
-# 3. Check git status
+# 2. Check current status
 git status
-git log --oneline -5
 
-# 4. Verify latest changes
-git show f9198d9
+# 3. Review changes
+git diff
 
-# 5. Start development server
-npm run dev
-```
+# 4. If you need to commit changes:
+git add -A
+git commit -m "Add passport+nationality unique constraint and scanner fixes"
 
-### Deployment (if needed)
-```bash
-# Build frontend
+# 5. Build frontend (Windows cmd.exe)
 npm run build
-
-# Verify backend file is ready
-ls -lh backend/utils/pdfGenerator.js
 ```
 
-Then follow manual deployment steps above.
+### Deploy Backend Changes
+1. Upload files via CloudPanel File Manager
+2. Run database migration (Step 1 above)
+3. Restart PM2: `pm2 restart greenpay-api`
+
+### Verify Everything Works
+1. Go to https://greenpay.eywademo.cloud/app/passports/create
+2. Scan a passport with the PrehKeyTec scanner
+3. Form should auto-populate
+4. Create voucher
+5. Verify email sending works
+6. Verify voucher PDF has only CCDA logo (centered)
 
 ---
 
-## Important Files Reference
+## Important: Passport Uniqueness
 
-### Modified in This Session
-- `src/pages/Invoices.jsx` - Voucher download fixes
-- `backend/utils/pdfGenerator.js` - PNG logo removal, CCDA logo centering
-- `docs/archive/REPORTS_PAGINATION_PLAN.md` - Moved from root
+**Before:** `passport_number` was unique alone - WRONG
+**After:** `passport_number + nationality` is unique - CORRECT
 
-### Key Configuration Files
-- `CLAUDE.md` - Project instructions for Claude Code
-- `.env` - Environment variables (NOT in git)
-- `package.json` - Dependencies and scripts
-- `playwright.config.*.ts` - Test configurations
+Example: Denmark passport "AB123456" and Philippines passport "AB123456" are now treated as DIFFERENT people.
 
-### Documentation
-- `docs/DEPLOYMENT_INSTRUCTIONS.md` - General deployment guide
-- `docs/ARCHITECTURE_REVIEW_*.md` - Architecture documentation
-- `docs/features/GREEN_CARD_*.md` - Green card feature docs
+The database migration MUST be run before the new code will work properly.
 
 ---
 
-## Background Processes (FYI)
+## Contact / References
 
-Multiple Playwright test processes are running in background:
-- BSP payment flow tests
-- Role-based access control tests
-- Manual test scenarios
-- Screenshot generation tests
-
-These can be safely ignored or killed if needed:
-```bash
-pkill -f "playwright test"
-```
-
----
-
-## Session Continuation Checklist
-
-When you resume on the new computer:
-- [ ] Clone repository from GitHub
-- [ ] Run `npm install`
-- [ ] Review this SESSION_CONTEXT document
-- [ ] Check `git log` for latest commits
-- [ ] Verify deployment status (if needed)
-- [ ] Review any open issues or TODOs
-
----
-
-## Contact & Support
-
-- GitHub Repo: https://github.com/nnik2709/greenpay
-- Latest Commit: f9198d9
-- Session Date: 2026-01-10
-
-**Status:** All critical fixes completed. Backend deployment pending. Frontend ready for testing.
+- Production URL: https://greenpay.eywademo.cloud/
+- Backend PM2: `greenpay-api`
+- Backend Path: `/home/eywademo-greenpay/htdocs/greenpay.eywademo.cloud/backend/`
+- Session Date: January 10, 2026

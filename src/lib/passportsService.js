@@ -22,10 +22,36 @@ export const getPassportById = async (id) => {
   }
 };
 
+/**
+ * Get passport by number only (may return wrong person if same number exists in different countries)
+ * @deprecated Use getPassportByNumberAndNationality for accurate lookups
+ */
 export const getPassportByNumber = async (passportNumber) => {
   try {
     // Use search with exact passport number
     const response = await api.passports.getAll({ passport_number: passportNumber });
+    const data = response.passports || response.data || response;
+    return data && data.length > 0 ? data[0] : null;
+  } catch (error) {
+    console.error('Error finding passport:', error);
+    return null;
+  }
+};
+
+/**
+ * Get passport by number AND nationality (recommended - globally unique)
+ * Passport numbers are only unique within a country, not worldwide.
+ * @param {string} passportNumber - The passport number
+ * @param {string} nationality - The nationality/country code (e.g., 'DNK', 'PHL', 'PNG')
+ * @returns {Object|null} The passport record or null if not found
+ */
+export const getPassportByNumberAndNationality = async (passportNumber, nationality) => {
+  try {
+    // Use search with both passport number and nationality
+    const response = await api.passports.getAll({
+      passport_number: passportNumber,
+      nationality: nationality
+    });
     const data = response.passports || response.data || response;
     return data && data.length > 0 ? data[0] : null;
   } catch (error) {

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>COM Bridge WebSocket Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+    .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+    .connected { background: #d4edda; color: #155724; }
+    .disconnected { background: #f8d7da; color: #721c24; }
+    .connecting { background: #fff3cd; color: #856404; }
+    button { padding: 10px 20px; margin: 5px; cursor: pointer; font-size: 16px; }
+    #log { background: #1e1e1e; color: #00ff00; padding: 15px; font-family: monospace; height: 300px; overflow-y: auto; white-space: pre-wrap; }
+    .scan-result { background: #e8f5e9; border: 2px solid #4caf50; padding: 15px; margin: 10px 0; border-radius: 5px; }
+    .scan-result h3 { margin: 0 0 10px 0; color: #2e7d32; }
+    .field { margin: 5px 0; }
+    .field label { font-weight: bold; display: inline-block; width: 140px; }
+  </style>
+</head>
+<body>
+  <h1>PrehKeyTec COM Bridge - Direct WebSocket Test</h1>
+  <p>This page tests the WebSocket connection directly without React.</p>
+
+  <div id="status" class="status disconnected">Disconnected</div>
+
+  <div>
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <button onclick="ping()">Ping</button>
+    <button onclick="clearLog()">Clear Log</button>
+  </div>
+
+  <h2>Last Scan Result</h2>
+  <div id="scanResult">No scans yet. Scan a passport after connecting.</div>
+
+  <h2>Log</h2>
+  <div id="log"></div>
+
+  <script>
+    let ws = null;
+    const WS_URL = 'ws://localhost:8765';
+
+    function log(msg, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+      logDiv.innerHTML += `[${time}] ${prefix} ${msg}\n`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+      console.log(`[${time}] ${msg}`);
+    }
+
+    function setStatus(status) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.className = 'status ' + status;
+      statusDiv.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    }
+
+    function connect() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        log('Already connected', 'info');
+        return;
+      }
+
+      log('Connecting to ' + WS_URL + '...', 'info');
+      setStatus('connecting');
+
+      ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        log('Connected!', 'success');
+        setStatus('connected');
+      };
+
+      ws.onclose = (e) => {
+        log(`Disconnected (code: ${e.code}, reason: ${e.reason || 'none'})`, 'info');
+        setStatus('disconnected');
+        ws = null;
+      };
+
+      ws.onerror = (e) => {
+        log('WebSocket error occurred', 'error');
+        setStatus('disconnected');
+      };
+
+      ws.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          log('Message received: ' + data.type, 'info');
+
+          if (data.type === 'mrz' && data.success) {
+            showScanResult(data);
+            log('✅ PASSPORT SCANNED: ' + data.passportNumber, 'success');
+          } else if (data.type === 'barcode' && data.success) {
+            log('Barcode: ' + data.value, 'success');
+          } else if (data.type === 'pong') {
+            log('Pong received', 'success');
+          }
+        } catch (err) {
+          log('Error parsing message: ' + err, 'error');
+        }
+      };
+    }
+
+    function disconnect() {
+      if (ws) {
+        ws.close();
+        ws = null;
+        log('Disconnected by user', 'info');
+      }
+    }
+
+    function ping() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ command: 'ping' }));
+        log('Ping sent', 'info');
+      } else {
+        log('Not connected', 'error');
+      }
+    }
+
+    function clearLog() {
+      document.getElementById('log').innerHTML = '';
+    }
+
+    function showScanResult(data) {
+      const html = `
+        <div class="scan-result">
+          <h3>✅ Passport Scanned!</h3>
+          <div class="field"><label>Passport Number:</label> ${data.passportNumber}</div>
+          <div class="field"><label>Full Name:</label> ${data.givenName} ${data.surname}</div>
+          <div class="field"><label>Nationality:</label> ${data.nationality} (${data.nationalityCode})</div>
+          <div class="field"><label>Date of Birth:</label> ${data.dateOfBirth}</div>
+          <div class="field"><label>Sex:</label> ${data.sex}</div>
+          <div class="field"><label>Expiry Date:</label> ${data.dateOfExpiry}</div>
+          <div class="field"><label>Issuing Country:</label> ${data.issuingCountry}</div>
+          <div class="field"><label>Scanned At:</label> ${new Date(data.timestamp).toLocaleString()}</div>
+        </div>
+      `;
+      document.getElementById('scanResult').innerHTML = html;
+    }
+
+    log('Page loaded. Click Connect to start.', 'info');
+  </script>
+</body>
+</html>

@@ -11,13 +11,15 @@ import { Label } from '@/components/ui/label';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, ArrowLeft } from 'lucide-react';
 // Legacy import removed - using Supabase passportsService instead
-import { getPassportByNumber, createPassport, searchPassports } from '@/lib/passportsService';
+import { getPassportByNumber, getPassportByNumberAndNationality, createPassport, searchPassports, updatePassport } from '@/lib/passportsService';
 import { createIndividualPurchase, emailVoucher } from '@/lib/individualPurchasesService';
 import { getPaymentModes } from '@/lib/paymentModesStorage';
 import { useAuth } from '@/contexts/AuthContext';
 import VoucherPrint from '@/components/VoucherPrint';
 import { processOnlinePayment, isGatewayActive, GATEWAY_NAMES } from '@/lib/paymentGatewayService';
 import { useScannerInput } from '@/hooks/useScannerInput';
+import { useWebSerial, ConnectionState } from '@/hooks/useWebSerial';
+import { ScannerStatusFull } from '@/components/ScannerStatus';
 
 const StepIndicator = ({ currentStep }) => {
   const steps = [
@@ -71,7 +73,178 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
   const [passportFound, setPassportFound] = useState(null); // null = not searched, true = found, false = not found
   const [missingFields, setMissingFields] = useState([]); // Track which fields are missing from DB
 
-  // Hardware scanner support with MRZ parsing
+  // Process scanned passport data (from any scanner source)
+  const processScannedPassport = useCallback(async (data) => {
+    console.log('[IndividualPurchase] Processing scanned passport:', data);
+
+    // Map Web Serial format (snake_case) to form format (camelCase)
+    const scannedData = {
+      passportNumber: data.passport_no || data.passportNumber,
+      surname: data.surname,
+      givenName: data.given_name || data.givenName,
+      nationality: data.nationality,
+      dob: data.dob,
+      sex: data.sex,
+      dateOfExpiry: data.date_of_expiry || data.dateOfExpiry,
+    };
+
+    // Check if passport exists in database
+    // Use passport_number + nationality for accurate lookup (passport numbers are NOT globally unique)
+    try {
+      const existingPassport = await getPassportByNumberAndNationality(
+        scannedData.passportNumber,
+        scannedData.nationality
+      );
+      if (existingPassport) {
+        // Passport exists - load full record
+        const existingData = {
+          id: existingPassport.id,
+          passportNumber: existingPassport.passport_number || existingPassport.passportNumber || existingPassport.passportNo,
+          nationality: existingPassport.nationality,
+          surname: existingPassport.surname,
+          givenName: existingPassport.given_name || existingPassport.givenName,
+          dob: existingPassport.dob || existingPassport.date_of_birth,
+          sex: existingPassport.sex,
+          dateOfExpiry: existingPassport.date_of_expiry || existingPassport.dateOfExpiry,
+          passportPhoto: existingPassport.passport_photo,
+          signatureImage: existingPassport.signature_image,
+        };
+
+        // Check which fields are missing in existing record but available in scanned data
+        const fieldsToUpdate = {};
+        const updatedFields = [];
+
+        // Compare and fill missing fields from scanned data
+        if (!existingData.surname && scannedData.surname) {
+          fieldsToUpdate.surname = scannedData.surname;
+          updatedFields.push('Surname');
+        }
+        if (!existingData.givenName && scannedData.givenName) {
+          fieldsToUpdate.given_name = scannedData.givenName;
+          updatedFields.push('Given Name');
+        }
+        if (!existingData.nationality && scannedData.nationality) {
+          fieldsToUpdate.nationality = scannedData.nationality;
+          updatedFields.push('Nationality');
+        }
+        if (!existingData.dob && scannedData.dob) {
+          fieldsToUpdate.dob = scannedData.dob;
+          updatedFields.push('Date of Birth');
+        }
+        if (!existingData.sex && scannedData.sex) {
+          fieldsToUpdate.sex = scannedData.sex;
+          updatedFields.push('Sex');
+        }
+        if (!existingData.dateOfExpiry && scannedData.dateOfExpiry) {
+          fieldsToUpdate.date_of_expiry = scannedData.dateOfExpiry;
+          updatedFields.push('Expiry Date');
+        }
+
+        // If there are fields to update, update the database record
+        if (updatedFields.length > 0) {
+          console.log('[IndividualPurchase] Updating passport with missing fields:', fieldsToUpdate);
+          console.log('[IndividualPurchase] Scanned data:', scannedData);
+          console.log('[IndividualPurchase] Existing data:', existingData);
+          try {
+            await updatePassport(existingData.id, fieldsToUpdate);
+            console.log('[IndividualPurchase] Passport updated successfully');
+
+            // Merge the updated fields into existing data for display
+            // Use scannedData directly for fields that were updated (more reliable than fieldsToUpdate keys)
+            const mergedData = {
+              ...existingData,
+              // Use scannedData values directly - they're already in camelCase format
+              surname: scannedData.surname || existingData.surname,
+              givenName: scannedData.givenName || existingData.givenName,
+              nationality: scannedData.nationality || existingData.nationality,
+              dob: scannedData.dob || existingData.dob,
+              sex: scannedData.sex || existingData.sex,
+              dateOfExpiry: scannedData.dateOfExpiry || existingData.dateOfExpiry,
+            };
+
+            console.log('[IndividualPurchase] Merged data for form:', mergedData);
+
+            setSearchResult(mergedData);
+            setPassportInfo(mergedData);
+            setSearchQuery(mergedData.passportNumber);
+            setPassportFound(true);
+            setMissingFields([]);
+
+            toast({
+              title: "✅ Passport Updated from Scan",
+              description: `Database record updated with: ${updatedFields.join(', ')}`,
+            });
+          } catch (updateError) {
+            // Check if error is "No fields to update" - this is OK, data already exists
+            const isNoFieldsError = updateError.message?.includes('No fields to update');
+            if (isNoFieldsError) {
+              console.log('[IndividualPurchase] Passport already has all fields - no update needed');
+            } else {
+              console.error('[IndividualPurchase] Failed to update passport:', updateError);
+            }
+            // Still use the merged data for display
+            const mergedData = {
+              ...existingData,
+              ...scannedData,
+              id: existingData.id,
+            };
+            setSearchResult(mergedData);
+            setPassportInfo(mergedData);
+            setSearchQuery(mergedData.passportNumber);
+            setPassportFound(true);
+            setMissingFields([]);
+            toast({
+              title: isNoFieldsError ? "✅ Passport Found" : "⚠️ Passport Scanned",
+              description: isNoFieldsError
+                ? "Passport data loaded from database."
+                : "Scanned data loaded but database update failed. Will update on save.",
+              variant: "default"
+            });
+          }
+        } else {
+          // No missing fields - just load the existing record
+          setSearchResult(existingData);
+          setPassportInfo(existingData);
+          setSearchQuery(existingData.passportNumber);
+          setPassportFound(true);
+          setMissingFields([]);
+
+          toast({
+            title: "✅ Passport Found in Database",
+            description: `${existingData.givenName} ${existingData.surname}'s complete record loaded.`
+          });
+        }
+      } else {
+        // New passport - use scanned data
+        setPassportInfo(scannedData);
+        setSearchQuery(scannedData.passportNumber);
+        setPassportFound(false);
+        toast({
+          title: "📋 Passport Scanned - New Record",
+          description: "Passport not in system. Details auto-filled from scan. Please verify."
+        });
+      }
+    } catch (error) {
+      // Error checking database, still use scanned data
+      console.error('[IndividualPurchase] Database check error:', error);
+      setPassportInfo(scannedData);
+      setSearchQuery(scannedData.passportNumber);
+      setPassportFound(null);
+      toast({
+        title: "Passport Scanned",
+        description: "Passport details auto-filled. Please verify information."
+      });
+    }
+  }, [setPassportInfo, toast]);
+
+  // PrehKeyTec Web Serial Scanner (hardware scanner with DTR/RTS control)
+  const webSerialScanner = useWebSerial({
+    onScan: processScannedPassport,
+    autoConnect: true,
+    autoReconnect: true,
+  });
+
+  // Legacy keyboard wedge scanner support (fallback)
   const { isScanning: isScannerActive } = useScannerInput({
     onScanComplete: async (data) => {
       if (data.type === 'mrz') {
@@ -87,8 +260,12 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
         };
 
         // Check if passport exists in database
+        // Use passport_number + nationality for accurate lookup (passport numbers are NOT globally unique)
         try {
-          const existingPassport = await getPassportByNumber(data.passportNumber);
+          const existingPassport = await getPassportByNumberAndNationality(
+            data.passportNumber,
+            data.nationality
+          );
           if (existingPassport) {
             // Passport exists - load full record
             // Handle both snake_case (database) and camelCase (frontend) formats
@@ -396,31 +573,48 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
             </div>
           </div>
 
-          {/* Scanner Status */}
-          {isScannerActive && (
-            <Card className="bg-emerald-50 border-2 border-emerald-400 animate-pulse">
+          {/* PrehKeyTec Hardware Scanner Status */}
+          <ScannerStatusFull
+            connectionState={webSerialScanner.connectionState}
+            scanCount={webSerialScanner.scanCount}
+            error={webSerialScanner.error}
+            onConnect={webSerialScanner.connect}
+            onDisconnect={webSerialScanner.disconnect}
+            onReconnect={webSerialScanner.reconnect}
+            isSupported={webSerialScanner.isSupported}
+            reconnectAttempt={webSerialScanner.reconnectAttempt}
+          />
+
+          {/* Scanner Ready Indicator */}
+          {webSerialScanner.isReady && (
+            <Card className="bg-emerald-50 border-2 border-emerald-400">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="text-2xl">📷</div>
+                  <div className="text-2xl">✅</div>
                   <div>
-                    <h3 className="font-bold text-emerald-900">Scanner Active - Ready to Scan</h3>
+                    <h3 className="font-bold text-emerald-900">PrehKeyTec Scanner Ready</h3>
                     <p className="text-emerald-700 text-sm">
-                      Please scan passport MRZ (2 lines at bottom) or passport number barcode now.
+                      Place passport on scanner. Data will auto-fill when scanned.
+                      {webSerialScanner.scanCount > 0 && (
+                        <span className="ml-2 font-semibold">({webSerialScanner.scanCount} scanned this session)</span>
+                      )}
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           )}
-          {!isScannerActive && (
-            <Card className="bg-slate-50 border border-slate-300">
+
+          {/* Fallback keyboard wedge scanner indicator */}
+          {!webSerialScanner.isSupported && isScannerActive && (
+            <Card className="bg-amber-50 border-2 border-amber-400 animate-pulse">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="text-2xl">🖨️</div>
+                  <div className="text-2xl">📷</div>
                   <div>
-                    <h3 className="font-semibold text-slate-700">Hardware Scanner Ready</h3>
-                    <p className="text-slate-600 text-sm">
-                      USB/Bluetooth scanner detected. Scan passport MRZ or barcode to auto-fill.
+                    <h3 className="font-bold text-amber-900">Keyboard Scanner Active</h3>
+                    <p className="text-amber-700 text-sm">
+                      Using keyboard wedge mode. Scan passport MRZ or barcode now.
                     </p>
                   </div>
                 </div>
@@ -1327,7 +1521,11 @@ const IndividualPurchase = () => {
       console.log('User:', user);
 
       // First, check if passport exists or create it
-      let passport = await getPassportByNumber(passportInfo.passportNumber);
+      // Use passport_number + nationality for accurate lookup (passport numbers are NOT globally unique)
+      let passport = await getPassportByNumberAndNationality(
+        passportInfo.passportNumber,
+        passportInfo.nationality
+      );
       console.log('Found passport:', passport);
 
       if (!passport) {

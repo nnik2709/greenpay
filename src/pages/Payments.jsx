@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api/client';
 import VoucherPrint from '@/components/VoucherPrint';
 import { useScannerInput } from '@/hooks/useScannerInput';
-import { getPassportByNumber } from '@/lib/passportsService';
+import { getPassportByNumber, getPassportByNumberAndNationality } from '@/lib/passportsService';
 import * as XLSX from 'xlsx';
 
 const Payments = () => {
@@ -99,9 +99,12 @@ const Payments = () => {
             description: "New passport details auto-filled from MRZ scan."
           });
         } else {
-          // In search mode - search by passport number
+          // In search mode - search by passport number + nationality for accurate lookup
           try {
-            const passport = await getPassportByNumber(data.passportNumber);
+            const passport = await getPassportByNumberAndNationality(
+              data.passportNumber,
+              data.nationality
+            );
             if (passport) {
               handleSelectPassport({
                 id: passport.id,

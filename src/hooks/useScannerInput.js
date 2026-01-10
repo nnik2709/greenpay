@@ -1,291 +1,224 @@
 /**
- * useScannerInput Hook
+ * useScannerInput - Keyboard Wedge Scanner Hook
  *
- * Custom React hook for handling USB keyboard wedge scanners (passport MRZ, barcode, QR code).
- * Detects rapid keyboard input typical of hardware scanners and differentiates from human typing.
+ * Captures input from USB scanners operating in HID keyboard mode.
+ * Detects rapid keystroke patterns (scanner) vs normal typing (human).
  *
- * How it works:
- * - Listens for rapid keystrokes (scanners type very fast, typically 50-100ms between chars)
- * - Accumulates characters until timeout or Enter key
- * - Automatically detects and parses MRZ format
- * - Provides callbacks for successful scans
- *
- * @example
- * const { isScanning, scannerValue, clearScanner } = useScannerInput({
- *   onScanComplete: (data) => console.log('Scanned:', data),
- *   minLength: 5,
- *   scanTimeout: 100,
- *   enableMrzParsing: true
- * });
+ * Works with:
+ * - PrehKeyTec MC147 in keyboard mode
+ * - Any barcode/MRZ scanner in keyboard wedge mode
+ * - No drivers, COM ports, or services needed
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { parseMrz, isMrzFormat } from '@/lib/mrzParser';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
-/**
- * Default configuration for scanner input
- */
-const DEFAULT_CONFIG = {
-  minLength: 5,              // Minimum characters to consider a valid scan
-  scanTimeout: 100,          // Max milliseconds between keystrokes (scanners are fast)
-  enableMrzParsing: true,    // Auto-parse MRZ format
-  autoSubmit: true,          // Auto-submit on scan complete
-  preventManualInput: false, // If true, only accept scanner input (very fast typing)
-  debugMode: false,          // Log debug information
-  enterKeySubmits: true,     // Treat Enter key as scan completion
-  prefixChars: '',           // Optional prefix characters to strip
-  suffixChars: '',           // Optional suffix characters to strip
+const DEFAULT_OPTIONS = {
+  minLength: 20,
+  maxDelay: 100,
+  endKeys: ['Enter'],
+  enableMrzParsing: true,
 };
 
-/**
- * useScannerInput Hook
- * @param {Object} options - Configuration options
- * @param {Function} options.onScanComplete - Callback when scan completes successfully
- * @param {Function} options.onScanError - Callback when scan fails
- * @param {number} options.minLength - Minimum characters for valid scan
- * @param {number} options.scanTimeout - Timeout between keystrokes (ms)
- * @param {boolean} options.enableMrzParsing - Enable automatic MRZ parsing
- * @param {boolean} options.autoSubmit - Auto-submit on scan complete
- * @param {boolean} options.preventManualInput - Only accept very fast input
- * @param {boolean} options.debugMode - Enable debug logging
- * @param {boolean} options.enterKeySubmits - Enter key completes scan
- * @param {string} options.prefixChars - Characters to strip from beginning
- * @param {string} options.suffixChars - Characters to strip from end
- * @returns {Object} Scanner state and methods
- */
-export const useScannerInput = (options = {}) => {
-  const config = { ...DEFAULT_CONFIG, ...options };
+function parseMrz(mrzRaw) {
+  let mrz = mrzRaw
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .replace(/\r?\n/g, '')
+    .replace(/\s+/g, '')
+    .trim();
 
-  // State
-  const [scannerValue, setScannerValue] = useState('');
+  if (mrz.length < 88) {
+    console.warn('[ScannerInput] MRZ too short:', mrz.length);
+    return null;
+  }
+
+  mrz = mrz.substring(0, 88);
+  const line1 = mrz.substring(0, 44);
+  const line2 = mrz.substring(44, 88);
+
+  try {
+    const docType = line1.substring(0, 2);
+    const issuingCountry = line1.substring(2, 5);
+    const namesSection = line1.substring(5);
+    const namesParts = namesSection.split('<<');
+    const surname = (namesParts[0] || '').replace(/</g, ' ').trim();
+    const givenName = (namesParts.slice(1).join(' ') || '').replace(/</g, ' ').trim();
+
+    const passportNo = line2.substring(0, 9).replace(/</g, '').trim();
+    const nationality = line2.substring(10, 13);
+    const dobRaw = line2.substring(13, 19);
+    const sex = line2.substring(20, 21);
+    const expiryRaw = line2.substring(21, 27);
+
+    const currentYear = new Date().getFullYear() % 100;
+    const dobYear = parseInt(dobRaw.substring(0, 2));
+    const dobFullYear = dobYear > currentYear ? 1900 + dobYear : 2000 + dobYear;
+    const dob = dobFullYear + '-' + dobRaw.substring(2, 4) + '-' + dobRaw.substring(4, 6);
+
+    const expiryYear = parseInt(expiryRaw.substring(0, 2));
+    const expiryFullYear = expiryYear > 50 ? 1900 + expiryYear : 2000 + expiryYear;
+    const dateOfExpiry = expiryFullYear + '-' + expiryRaw.substring(2, 4) + '-' + expiryRaw.substring(4, 6);
+
+    const sexMap = { 'M': 'Male', 'F': 'Female', '<': 'Other' };
+
+    return {
+      type: docType,
+      passport_no: passportNo,
+      surname: surname,
+      given_name: givenName,
+      nationality: nationality,
+      dob: dob,
+      sex: sexMap[sex] || sex,
+      date_of_expiry: dateOfExpiry,
+      issuing_country: issuingCountry,
+      raw_mrz: mrz,
+    };
+  } catch (error) {
+    console.error('[ScannerInput] MRZ parsing error:', error);
+    return null;
+  }
+}
+
+export function useScannerInput(options = {}) {
+  const config = { ...DEFAULT_OPTIONS, ...options };
+
+  const [isListening, setIsListening] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
-  const [lastScanData, setLastScanData] = useState(null);
+  const [lastScan, setLastScan] = useState(null);
+  const [rawData, setRawData] = useState('');
+  const [charCount, setCharCount] = useState(0);
 
-  // Refs for tracking scan state
-  const scanBuffer = useRef('');
-  const scanTimeout = useRef(null);
-  const firstKeystrokeTime = useRef(null);
-  const lastKeystrokeTime = useRef(null);
-  const keystrokeCount = useRef(0);
-  const isProcessing = useRef(false);
+  const bufferRef = useRef('');
+  const lastKeyTimeRef = useRef(0);
+  const timeoutRef = useRef(null);
 
-  /**
-   * Clean scanned data (remove prefix/suffix)
-   */
-  const cleanScannedData = useCallback((data) => {
-    let cleaned = data;
+  const processBuffer = useCallback(() => {
+    const data = bufferRef.current.trim();
+    bufferRef.current = '';
+    setIsScanning(false);
+    setCharCount(0);
 
-    if (config.prefixChars && cleaned.startsWith(config.prefixChars)) {
-      cleaned = cleaned.substring(config.prefixChars.length);
-    }
-
-    if (config.suffixChars && cleaned.endsWith(config.suffixChars)) {
-      cleaned = cleaned.substring(0, cleaned.length - config.suffixChars.length);
-    }
-
-    return cleaned.trim();
-  }, [config.prefixChars, config.suffixChars]);
-
-  /**
-   * Process completed scan
-   */
-  const processScan = useCallback((rawValue) => {
-    if (isProcessing.current) return;
-    isProcessing.current = true;
-
-    const cleanedValue = cleanScannedData(rawValue);
-
-    if (cleanedValue.length < config.minLength) {
-      if (config.debugMode) {
-        console.log('[Scanner] Scan too short, ignoring:', cleanedValue.length, 'chars');
-      }
-      isProcessing.current = false;
+    if (data.length < config.minLength) {
+      console.log('[ScannerInput] Ignored short input:', data.length);
       return;
     }
 
-    // Calculate scan speed (chars per second)
-    const scanDuration = lastKeystrokeTime.current - firstKeystrokeTime.current;
-    const charsPerSecond = keystrokeCount.current / (scanDuration / 1000);
+    console.log('[ScannerInput] Processing scan:', data.length, 'chars');
+    console.log('[ScannerInput] Raw data:', data);
+    setRawData(data);
 
-    if (config.debugMode) {
-      console.log('[Scanner] Scan complete:', {
-        value: cleanedValue,
-        length: cleanedValue.length,
-        duration: scanDuration + 'ms',
-        speed: Math.round(charsPerSecond) + ' chars/sec',
-        keystrokes: keystrokeCount.current
-      });
-    }
-
-    let scanData = {
-      type: 'simple',
-      value: cleanedValue,
-      raw: rawValue,
-      length: cleanedValue.length,
-      scanDuration,
-      charsPerSecond: Math.round(charsPerSecond)
-    };
-
-    // Try MRZ parsing if enabled
-    if (config.enableMrzParsing && isMrzFormat(cleanedValue)) {
-      const mrzResult = parseMrz(cleanedValue);
-
-      if (mrzResult.success) {
-        scanData = {
-          ...scanData,
-          type: 'mrz',
-          ...mrzResult
-        };
-
-        if (config.debugMode) {
-          console.log('[Scanner] MRZ parsed successfully:', mrzResult);
-        }
-      } else {
-        if (config.debugMode) {
-          console.warn('[Scanner] MRZ parsing failed:', mrzResult.message);
-        }
-
-        if (config.onScanError) {
-          config.onScanError(mrzResult);
-        }
+    if (config.enableMrzParsing && data.length >= 88) {
+      const parsed = parseMrz(data);
+      if (parsed) {
+        console.log('[ScannerInput] Parsed MRZ:', parsed);
+        setLastScan(parsed);
+        if (config.onScan) config.onScan(parsed);
+        return;
       }
     }
 
-    // Update state
-    setScannerValue(cleanedValue);
-    setLastScanData(scanData);
-    setIsScanning(false);
+    const result = { raw: data, type: 'unknown' };
+    setLastScan(result);
+    if (config.onScan) config.onScan(result);
+  }, [config]);
 
-    // Trigger callback
-    if (config.onScanComplete) {
-      config.onScanComplete(scanData);
+  const handleKeyDown = useCallback((event) => {
+    // Allow normal input in form fields
+    const activeElement = document.activeElement;
+    const isInputField = activeElement && (
+      activeElement.tagName === 'INPUT' ||
+      activeElement.tagName === 'TEXTAREA' ||
+      activeElement.isContentEditable
+    );
+
+    // Allow Ctrl/Cmd key combinations (paste, copy, etc.)
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+      return;
     }
 
-    isProcessing.current = false;
-  }, [cleanScannedData, config]);
+    // If typing in an input field, don't capture
+    if (isInputField) {
+      return;
+    }
 
-  /**
-   * Handle keystroke from scanner or keyboard
-   */
-  const handleKeystroke = useCallback((event) => {
     const now = Date.now();
-    const char = event.key;
+    const timeSinceLastKey = now - lastKeyTimeRef.current;
+    lastKeyTimeRef.current = now;
 
-    // Ignore modifier keys
-    if (['Shift', 'Control', 'Alt', 'Meta', 'Tab', 'Escape'].includes(char)) {
-      return;
-    }
-
-    // Handle Enter key
-    if (char === 'Enter') {
-      if (config.enterKeySubmits && scanBuffer.current.length > 0) {
+    if (config.endKeys.includes(event.key)) {
+      if (bufferRef.current.length > 0) {
         event.preventDefault();
-        processScan(scanBuffer.current);
-        scanBuffer.current = '';
-        keystrokeCount.current = 0;
-        firstKeystrokeTime.current = null;
-        lastKeystrokeTime.current = null;
-        clearTimeout(scanTimeout.current);
+        clearTimeout(timeoutRef.current);
+        processBuffer();
       }
       return;
     }
 
-    // Track timing
-    if (!firstKeystrokeTime.current) {
-      firstKeystrokeTime.current = now;
+    if (event.key.length !== 1) return;
+
+    const isRapidInput = timeSinceLastKey < config.maxDelay || bufferRef.current.length === 0;
+
+    if (isRapidInput) {
+      if (bufferRef.current.length > 5) event.preventDefault();
+      bufferRef.current += event.key;
+      setCharCount(bufferRef.current.length);
       setIsScanning(true);
+
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        if (bufferRef.current.length >= config.minLength) {
+          processBuffer();
+        } else {
+          bufferRef.current = '';
+          setIsScanning(false);
+          setCharCount(0);
+        }
+      }, config.maxDelay * 3);
+    } else {
+      bufferRef.current = event.key;
+      setCharCount(1);
     }
+  }, [config, processBuffer]);
 
-    const timeSinceLastKey = lastKeystrokeTime.current ? now - lastKeystrokeTime.current : 0;
-    lastKeystrokeTime.current = now;
-    keystrokeCount.current++;
+  const startListening = useCallback(() => {
+    if (isListening) return;
+    console.log('[ScannerInput] Starting keyboard listener...');
+    document.addEventListener('keydown', handleKeyDown, true);
+    setIsListening(true);
+  }, [isListening, handleKeyDown]);
 
-    // If preventManualInput is enabled, reject slow typing
-    if (config.preventManualInput && timeSinceLastKey > config.scanTimeout && scanBuffer.current.length > 0) {
-      if (config.debugMode) {
-        console.log('[Scanner] Manual typing detected (too slow), resetting buffer');
-      }
-      scanBuffer.current = '';
-      keystrokeCount.current = 1;
-      firstKeystrokeTime.current = now;
-    }
-
-    // Add character to buffer (handle special keys)
-    if (char.length === 1) {
-      scanBuffer.current += char;
-    } else if (char === 'Backspace') {
-      scanBuffer.current = scanBuffer.current.slice(0, -1);
-    }
-
-    // Reset timeout
-    clearTimeout(scanTimeout.current);
-
-    // Set new timeout to process scan
-    scanTimeout.current = setTimeout(() => {
-      if (scanBuffer.current.length >= config.minLength) {
-        processScan(scanBuffer.current);
-      } else if (config.debugMode) {
-        console.log('[Scanner] Buffer cleared (timeout):', scanBuffer.current);
-      }
-
-      scanBuffer.current = '';
-      keystrokeCount.current = 0;
-      firstKeystrokeTime.current = null;
-      lastKeystrokeTime.current = null;
-      setIsScanning(false);
-    }, config.scanTimeout);
-
-  }, [config, processScan]);
-
-  /**
-   * Clear scanner state
-   */
-  const clearScanner = useCallback(() => {
-    scanBuffer.current = '';
-    keystrokeCount.current = 0;
-    firstKeystrokeTime.current = null;
-    lastKeystrokeTime.current = null;
-    setScannerValue('');
+  const stopListening = useCallback(() => {
+    if (!isListening) return;
+    console.log('[ScannerInput] Stopping keyboard listener...');
+    document.removeEventListener('keydown', handleKeyDown, true);
+    clearTimeout(timeoutRef.current);
+    bufferRef.current = '';
+    setIsListening(false);
     setIsScanning(false);
-    setLastScanData(null);
-    clearTimeout(scanTimeout.current);
-    isProcessing.current = false;
+    setCharCount(0);
+  }, [isListening, handleKeyDown]);
 
-    if (config.debugMode) {
-      console.log('[Scanner] State cleared');
-    }
-  }, [config.debugMode]);
-
-  /**
-   * Setup keyboard event listener
-   */
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeystroke);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeystroke);
-      clearTimeout(scanTimeout.current);
-    };
-  }, [handleKeystroke]);
-
-  /**
-   * Cleanup on unmount
-   */
-  useEffect(() => {
-    return () => {
-      clearTimeout(scanTimeout.current);
-    };
+  const clearScan = useCallback(() => {
+    setLastScan(null);
+    setRawData('');
   }, []);
 
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, true);
+      clearTimeout(timeoutRef.current);
+    };
+  }, [handleKeyDown]);
+
   return {
-    scannerValue,      // Current scanned value
-    isScanning,        // True when actively scanning
-    lastScanData,      // Last scan result with metadata
-    clearScanner,      // Function to clear scanner state
-    // Utility methods
-    isMrzFormat: (value) => isMrzFormat(value),
-    parseMrz: (value) => parseMrz(value),
+    isListening,
+    isScanning,
+    lastScan,
+    rawData,
+    charCount,
+    startListening,
+    stopListening,
+    clearScan,
   };
-};
+}
 
 export default useScannerInput;

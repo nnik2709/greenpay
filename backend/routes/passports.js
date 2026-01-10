@@ -13,6 +13,7 @@ const { auth, checkRole } = require('../middleware/auth');
  *   - limit: records per page (default: 50, max: 1000)
  *   - search: search term for passport_number, full_name, nationality
  *   - passport_number: exact passport number lookup (overrides search)
+ *   - nationality: filter by nationality (use with passport_number for unique lookup)
  */
 router.get('/', auth, async (req, res) => {
   try {
@@ -24,6 +25,7 @@ router.get('/', auth, async (req, res) => {
     // Parse search params
     const search = req.query.search ? req.query.search.trim() : '';
     const passport_number = req.query.passport_number ? req.query.passport_number.trim() : '';
+    const nationality = req.query.nationality ? req.query.nationality.trim() : '';
 
     // Build WHERE clauses
     let whereClause = 'WHERE 1=1';
@@ -35,8 +37,16 @@ router.get('/', auth, async (req, res) => {
       const passportIndex = params.length;
       whereClause += ` AND p.passport_number = $${passportIndex}`;
     }
-    // General search
-    else if (search) {
+
+    // Filter by nationality (for unique lookup when combined with passport_number)
+    if (nationality) {
+      params.push(nationality);
+      const nationalityIndex = params.length;
+      whereClause += ` AND p.nationality = $${nationalityIndex}`;
+    }
+
+    // General search (only if no exact filters)
+    if (!passport_number && !nationality && search) {
       params.push(`%${search}%`);
       const searchIndex = params.length;
       whereClause += ` AND (

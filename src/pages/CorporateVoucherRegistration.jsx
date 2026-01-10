@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import SimpleCameraScanner from '@/components/SimpleCameraScanner';
 import { NationalityCombobox } from '@/components/NationalityCombobox';
 import { useScannerInput } from '@/hooks/useScannerInput';
+import { useWebSerial, ConnectionState } from '@/hooks/useWebSerial';
+import { ScannerStatusFull } from '@/components/ScannerStatus';
 import { useToast } from '@/components/ui/use-toast';
 
 /**
@@ -74,7 +76,41 @@ const CorporateVoucherRegistration = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Hardware scanner support (desktop USB scanners)
+  // Process scanned passport data (from any scanner source)
+  const processScannedPassport = useCallback((data) => {
+    console.log('[VoucherRegistration] Processing scanned passport:', data);
+
+    // Map Web Serial format (snake_case) to form format (camelCase)
+    setPassportData(prev => ({
+      ...prev,
+      passportNumber: data.passport_no || data.passportNumber || prev.passportNumber,
+      surname: data.surname || prev.surname,
+      givenName: data.given_name || data.givenName || prev.givenName,
+      nationality: data.nationality || prev.nationality,
+      dateOfBirth: data.dob || prev.dateOfBirth,
+      sex: data.sex || prev.sex,
+      dateOfExpiry: data.date_of_expiry || data.dateOfExpiry || prev.dateOfExpiry
+    }));
+
+    toast({
+      title: 'Passport Scanned!',
+      description: 'Passport details filled automatically from scanner.',
+    });
+  }, [toast]);
+
+  // PrehKeyTec Web Serial Scanner (hardware scanner with DTR/RTS control)
+  const webSerialScanner = useWebSerial({
+    onScan: (data) => {
+      // Only process scan if we're on step 2 (passport entry)
+      if (step === 2) {
+        processScannedPassport(data);
+      }
+    },
+    autoConnect: true,
+    autoReconnect: true,
+  });
+
+  // Legacy keyboard wedge scanner support (fallback)
   const { isScanning: isScannerActive } = useScannerInput({
     onScanComplete: (data) => {
       if (step === 2 && data.type === 'mrz') {
@@ -557,6 +593,43 @@ const CorporateVoucherRegistration = () => {
           </CardHeader>
           <CardContent>
 
+            {/* PrehKeyTec Hardware Scanner Status (Desktop) */}
+            {!isMobile && (
+              <div className="mb-6">
+                <ScannerStatusFull
+                  connectionState={webSerialScanner.connectionState}
+                  scanCount={webSerialScanner.scanCount}
+                  error={webSerialScanner.error}
+                  onConnect={webSerialScanner.connect}
+                  onDisconnect={webSerialScanner.disconnect}
+                  onReconnect={webSerialScanner.reconnect}
+                  isSupported={webSerialScanner.isSupported}
+                  reconnectAttempt={webSerialScanner.reconnectAttempt}
+                />
+
+                {/* Scanner Ready Indicator */}
+                {webSerialScanner.isReady && (
+                  <div className="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-4 mt-4">
+                    <p className="text-emerald-700 font-medium text-center">
+                      PrehKeyTec Scanner Ready - Place passport on scanner to auto-fill
+                      {webSerialScanner.scanCount > 0 && (
+                        <span className="ml-2">({webSerialScanner.scanCount} scanned)</span>
+                      )}
+                    </p>
+                  </div>
+                )}
+
+                {/* Fallback keyboard scanner indicator */}
+                {!webSerialScanner.isSupported && isScannerActive && (
+                  <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mt-4">
+                    <p className="text-amber-700 font-medium text-center">
+                      Keyboard Scanner Active - Ready to scan passport MRZ
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Mobile Camera Scanner Button */}
             {isMobile && (
               <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
@@ -580,17 +653,8 @@ const CorporateVoucherRegistration = () => {
               </div>
             )}
 
-            {/* Hardware Scanner (Desktop) */}
-            {!isMobile && isScannerActive && (
-              <div className="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-4 mb-6">
-                <p className="text-emerald-700 font-medium text-center">
-                  Hardware Scanner Active - Ready to scan passport MRZ
-                </p>
-              </div>
-            )}
-
-            {/* Camera Scanner Button (Desktop) */}
-            {!isMobile && (
+            {/* Camera Scanner Button (Desktop - alternative to hardware scanner) */}
+            {!isMobile && !webSerialScanner.isReady && (
               <div className="mb-6">
                 <Button
                   type="button"
@@ -601,7 +665,7 @@ const CorporateVoucherRegistration = () => {
                   disabled={loading}
                 >
                   <Camera className="mr-2 h-5 w-5" />
-                  Scan Passport with Camera
+                  Scan Passport with Camera (Alternative)
                 </Button>
               </div>
             )}

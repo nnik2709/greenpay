@@ -1214,7 +1214,8 @@ router.post('/:voucherCode/email',
     }
 
     // Generate voucher PDF using working pdfGenerator
-    const pdfBuffer = await generateVoucherPDF(voucher);
+    const { generateVoucherPDFBuffer } = require('../utils/pdfGenerator');
+    const pdfBuffer = await generateVoucherPDFBuffer([voucher], voucher.customer_name || 'Individual');
 
     // Send email with voucher PDF
     await transporter.sendMail({

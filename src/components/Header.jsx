@@ -8,6 +8,8 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import PasswordChangeModal from '@/components/PasswordChangeModal';
+// Note: Scanner removed from Header to avoid conflicts with page-level scanner instances
+// Each page that needs scanning (IndividualPurchase, CorporateVoucherRegistration) has its own scanner
 
 const reportSubItems = [
     { to: '/app/reports', icon: <BarChart2 className="h-4 w-4" />, label: 'Reports Dashboard' },
@@ -299,7 +301,7 @@ const Header = () => {
     logout
   } = useAuth();
   const [isPasswordChangeOpen, setIsPasswordChangeOpen] = useState(false);
-  
+
   const userNavItems = navItemsByRole[user?.role] || [];
   const isAdmin = user?.role === 'Flex_Admin';
 
@@ -320,6 +322,7 @@ const Header = () => {
           <div className="ml-auto flex-1 sm:flex-initial">
             <NavMenu items={userNavItems} />
           </div>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full bg-white/20 hover:bg-white/30 transition-all hover:scale-105">

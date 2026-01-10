@@ -68,6 +68,7 @@ const CashReconciliation = lazy(() => import('@/pages/CashReconciliation'));
 const Invoices = lazy(() => import('@/pages/Invoices'));
 const VouchersList = lazy(() => import('@/pages/VouchersList'));
 const MrzScannerTest = lazy(() => import('@/pages/MrzScannerTest'));
+const PrehKeyTecDebug = lazy(() => import('@/pages/PrehKeyTecDebug'));
 
 // Loading component for suspense fallback
 const PageLoader = () => (
@@ -140,6 +141,11 @@ const AppRoutes = () => {
         <Route path="/login" element={<LoginRoute />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/scanner-test" element={<PublicScannerTest />} />
+        <Route path="/prehkeytec-debug" element={
+          <Suspense fallback={<PageLoader />}>
+            <PrehKeyTecDebug />
+          </Suspense>
+        } />
         <Route path="/payment-callback" element={<PaymentCallback />} />
 
         {/* Public routes - No authentication required */}
@@ -209,6 +215,11 @@ const AppRoutes = () => {
           <Route path="tesseract-scanner-test" element={
             <PrivateRoute roles={['Flex_Admin', 'IT_Support']}>
               <TesseractScannerTest />
+            </PrivateRoute>
+          } />
+          <Route path="prehkeytec-debug" element={
+            <PrivateRoute roles={['Flex_Admin', 'IT_Support', 'Counter_Agent']}>
+              <PrehKeyTecDebug />
             </PrivateRoute>
           } />
           <Route path="vouchers-list" element={
