@@ -93,7 +93,7 @@ const AgentLanding = () => {
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="text-xl font-bold">PNG Green Fees</div>
+              {/* Logo removed - appears on login page only */}
             </div>
             <div className="flex items-center gap-4">
               <nav className="hidden md:flex items-center gap-4">

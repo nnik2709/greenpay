@@ -595,11 +595,11 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
                 <div className="flex items-center gap-3">
                   <div className="text-2xl">✅</div>
                   <div>
-                    <h3 className="font-bold text-emerald-900">PrehKeyTec Scanner Ready</h3>
+                    <h3 className="font-bold text-emerald-900">Scanner Ready</h3>
                     <p className="text-emerald-700 text-sm">
-                      Place passport on scanner. Data will auto-fill when scanned.
+                      Scan passport MRZ to auto-fill data.
                       {webSerialScanner.scanCount > 0 && (
-                        <span className="ml-2 font-semibold">({webSerialScanner.scanCount} scanned this session)</span>
+                        <span className="ml-2 font-semibold">({webSerialScanner.scanCount} scanned)</span>
                       )}
                     </p>
                   </div>
