@@ -15,14 +15,38 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPassports, searchPassports } from '@/lib/passportsService';
 import CameraMRZScanner from '@/components/CameraMRZScanner';
+import { useAuth } from '@/contexts/AuthContext';
+import { useScannerInput } from '@/hooks/useScannerInput';
 
 const Passports = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
+
+  // Keyboard wedge scanner support for passport search
+  const { inputRef: searchInputRef, scanData: scannedPassportData, isScanning: isScanningPassport, clearScan } = useScannerInput({
+    onScan: (data) => {
+      // If it's a passport MRZ scan, extract passport number
+      if (data.passportNumber) {
+        setSearchQuery(data.passportNumber);
+        // Auto-search after scanning
+        setTimeout(() => {
+          handleSearch({ preventDefault: () => {} });
+        }, 100);
+      } else {
+        // Simple barcode/voucher code
+        setSearchQuery(data);
+        setTimeout(() => {
+          handleSearch({ preventDefault: () => {} });
+        }, 100);
+      }
+    },
+    enableMrzParsing: true
+  });
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkEmail, setBulkEmail] = useState('');
@@ -173,13 +197,22 @@ const Passports = () => {
               Search for a Passport
             </label>
             <div className="flex gap-4">
-              <Input
-                id="passport-search"
-                placeholder="Enter Passport Number or Name..."
-                className="flex-grow h-16 text-lg border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all rounded-xl"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+              <div className="flex-grow relative">
+                <Input
+                  ref={searchInputRef}
+                  id="passport-search"
+                  placeholder="Enter Passport Number or Name... (or scan with KB scanner)"
+                  className={`h-16 text-lg border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all rounded-xl ${isScanningPassport ? 'border-emerald-500 ring-2 ring-emerald-300 bg-emerald-50' : ''}`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {isScanningPassport && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 text-emerald-600 font-medium text-sm">
+                    <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse"></div>
+                    Scanning...
+                  </div>
+                )}
+              </div>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button
                   type="submit"
@@ -192,32 +225,7 @@ const Passports = () => {
             </div>
           </form>
 
-          <div className="relative flex items-center">
-            <div className="flex-grow border-t border-slate-300"></div>
-            <span className="flex-shrink mx-6 text-slate-500 font-medium">Or</span>
-            <div className="flex-grow border-t border-slate-300"></div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <motion.div whileHover={{ scale: 1.03, y: -4 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                onClick={handleCreateNew}
-                variant="outline"
-                className="w-full h-28 text-lg font-semibold border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-400 rounded-2xl transition-all shadow-md hover:shadow-xl"
-              >
-                Create New Passport
-              </Button>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.03, y: -4 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                onClick={() => setIsScanModalOpen(true)}
-                variant="outline"
-                className="w-full h-28 text-lg font-semibold border-2 border-teal-300 text-teal-700 hover:bg-teal-50 hover:text-teal-800 hover:border-teal-400 rounded-2xl transition-all shadow-md hover:shadow-xl"
-              >
-                Scan with Camera
-              </Button>
-            </motion.div>
-          </div>
+          {/* All roles see view-only interface - search and view passports only */}
         </motion.div>
 
         {hasSearched && (

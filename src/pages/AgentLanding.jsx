@@ -17,16 +17,16 @@ const AgentLanding = () => {
   const mainActions = [
     {
       id: 1,
-      title: "Add Passport & Generate Voucher",
-      description: "Add new passport, process payment, and print GREEN CARD voucher at your desk using POS barcode printer",
+      title: "Scan Passport & Generate Voucher",
+      description: "Scan passport with PrehKeyTec MRZ scanner, process payment, and print GREEN CARD voucher at your desk using POS barcode printer",
       iconColor: "text-emerald-600",
       bgColor: "bg-emerald-50",
       borderColor: "border-emerald-200",
       hoverBg: "hover:bg-emerald-100",
       path: "/app/passports/create",
       benefits: [
-        "MRZ scanner or manual entry",
-        "Accept cash/card/EFTPOS payment",
+        "PrehKeyTec MRZ scanner (primary method)",
+        "Accept cash/card/POS Terminal payment",
         "Print 8-character GREEN CARD instantly"
       ]
     },
@@ -48,16 +48,16 @@ const AgentLanding = () => {
     {
       id: 3,
       title: "Add Passport to Voucher",
-      description: "Scan GREEN CARD voucher and add passport details if needed",
+      description: "Scan GREEN CARD voucher barcode, then scan passport with PrehKeyTec MRZ scanner to link them",
       iconColor: "text-purple-600",
       bgColor: "bg-purple-50",
       borderColor: "border-purple-200",
       hoverBg: "hover:bg-purple-100",
-      path: "/app/scan",
+      path: "/voucher-registration",
       benefits: [
-        "Scan voucher barcode",
-        "Add/update passport details",
-        "Re-print complete GREEN CARD"
+        "Scan voucher barcode first",
+        "PrehKeyTec MRZ scanner for passport",
+        "Print or email complete GREEN CARD"
       ]
     }
   ];

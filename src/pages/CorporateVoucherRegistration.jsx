@@ -14,6 +14,7 @@ import { useScannerInput } from '@/hooks/useScannerInput';
 import { useWebSerial, ConnectionState } from '@/hooks/useWebSerial';
 import { ScannerStatusFull } from '@/components/ScannerStatus';
 import { useToast } from '@/components/ui/use-toast';
+import { convertCountryCodeToNationality } from '@/lib/countryCodeMapper';
 
 /**
  * Voucher Registration Page
@@ -76,9 +77,31 @@ const CorporateVoucherRegistration = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // USB Barcode scanner for voucher code (Step 1)
+  const voucherBarcodeScan = useScannerInput({
+    onScan: (scannedCode) => {
+      console.log('[VoucherRegistration] Voucher barcode scanned:', scannedCode);
+
+      // Set the voucher code
+      setVoucherCode(scannedCode.toUpperCase());
+
+      toast({
+        title: 'Voucher Barcode Scanned!',
+        description: `Code ${scannedCode} detected from barcode scanner.`,
+      });
+    },
+    enabled: step === 1, // Only active on Step 1
+    minLength: 6, // Voucher codes are at least 6 characters
+    timeout: 100, // 100ms between characters for barcode scanner
+  });
+
   // Process scanned passport data (from any scanner source)
   const processScannedPassport = useCallback((data) => {
     console.log('[VoucherRegistration] Processing scanned passport:', data);
+
+    // Convert 3-letter nationality code to full country name
+    const nationalityCode = data.nationality;
+    const nationalityFullName = nationalityCode ? convertCountryCodeToNationality(nationalityCode) : null;
 
     // Map Web Serial format (snake_case) to form format (camelCase)
     setPassportData(prev => ({
@@ -86,7 +109,7 @@ const CorporateVoucherRegistration = () => {
       passportNumber: data.passport_no || data.passportNumber || prev.passportNumber,
       surname: data.surname || prev.surname,
       givenName: data.given_name || data.givenName || prev.givenName,
-      nationality: data.nationality || prev.nationality,
+      nationality: nationalityFullName || prev.nationality,
       dateOfBirth: data.dob || prev.dateOfBirth,
       sex: data.sex || prev.sex,
       dateOfExpiry: data.date_of_expiry || data.dateOfExpiry || prev.dateOfExpiry
@@ -531,12 +554,35 @@ const CorporateVoucherRegistration = () => {
       {step === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Step 1: Enter Voucher Code</CardTitle>
+            <CardTitle>Step 1: Scan or Enter Voucher Code</CardTitle>
             <CardDescription>
-              Enter your voucher code from the GREEN CARD
+              Scan the barcode on your GREEN CARD or enter the code manually
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Barcode Scanner Status */}
+            {voucherBarcodeScan.isScanning && (
+              <Alert className="bg-blue-50 border-blue-200">
+                <Scan className="h-4 w-4 text-blue-600 animate-pulse" />
+                <AlertDescription className="text-blue-900">
+                  <strong>Scanning barcode...</strong> Scanner detected rapid input
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Scanner Ready Indicator */}
+            {!voucherBarcodeScan.isScanning && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <Scan className="h-5 w-5 text-emerald-600" />
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-900">USB Barcode Scanner Ready</p>
+                    <p className="text-xs text-emerald-700">Scan the voucher barcode with your USB scanner</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <Label htmlFor="voucherCode">Voucher Code</Label>
               <Input
@@ -547,9 +593,7 @@ const CorporateVoucherRegistration = () => {
                 maxLength={50}
                 className="text-lg font-mono tracking-wider"
               />
-              <p className="text-sm text-gray-500 mt-1">
-                New vouchers: 8 characters (e.g., 3IEW5268) | Old vouchers: CORP- format
-              </p>
+              <p className="text-xs text-slate-500 mt-1">Manual entry (if scanner unavailable)</p>
             </div>
 
             <Button

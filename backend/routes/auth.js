@@ -276,4 +276,17 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+// Logout (client-side token removal, no server state to clear)
+router.post('/logout', auth, async (req, res) => {
+  try {
+    // Since we're using stateless JWT tokens, logout is handled client-side
+    // by removing the token from localStorage
+    // This endpoint exists for consistency and potential future session tracking
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Logout failed' });
+  }
+});
+
 module.exports = router;

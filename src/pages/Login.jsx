@@ -91,6 +91,16 @@ const Login = () => {
       >
         {/* Header */}
         <div className="text-center mb-10">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+            className="flex justify-center mb-6"
+          >
+            <div className="bg-white/80 p-4 rounded-2xl shadow-xl backdrop-blur-sm">
+              <img src="/logo.png" alt="PNG Logo" className="w-32 h-auto object-contain" />
+            </div>
+          </motion.div>
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
             PNG Green Fees
           </h1>

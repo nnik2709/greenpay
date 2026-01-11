@@ -498,47 +498,83 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
 
   return (
     <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}>
-      {/* STEP 1: SCAN PASSPORT */}
+      {/* PRIMARY SEARCH SECTION - First Field */}
       <Card className="overflow-visible border-2 border-emerald-500 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50">
           <CardTitle className="text-xl">📷 Step 1: Scan Passport</CardTitle>
-          <p className="text-sm text-slate-600 mt-1">Place passport on scanner to auto-fill all details</p>
+          <p className="text-sm text-slate-600 mt-1">
+            <span className="font-semibold">Use PrehKeyTec MRZ scanner</span> to auto-populate all passport details.
+            <span className="text-slate-500 text-xs block mt-0.5">Manual entry available below if scanner not working</span>
+          </p>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
-          {/* Scan Result Feedback */}
-          {passportFound === true && (
-            <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 animate-in fade-in slide-in-from-top-2">
-              <div className="flex items-start gap-3">
-                <div className="text-3xl">✅</div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-green-900 text-lg">Passport Found in Database!</h3>
-                  <p className="text-green-700 text-sm mt-1">
-                    Existing passport record loaded for <strong>{passportInfo.givenName} {passportInfo.surname}</strong>
-                  </p>
-                  <p className="text-green-600 text-xs mt-2">
-                    All fields have been auto-populated. Review and proceed to payment.
-                  </p>
-                </div>
+          {/* Primary Search Input - Now positioned as fallback */}
+          <div className="space-y-3">
+            <p className="text-xs text-slate-500 font-medium">Manual Search (if scanner unavailable):</p>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Input
+                  placeholder="Enter Passport Number (e.g., P1234567)"
+                  className="text-base h-11 border-2 border-slate-300 focus:border-emerald-500"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
               </div>
+              <Button
+                onClick={handleSearch}
+                size="default"
+                className="bg-slate-600 hover:bg-slate-700 px-6"
+                disabled={isSearching || !searchQuery.trim()}
+              >
+                {isSearching ? 'Searching...' : 'Search'}
+              </Button>
             </div>
-          )}
 
-          {passportFound === false && (
-            <div className="bg-blue-50 border-2 border-blue-500 rounded-lg p-4 animate-in fade-in slide-in-from-top-2">
-              <div className="flex items-start gap-3">
-                <div className="text-3xl">📋</div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-blue-900 text-lg">New Passport Scanned</h3>
-                  <p className="text-blue-700 text-sm mt-1">
-                    Passport not found in system. Details auto-filled from scan.
-                  </p>
-                  <p className="text-blue-600 text-xs mt-2">
-                    Review the information below and proceed to payment.
-                  </p>
+            {/* Search Result Feedback */}
+            {passportFound === true && (
+              <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-start gap-3">
+                  <div className="text-3xl">✅</div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-green-900 text-lg">Passport Found in Database!</h3>
+                    <p className="text-green-700 text-sm mt-1">
+                      Existing passport record loaded for <strong>{passportInfo.givenName} {passportInfo.surname}</strong>
+                    </p>
+                    <p className="text-green-600 text-xs mt-2">
+                      All fields have been auto-populated. Review and proceed to payment.
+                    </p>
+                  </div>
                 </div>
               </div>
+            )}
+
+            {passportFound === false && (
+              <div className="bg-blue-50 border-2 border-blue-500 rounded-lg p-4 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-start gap-3">
+                  <div className="text-3xl">📋</div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-blue-900 text-lg">New Passport - Not in Database</h3>
+                    <p className="text-blue-700 text-sm mt-1">
+                      Passport number <strong>{searchQuery}</strong> not found in system.
+                    </p>
+                    <p className="text-blue-600 text-xs mt-2">
+                      Please enter passport details below to create a new record.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-slate-300" />
             </div>
-          )}
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-3 text-slate-500 font-semibold">Or Use MRZ Scanner</span>
+            </div>
+          </div>
 
           {/* PrehKeyTec Hardware Scanner Status */}
           <ScannerStatusFull
@@ -551,6 +587,26 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
             isSupported={webSerialScanner.isSupported}
             reconnectAttempt={webSerialScanner.reconnectAttempt}
           />
+
+          {/* Scanner Ready Indicator */}
+          {webSerialScanner.isReady && (
+            <Card className="bg-emerald-50 border-2 border-emerald-400">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">✅</div>
+                  <div>
+                    <h3 className="font-bold text-emerald-900">PrehKeyTec Scanner Ready</h3>
+                    <p className="text-emerald-700 text-sm">
+                      Place passport on scanner. Data will auto-fill when scanned.
+                      {webSerialScanner.scanCount > 0 && (
+                        <span className="ml-2 font-semibold">({webSerialScanner.scanCount} scanned this session)</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Fallback keyboard wedge scanner indicator */}
           {!webSerialScanner.isSupported && isScannerActive && (
@@ -571,16 +627,16 @@ const PassportDetailsStep = ({ onNext, setPassportInfo, passportInfo }) => {
         </CardContent>
       </Card>
 
-      {/* PASSPORT DETAILS FORM - Manual entry or review scanned data */}
+      {/* PASSPORT DETAILS FORM - Only show after search or for manual entry */}
       <Card className="mt-8">
         <CardHeader>
           <CardTitle>Step 2: Passport Details</CardTitle>
           <p className="text-sm text-slate-600 mt-1">
             {passportFound === true
-              ? "Review auto-populated information from scan"
+              ? "Review auto-populated information"
               : passportFound === false
-                ? "Review scanned details or complete missing fields"
-                : "Enter passport details manually if scanner unavailable"}
+                ? "Enter passport details to create new record"
+                : "Search for passport first, or enter details manually"}
           </p>
         </CardHeader>
         <CardContent>
@@ -1151,17 +1207,15 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
             </RadioGroup>
           </div>
 
-          {/* POS Transaction Details (PCI-Compliant) */}
+          {/* POS Terminal Transaction Details (Simplified) */}
           {requiresCardDetails && (
             <div className="space-y-4 border-t pt-4">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                 <p className="text-sm text-blue-900">
-                  <strong>🔒 PCI-Compliant:</strong> Enter transaction details from POS terminal receipt.
-                  <br />
-                  <span className="text-xs text-blue-700">No full card numbers are stored for security compliance.</span>
+                  <strong>💳 POS Terminal Payment:</strong> Enter details from the POS terminal receipt.
                 </p>
               </div>
-              <h3 className="font-semibold text-slate-700">POS Transaction Details</h3>
+              <h3 className="font-semibold text-slate-700">POS Terminal Transaction Details</h3>
               <div className="space-y-3">
                 <div>
                   <Label>Transaction Reference Number *</Label>
@@ -1169,41 +1223,20 @@ const PaymentStep = ({ onNext, onBack, passportInfo, setPaymentData }) => {
                     placeholder="e.g., TXN123456789 (from POS receipt)"
                     value={posTransactionRef}
                     onChange={(e) => setPosTransactionRef(e.target.value)}
+                    className="text-base h-12"
                     required
                   />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>POS Terminal ID</Label>
-                    <Input
-                      placeholder="e.g., POS-001"
-                      value={posTerminalId}
-                      onChange={(e) => setPosTerminalId(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label>Approval Code</Label>
-                    <Input
-                      placeholder="e.g., APP123 (from receipt)"
-                      value={posApprovalCode}
-                      onChange={(e) => setPosApprovalCode(e.target.value)}
-                    />
-                  </div>
+                  <p className="text-xs text-slate-500 mt-1">Required for transaction tracking and reconciliation</p>
                 </div>
                 <div>
-                  <Label>Card Last 4 Digits (optional)</Label>
+                  <Label>Approval Code</Label>
                   <Input
-                    placeholder="1234 (for reconciliation only)"
-                    value={cardLastFour}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 4);
-                      setCardLastFour(value);
-                    }}
-                    maxLength={4}
+                    placeholder="e.g., APP123 (from receipt)"
+                    value={posApprovalCode}
+                    onChange={(e) => setPosApprovalCode(e.target.value)}
+                    className="text-base h-12"
                   />
-                  <p className="text-xs text-slate-500 mt-1">
-                    Only enter the last 4 digits - never the full card number
-                  </p>
+                  <p className="text-xs text-slate-500 mt-1">Approval code from POS terminal (optional)</p>
                 </div>
               </div>
             </div>

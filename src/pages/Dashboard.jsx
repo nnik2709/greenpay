@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   LineChart,
   Line,
@@ -16,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api/client';
 
 const StatCard = ({ title, value, index }) => {
@@ -64,6 +66,8 @@ const processDataForCharts = (data) => {
 };
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const today = new Date();
   const oneMonthAgo = new Date(today);
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
@@ -73,6 +77,120 @@ const Dashboard = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Quick actions for different roles
+  const quickActions = useMemo(() => {
+    const userRole = user?.role || 'Flex_Admin';
+
+    if (userRole === 'Flex_Admin') {
+      return [
+        {
+          id: 1,
+          title: "Manage Users",
+          description: "Create, edit, and manage user accounts and roles",
+          path: "/app/users",
+          color: "from-blue-500 to-cyan-500",
+          borderColor: "border-blue-200",
+        },
+        {
+          id: 2,
+          title: "System Settings",
+          description: "Configure payment modes, email templates, and system settings",
+          path: "/app/admin/settings",
+          color: "from-purple-500 to-pink-500",
+          borderColor: "border-purple-200",
+        },
+        {
+          id: 3,
+          title: "View Reports",
+          description: "Access comprehensive reports and analytics",
+          path: "/app/reports",
+          color: "from-emerald-500 to-teal-500",
+          borderColor: "border-emerald-200",
+        },
+        {
+          id: 4,
+          title: "Create Voucher",
+          description: "Process individual passport purchases and generate vouchers",
+          path: "/app/passports/create",
+          color: "from-orange-500 to-amber-500",
+          borderColor: "border-orange-200",
+        },
+      ];
+    } else if (userRole === 'Finance_Manager') {
+      return [
+        {
+          id: 1,
+          title: "Quotations",
+          description: "Create and manage quotations",
+          path: "/app/quotations",
+          color: "from-blue-500 to-cyan-500",
+          borderColor: "border-blue-200",
+        },
+        {
+          id: 2,
+          title: "View Reports",
+          description: "Access financial reports and analytics",
+          path: "/app/reports",
+          color: "from-emerald-500 to-teal-500",
+          borderColor: "border-emerald-200",
+        },
+        {
+          id: 3,
+          title: "Invoices",
+          description: "View and manage invoices",
+          path: "/app/invoices",
+          color: "from-purple-500 to-pink-500",
+          borderColor: "border-purple-200",
+        },
+        {
+          id: 4,
+          title: "Scan & Validate",
+          description: "Validate vouchers and passports",
+          path: "/app/scan",
+          color: "from-orange-500 to-amber-500",
+          borderColor: "border-orange-200",
+        },
+      ];
+    } else if (userRole === 'IT_Support') {
+      return [
+        {
+          id: 1,
+          title: "Manage Users",
+          description: "Create and manage user accounts",
+          path: "/app/users",
+          color: "from-blue-500 to-cyan-500",
+          borderColor: "border-blue-200",
+        },
+        {
+          id: 2,
+          title: "View Reports",
+          description: "Access system reports and analytics",
+          path: "/app/reports",
+          color: "from-emerald-500 to-teal-500",
+          borderColor: "border-emerald-200",
+        },
+        {
+          id: 3,
+          title: "Login History",
+          description: "View user login and activity logs",
+          path: "/app/admin/login-history",
+          color: "from-purple-500 to-pink-500",
+          borderColor: "border-purple-200",
+        },
+        {
+          id: 4,
+          title: "Scan & Validate",
+          description: "Validate vouchers and passports",
+          path: "/app/scan",
+          color: "from-orange-500 to-amber-500",
+          borderColor: "border-orange-200",
+        },
+      ];
+    }
+
+    return [];
+  }, [user]);
 
   useEffect(() => {
     loadTransactions();
@@ -159,6 +277,35 @@ const Dashboard = () => {
       transition={{ duration: 0.5 }}
       className="space-y-6"
     >
+      {/* Quick Actions Section */}
+      {quickActions.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-slate-800 mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {quickActions.map((action, index) => (
+              <motion.div
+                key={action.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                whileHover={{ scale: 1.03, y: -4 }}
+                whileTap={{ scale: 0.98 }}
+                className="cursor-pointer"
+                onClick={() => navigate(action.path)}
+              >
+                <div className={`bg-gradient-to-br ${action.color} text-white rounded-xl p-5 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 ${action.borderColor} relative overflow-hidden group h-full`}>
+                  <div className="relative z-10">
+                    <h3 className="text-lg font-bold mb-2">{action.title}</h3>
+                    <p className="text-sm text-white/90 leading-snug">{action.description}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Date Filter Section */}
       <div className="flex flex-wrap items-center justify-end gap-4 mb-4">
         <div className="grid gap-2">
           <Label htmlFor="from-date" className="text-sm font-medium text-slate-700">From Date</Label>

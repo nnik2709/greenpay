@@ -10,12 +10,11 @@ import {
 } from "@/components/ui/card";
 
 const reportItems = [
-  { title: 'Passport Reports', description: 'Analyze all passport data.', link: '/reports/passports' },
-  { title: 'Individual Purchase', description: 'Track single transaction details.', link: '/reports/individual-purchase' },
-  { title: 'Corporate Vouchers', description: 'Monitor bulk corporate sales.', link: '/reports/corporate-vouchers' },
-  { title: 'Revenue Generated', description: 'View combined financial analysis.', link: '/reports/revenue-generated' },
-  { title: 'Bulk Uploads', description: 'Statistics on mass uploads.', link: '/reports/bulk-passport-uploads' },
-  { title: 'Quotations Reports', description: 'Track business quotation pipeline.', link: '/reports/quotations' },
+  { title: 'Passport Reports', description: 'Analyze all passport data.', link: '/app/reports/passports' },
+  { title: 'Individual Purchase', description: 'Track single transaction details.', link: '/app/reports/individual-purchase' },
+  { title: 'Corporate Vouchers', description: 'Monitor bulk corporate sales.', link: '/app/reports/corporate-vouchers' },
+  { title: 'Revenue Generated', description: 'View combined financial analysis.', link: '/app/reports/revenue-generated' },
+  { title: 'Quotations Reports', description: 'Track business quotation pipeline.', link: '/app/reports/quotations' },
 ];
 
 const Reports = () => {

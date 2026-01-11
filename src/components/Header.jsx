@@ -12,12 +12,10 @@ import PasswordChangeModal from '@/components/PasswordChangeModal';
 // Each page that needs scanning (IndividualPurchase, CorporateVoucherRegistration) has its own scanner
 
 const reportSubItems = [
-    { to: '/app/reports', icon: <BarChart2 className="h-4 w-4" />, label: 'Reports Dashboard' },
     { to: '/app/reports/passports', icon: <FileText className="h-4 w-4" />, label: 'Passport Reports' },
     { to: '/app/reports/individual-purchase', icon: <FilePlus className="h-4 w-4" />, label: 'Individual Purchase' },
     { to: '/app/reports/corporate-vouchers', icon: <Building className="h-4 w-4" />, label: 'Corporate Vouchers' },
     { to: '/app/reports/revenue-generated', icon: <CreditCard className="h-4 w-4" />, label: 'Revenue Generated' },
-    { to: '/app/reports/bulk-passport-uploads', icon: <UploadCloud className="h-4 w-4" />, label: 'Bulk Uploads' },
     { to: '/app/reports/quotations', icon: <FileSignature className="h-4 w-4" />, label: 'Quotations' },
     { to: '/app/reports/refunded', icon: <FileText className="h-4 w-4" />, label: 'Refunded' },
     { to: '/app/reports/cash-reconciliation', icon: <CreditCard className="h-4 w-4" />, label: 'Cash Reconciliation' },
@@ -25,12 +23,10 @@ const reportSubItems = [
 
 // IT_Support has limited report access (no quotations)
 const itSupportReportSubItems = [
-    { to: '/app/reports', icon: <BarChart2 className="h-4 w-4" />, label: 'Reports Dashboard' },
     { to: '/app/reports/passports', icon: <FileText className="h-4 w-4" />, label: 'Passport Reports' },
     { to: '/app/reports/individual-purchase', icon: <FilePlus className="h-4 w-4" />, label: 'Individual Purchase' },
     { to: '/app/reports/corporate-vouchers', icon: <Building className="h-4 w-4" />, label: 'Corporate Vouchers' },
     { to: '/app/reports/revenue-generated', icon: <CreditCard className="h-4 w-4" />, label: 'Revenue Generated' },
-    { to: '/app/reports/bulk-passport-uploads', icon: <UploadCloud className="h-4 w-4" />, label: 'Bulk Uploads' },
     { to: '/app/reports/refunded', icon: <FileText className="h-4 w-4" />, label: 'Refunded' },
     { to: '/app/reports/cash-reconciliation', icon: <CreditCard className="h-4 w-4" />, label: 'Cash Reconciliation' },
 ];
@@ -39,7 +35,7 @@ const navItemsByRole = {
   Flex_Admin: [{
     to: '/app/dashboard',
     icon: <LayoutDashboard className="h-4 w-4" />,
-    label: 'Dashboard'
+    label: 'Home'
   }, {
     to: '/app/users',
     icon: <Users className="h-4 w-4" />,
@@ -57,25 +53,13 @@ const navItemsByRole = {
       icon: <FilePlus className="h-4 w-4" />,
       label: 'Individual Exit Pass'
     }, {
-      to: '/app/passports/bulk-upload',
-      icon: <UploadCloud className="h-4 w-4" />,
-      label: 'Bulk Upload'
-    }, {
       to: '/app/payments/corporate-exit-pass',
       icon: <Building className="h-4 w-4" />,
       label: 'Corporate Exit Pass'
     }, {
-      to: '/app/payments/corporate-batch-history',
-      icon: <Package className="h-4 w-4" />,
-      label: 'Batch History'
-    }, {
       to: '/app/vouchers-list',
       icon: <FileText className="h-4 w-4" />,
       label: 'Vouchers List'
-    }, {
-      to: '/app/scan',
-      icon: <ScanSearch className="h-4 w-4" />,
-      label: 'Scan & Validate'
     }]
   }, {
     to: '/app/payments',
@@ -124,7 +108,11 @@ const navItemsByRole = {
   Finance_Manager: [{
     to: '/app/dashboard',
     icon: <LayoutDashboard className="h-4 w-4" />,
-    label: 'Dashboard'
+    label: 'Home'
+  }, {
+    to: '/app/payments',
+    icon: <CreditCard className="h-4 w-4" />,
+    label: 'Payments'
   }, {
     title: 'Passports',
     icon: <FileText className="h-4 w-4" />,
@@ -141,10 +129,6 @@ const navItemsByRole = {
       to: '/app/vouchers-list',
       icon: <FileText className="h-4 w-4" />,
       label: 'Vouchers List'
-    }, {
-      to: '/app/scan',
-      icon: <ScanSearch className="h-4 w-4" />,
-      label: 'Scan & Validate'
     }]
   }, {
     title: 'Quotations & Invoices',
@@ -181,15 +165,11 @@ const navItemsByRole = {
     to: '/app/vouchers-list',
     icon: <Package className="h-4 w-4" />,
     label: 'Vouchers List'
-  }, {
-    to: '/app/scan',
-    icon: <ScanSearch className="h-4 w-4" />,
-    label: 'Scan & Validate'
   }],
   IT_Support: [{
     to: '/app/dashboard',
     icon: <LayoutDashboard className="h-4 w-4" />,
-    label: 'Dashboard'
+    label: 'Home'
   }, {
     to: '/app/users',
     icon: <Users className="h-4 w-4" />,
@@ -206,14 +186,6 @@ const navItemsByRole = {
       to: '/app/vouchers-list',
       icon: <FileText className="h-4 w-4" />,
       label: 'Vouchers List'
-    }, {
-      to: '/app/scan',
-      icon: <ScanSearch className="h-4 w-4" />,
-      label: 'Scan Exit Pass'
-    }, {
-      to: '/app/scanner-test',
-      icon: <ScanSearch className="h-4 w-4" />,
-      label: 'Voucher Scanner'
     }]
   }, {
     to: '/app/invoices',
@@ -224,10 +196,6 @@ const navItemsByRole = {
     icon: <BarChart2 className="h-4 w-4" />,
     base_path: '/app/reports',
     subItems: itSupportReportSubItems
-  }, {
-    to: '/app/cash-reconciliation',
-    icon: <CreditCard className="h-4 w-4" />,
-    label: 'Cash Reconciliation'
   }, {
     to: '/app/tickets',
     icon: <Ticket className="h-4 w-4" />,
@@ -308,15 +276,6 @@ const Header = () => {
   return (
     <>
       <header className="sticky top-0 z-50 flex h-18 items-center gap-4 border-b border-emerald-700/20 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 px-6 md:px-8 shadow-lg backdrop-blur-sm">
-        <div className="flex items-center gap-3 font-bold text-white">
-          <motion.div
-            whileHover={{ rotate: 12, scale: 1.05 }}
-            transition={{ type: "spring", stiffness: 300 }}
-            className="bg-white/20 p-2 rounded-xl shadow-lg backdrop-blur-sm">
-            <img src="https://png-data.sprep.org/themes/custom/inform_png/logo.png" alt="Logo" className="h-7 w-7" />
-          </motion.div>
-          <span className="hidden md:inline-block whitespace-nowrap text-lg tracking-tight">PNG Green Fees</span>
-        </div>
         
         <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
           <div className="ml-auto flex-1 sm:flex-initial">

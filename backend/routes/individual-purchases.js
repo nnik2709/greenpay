@@ -81,7 +81,6 @@ router.get('/', auth, async (req, res) => {
         p.full_name,
         p.nationality,
         p.date_of_birth,
-        u.name as created_by_name,
         CASE
           WHEN ip.refunded_at IS NOT NULL THEN 'refunded'
           WHEN ip.used_at IS NOT NULL THEN 'used'
@@ -90,7 +89,6 @@ router.get('/', auth, async (req, res) => {
         END as status
       FROM individual_purchases ip
       LEFT JOIN passports p ON ip.passport_number = p.passport_number
-      LEFT JOIN "User" u ON u.id = ip.created_by
       ${whereClause}
       ORDER BY ip.created_at DESC
       LIMIT $${params.length - 1} OFFSET $${params.length}
