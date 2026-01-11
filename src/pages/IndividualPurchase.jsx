@@ -1430,6 +1430,8 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 disabled={isEmailing}
+                autoFocus
+                className="bg-white"
               />
               <p className="text-xs text-slate-500">
                 {passportInfo.email
