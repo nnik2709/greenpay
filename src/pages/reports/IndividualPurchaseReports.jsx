@@ -207,13 +207,14 @@ const IndividualPurchaseReports = () => {
     {
       name: 'Actions',
       cell: row => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-nowrap">
           <Button
             size="sm"
             variant="outline"
             onClick={() => handlePrintVoucher(row)}
             disabled={row.used_at !== null || row.refunded}
             title={row.used_at ? 'Cannot print used voucher' : row.refunded ? 'Cannot print refunded voucher' : 'Print voucher'}
+            className="px-2 py-1 h-7 text-xs whitespace-nowrap"
           >
             Print
           </Button>
@@ -222,7 +223,8 @@ const IndividualPurchaseReports = () => {
             variant="outline"
             onClick={() => handleEditPayment(row)}
             disabled={row.refunded}
-            title={row.refunded ? 'Cannot edit refunded payment' : 'Edit payment'}
+            title={row.refunded ? 'Cannot edit refunded payment' : 'Edit payment method'}
+            className="px-2 py-1 h-7 text-xs whitespace-nowrap"
           >
             Edit
           </Button>
@@ -232,13 +234,13 @@ const IndividualPurchaseReports = () => {
             onClick={() => handleRefundPayment(row)}
             disabled={row.refunded}
             title={row.refunded ? 'Already refunded' : 'Refund payment'}
-            className="text-red-600 hover:text-red-700"
+            className="px-2 py-1 h-7 text-xs whitespace-nowrap text-red-600 hover:text-red-700"
           >
             Refund
           </Button>
         </div>
       ),
-      width: '210px'
+      width: '180px'
     }
   ];
 

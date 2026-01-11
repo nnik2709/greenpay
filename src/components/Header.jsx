@@ -165,6 +165,14 @@ const navItemsByRole = {
     to: '/app/vouchers-list',
     icon: <Package className="h-4 w-4" />,
     label: 'Vouchers List'
+  }, {
+    to: '/app/scan',
+    icon: <ScanSearch className="h-4 w-4" />,
+    label: 'Scan & Validate'
+  }, {
+    to: '/app/cash-reconciliation',
+    icon: <CreditCard className="h-4 w-4" />,
+    label: 'Cash Reconciliation'
   }],
   IT_Support: [{
     to: '/app/dashboard',

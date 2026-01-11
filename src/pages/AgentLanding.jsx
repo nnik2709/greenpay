@@ -102,6 +102,7 @@ const AgentLanding = () => {
                 <a href="/app/passports/create" className="text-white/90 hover:text-white text-sm">Individual Green Pass</a>
                 <a href="/app/vouchers-list" className="text-white/90 hover:text-white text-sm">Vouchers List</a>
                 <a href="/app/scan" className="text-white/90 hover:text-white text-sm">Scan & Validate</a>
+                <a href="/app/cash-reconciliation" className="text-white/90 hover:text-white text-sm">Cash Reconciliation</a>
               </nav>
               <div className="flex items-center gap-3">
                 <span className="text-sm text-white/90">{user?.name || user?.email?.split('@')[0] || 'Agent'}</span>

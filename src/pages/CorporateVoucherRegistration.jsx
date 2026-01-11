@@ -34,6 +34,12 @@ const CorporateVoucherRegistration = () => {
 
   // Step 1: Voucher lookup
   const [step, setStep] = useState(1); // 1: Enter code, 2: Enter passport, 3: Success
+  const stepRef = useRef(step); // Ref to avoid stale closure in scanner callback
+
+  // Keep stepRef in sync with step state
+  useEffect(() => {
+    stepRef.current = step;
+  }, [step]);
   const [voucherCode, setVoucherCode] = useState(searchParams.get('code') || ''); // Pre-fill from query param
   const [voucher, setVoucher] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -125,8 +131,11 @@ const CorporateVoucherRegistration = () => {
   const webSerialScanner = useWebSerial({
     onScan: (data) => {
       // Only process scan if we're on step 2 (passport entry)
-      if (step === 2) {
+      // Use stepRef to avoid stale closure issues
+      if (stepRef.current === 2) {
         processScannedPassport(data);
+      } else {
+        console.log('[VoucherRegistration] Scan received but not on step 2, current step:', stepRef.current);
       }
     },
     autoConnect: true,
@@ -136,7 +145,8 @@ const CorporateVoucherRegistration = () => {
   // Legacy keyboard wedge scanner support (fallback)
   const { isScanning: isScannerActive } = useScannerInput({
     onScanComplete: (data) => {
-      if (step === 2 && data.type === 'mrz') {
+      // Use stepRef to avoid stale closure issues
+      if (stepRef.current === 2 && data.type === 'mrz') {
         // MRZ passport scan - auto-fill all passport fields
         setPassportData(prev => ({
           ...prev,
