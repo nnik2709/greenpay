@@ -1267,6 +1267,170 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
     setShowEmailDialog(true);
   };
 
+  const handlePrintVoucher = () => {
+    // Generate barcode
+    let barcodeDataUrl = '';
+    try {
+      const canvas = document.createElement('canvas');
+      const JsBarcode = require('jsbarcode');
+      JsBarcode(canvas, voucher.voucher_code, {
+        format: 'CODE128',
+        width: 5,
+        height: 120,
+        displayValue: false,
+        margin: 10,
+        background: '#ffffff',
+        lineColor: '#000000'
+      });
+      barcodeDataUrl = canvas.toDataURL('image/png');
+    } catch (error) {
+      console.error('Barcode generation error:', error);
+    }
+
+    const printWindow = window.open('', '_blank');
+    const now = new Date();
+    const generatedOn = `${now.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}, ${now.toLocaleTimeString()}`;
+    const passportNumber = voucher.passport_number || null;
+    const registrationUrl = `https://pnggreenfees.gov.pg/voucher/register/${voucher.voucher_code}`;
+
+    const voucherHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Green Card - ${voucher.voucher_code}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: 'Times New Roman', Times, serif;
+            background: #ffffff;
+            padding: 30px 20px;
+          }
+          .page {
+            background: white;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 36px 48px 56px 48px;
+          }
+          .header-logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 12px;
+          }
+          .logo-image {
+            width: 110px;
+            height: 110px;
+            object-fit: contain;
+          }
+          h1.title {
+            text-align: center;
+            color: #2d8a34;
+            font-size: 28px;
+            margin: 12px 0 6px 0;
+            letter-spacing: 1px;
+          }
+          .divider {
+            height: 3px;
+            background: #2d8a34;
+            width: 100%;
+            margin: 12px 0 20px 0;
+          }
+          .subtitle {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 26px;
+          }
+          .row {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            font-size: 18px;
+            margin-bottom: 32px;
+          }
+          .label {
+            font-weight: bold;
+          }
+          .barcode-block {
+            text-align: center;
+            margin: 6px 0 18px 0;
+          }
+          .barcode-img {
+            display: block;
+            margin: 0 auto 10px auto;
+          }
+          .barcode-code {
+            font-size: 16px;
+            letter-spacing: 1px;
+            font-family: 'Courier New', monospace;
+          }
+          .register {
+            text-align: center;
+            font-size: 18px;
+            margin-top: 12px;
+            font-weight: bold;
+          }
+          .link {
+            text-align: center;
+            font-size: 10px;
+            margin-top: 8px;
+            color: #444;
+            word-break: break-all;
+          }
+          .footer {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #444;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+          <div class="header-logos">
+            <img src="/assets/logos/ccda-logo.png" alt="CCDA Logo" class="logo-image" />
+          </div>
+          <h1 class="title">GREEN CARD</h1>
+          <div class="divider"></div>
+          <div class="subtitle">Foreign Passport Holder</div>
+          <div class="row">
+            <span class="label">Coupon Number:</span>
+            <span>${voucher.voucher_code}</span>
+          </div>
+          ${passportNumber ? `
+            <div class="row" style="margin-bottom: 16px;">
+              <span class="label">Registered Passport:</span>
+              <span>${passportNumber}</span>
+            </div>
+          ` : ''}
+          <div class="barcode-block">
+            ${barcodeDataUrl ? `<img class="barcode-img" src="${barcodeDataUrl}" alt="Barcode" />` : ''}
+          </div>
+          ${!passportNumber ? `
+            <div class="register">Scan to Register</div>
+            <div class="link">${registrationUrl}</div>
+          ` : ''}
+          <div class="footer">
+            <div></div>
+            <div>Generated on ${generatedOn}</div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(voucherHTML);
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 300);
+  };
+
   const handleSendEmail = async () => {
     if (!emailInput || !emailInput.includes('@')) {
       toast({
@@ -1371,7 +1535,7 @@ const VoucherStep = ({ onBack, passportInfo, paymentData, voucher }) => {
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 pt-4 border-t">
             <Button
-              onClick={() => setShowPrintDialog(true)}
+              onClick={handlePrintVoucher}
               className="flex-1 bg-emerald-600 hover:bg-emerald-700"
               size="lg"
             >
