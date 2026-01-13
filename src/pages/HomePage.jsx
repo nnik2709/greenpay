@@ -28,10 +28,9 @@ const HomePage = () => {
       >
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
+          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
             PNG Green Fees
           </h1>
-          <p className="text-slate-600 text-xl">Papua New Guinea Entry Permit System</p>
         </div>
 
         {/* Buy Online Section */}
