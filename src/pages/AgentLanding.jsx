@@ -17,7 +17,7 @@ const AgentLanding = () => {
   const mainActions = [
     {
       id: 1,
-      title: "Scan Passport & Generate Voucher",
+      title: "Individual Voucher Purchase",
       description: "Scan passport with PrehKeyTec MRZ scanner, process payment, and print GREEN CARD voucher at your desk using POS barcode printer",
       iconColor: "text-emerald-600",
       bgColor: "bg-emerald-50",
