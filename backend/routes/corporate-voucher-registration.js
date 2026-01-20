@@ -32,7 +32,8 @@ router.get('/voucher/:code',
   try {
     const { code } = req.params;
 
-    const result = await db.query(
+    // First, try corporate_vouchers table
+    let result = await db.query(
       `SELECT
         id,
         voucher_code,
@@ -42,11 +43,52 @@ router.get('/voucher/:code',
         passport_number,
         valid_from,
         valid_until,
-        issued_date
+        issued_date,
+        'corporate' as voucher_type
       FROM corporate_vouchers
       WHERE voucher_code = $1`,
       [code]
     );
+
+    // If not found in corporate_vouchers, try individual_purchases table
+    if (result.rows.length === 0) {
+      result = await db.query(
+        `SELECT
+          id,
+          voucher_code,
+          customer_name as company_name,
+          amount,
+          status,
+          passport_number,
+          valid_from,
+          valid_until,
+          purchased_at as issued_date,
+          'individual' as voucher_type
+        FROM individual_purchases
+        WHERE voucher_code = $1`,
+        [code]
+      );
+    }
+
+    // If still not found, try vouchers table (legacy)
+    if (result.rows.length === 0) {
+      result = await db.query(
+        `SELECT
+          id,
+          voucher_code,
+          NULL as company_name,
+          amount,
+          status,
+          issued_to as passport_number,
+          valid_from,
+          valid_until,
+          issued_date,
+          'individual' as voucher_type
+        FROM vouchers
+        WHERE voucher_code = $1`,
+        [code]
+      );
+    }
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Voucher not found' });
@@ -54,8 +96,11 @@ router.get('/voucher/:code',
 
     const voucher = result.rows[0];
 
-    // Check if already registered
-    if (voucher.status === 'active' && voucher.passport_number) {
+    // Check if already registered (different status values for different types)
+    const isRegistered = (voucher.voucher_type === 'corporate' && voucher.status === 'active' && voucher.passport_number) ||
+                         (voucher.voucher_type === 'individual' && voucher.status === 'registered');
+
+    if (isRegistered) {
       return res.json({
         voucher,
         alreadyRegistered: true,
@@ -113,14 +158,51 @@ router.post('/register',
       });
     }
 
-    // 1. Check if voucher exists and is pending
-    const voucherResult = await client.query(
+    // 1. Check if voucher exists - try all three tables
+    let voucherResult;
+    let voucherType;
+    let voucherTableName;
+
+    // First, try corporate_vouchers table
+    voucherResult = await client.query(
       `SELECT id, status, passport_number, company_name, valid_until
        FROM corporate_vouchers
        WHERE voucher_code = $1`,
       [voucherCode]
     );
 
+    if (voucherResult.rows.length > 0) {
+      voucherType = 'corporate';
+      voucherTableName = 'corporate_vouchers';
+    } else {
+      // Try individual_purchases table
+      voucherResult = await client.query(
+        `SELECT id, status, passport_number, customer_name as company_name, valid_until
+         FROM individual_purchases
+         WHERE voucher_code = $1`,
+        [voucherCode]
+      );
+
+      if (voucherResult.rows.length > 0) {
+        voucherType = 'individual';
+        voucherTableName = 'individual_purchases';
+      } else {
+        // Try vouchers table (legacy)
+        voucherResult = await client.query(
+          `SELECT id, status, issued_to as passport_number, NULL as company_name, valid_until
+           FROM vouchers
+           WHERE voucher_code = $1`,
+          [voucherCode]
+        );
+
+        if (voucherResult.rows.length > 0) {
+          voucherType = 'legacy';
+          voucherTableName = 'vouchers';
+        }
+      }
+    }
+
+    // If not found in any table
     if (voucherResult.rows.length === 0) {
       await client.query('ROLLBACK');
       client.release();
@@ -129,8 +211,12 @@ router.post('/register',
 
     const voucher = voucherResult.rows[0];
 
-    // Check if already registered
-    if (voucher.status === 'active' && voucher.passport_number) {
+    // Check if already registered (different logic for different voucher types)
+    const isRegistered = (voucherType === 'corporate' && voucher.status === 'active' && voucher.passport_number) ||
+                         (voucherType === 'individual' && voucher.status === 'registered') ||
+                         (voucherType === 'legacy' && voucher.status === 'registered');
+
+    if (isRegistered) {
       await client.query('ROLLBACK');
       client.release();
       return res.status(400).json({
@@ -182,28 +268,55 @@ router.post('/register',
       passportId = newPassport.rows[0].id;
     }
 
-    // 3. Update voucher with passport data and set status to 'active'
+    // 3. Update voucher with passport data - handle different table types
     const userId = req.user?.id || null; // Get user ID if authenticated
+    let updateResult;
 
-    const updateResult = await client.query(
-      `UPDATE corporate_vouchers
-       SET
-         passport_id = $1,
-         passport_number = $2,
-         status = 'active',
-         registered_at = NOW(),
-         registered_by = $3
-       WHERE voucher_code = $4
-       RETURNING *`,
-      [passportId, passportNumber, userId, voucherCode]
-    );
+    if (voucherType === 'corporate') {
+      // Update corporate_vouchers table
+      updateResult = await client.query(
+        `UPDATE corporate_vouchers
+         SET
+           passport_id = $1,
+           passport_number = $2,
+           status = 'active',
+           registered_at = NOW(),
+           registered_by = $3
+         WHERE voucher_code = $4
+         RETURNING *`,
+        [passportId, passportNumber, userId, voucherCode]
+      );
+    } else if (voucherType === 'individual') {
+      // Update individual_purchases table
+      updateResult = await client.query(
+        `UPDATE individual_purchases
+         SET
+           passport_number = $1,
+           status = 'registered'
+         WHERE voucher_code = $2
+         RETURNING *`,
+        [passportNumber, voucherCode]
+      );
+    } else if (voucherType === 'legacy') {
+      // Update vouchers table (legacy)
+      updateResult = await client.query(
+        `UPDATE vouchers
+         SET
+           issued_to = $1,
+           status = 'registered'
+         WHERE voucher_code = $2
+         RETURNING *`,
+        [passportNumber, voucherCode]
+      );
+    }
 
     await client.query('COMMIT');
 
     res.json({
       success: true,
       message: 'Voucher successfully registered to passport',
-      voucher: updateResult.rows[0]
+      voucher: updateResult.rows[0],
+      voucherType
     });
 
   } catch (error) {

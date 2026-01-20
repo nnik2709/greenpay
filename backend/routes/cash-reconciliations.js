@@ -124,12 +124,13 @@ router.get('/', async (req, res) => {
     let query = `
       SELECT
         cr.*,
-        p.username as agent_name,
-        p.full_name as agent_full_name,
-        approver.username as approver_name
+        u.name as agent_name,
+        u.email as agent_email,
+        approver.name as approver_name,
+        approver.email as approver_email
       FROM cash_reconciliations cr
-      LEFT JOIN profiles p ON cr.agent_id = p.id
-      LEFT JOIN profiles approver ON cr.approved_by = approver.id
+      LEFT JOIN "User" u ON cr.agent_id::text = u.id::text
+      LEFT JOIN "User" approver ON cr.approved_by::text = approver.id::text
       WHERE 1=1
     `;
 
@@ -321,13 +322,13 @@ router.get('/:id', async (req, res) => {
     const query = `
       SELECT
         cr.*,
-        p.username as agent_name,
-        p.full_name as agent_full_name,
-        approver.username as approver_name,
-        approver.full_name as approver_full_name
+        u.name as agent_name,
+        u.email as agent_email,
+        approver.name as approver_name,
+        approver.email as approver_email
       FROM cash_reconciliations cr
-      LEFT JOIN profiles p ON cr.agent_id = p.id
-      LEFT JOIN profiles approver ON cr.approved_by = approver.id
+      LEFT JOIN "User" u ON cr.agent_id::text = u.id::text
+      LEFT JOIN "User" approver ON cr.approved_by::text = approver.id::text
       WHERE cr.id = $1
     `;
 

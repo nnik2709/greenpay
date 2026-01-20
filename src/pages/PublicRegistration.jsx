@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/use-toast';
 import { uploadPassportPhoto, validateImageFile, MAX_FILE_SIZE } from '@/lib/storageService';
 import { useScannerInput } from '@/hooks/useScannerInput';
+import SimpleCameraScanner from '@/components/SimpleCameraScanner';
+import { Loader2, Search } from 'lucide-react';
 
 /**
  * Public Registration Flow
@@ -27,6 +29,21 @@ const PublicRegistration = () => {
   const [error, setError] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+
+  // Device detection for mobile camera scanner
+  const [deviceType, setDeviceType] = useState(() => {
+    const ua = navigator.userAgent;
+    const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const isTablet = /iPad|Android.*Tablet|Kindle|Silk/i.test(ua);
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    return (isMobile || isTablet || (isTouchDevice && window.innerWidth < 1024)) ? 'mobile' : 'desktop';
+  });
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
+
+  // Passport lookup state
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [passportLookupResult, setPassportLookupResult] = useState(null);
+  const lookupAbortController = useRef(null);
 
   const [formData, setFormData] = useState({
     passportNumber: '',
@@ -117,7 +134,7 @@ const PublicRegistration = () => {
 
       // Not found in individual vouchers, check corporate vouchers
       console.log('📡 Checking corporate vouchers...');
-      const corporateUrl = `${API_URL}/voucher-registration/voucher/${voucherCode}`;
+      const corporateUrl = `${API_URL}/corporate-voucher-registration/voucher/${voucherCode}`;
       const corporateResponse = await fetch(corporateUrl);
 
       if (corporateResponse.ok) {
@@ -194,6 +211,107 @@ const PublicRegistration = () => {
     console.log('✅✅✅ All validations passed!');
   };
 
+  /**
+   * Lookup passport in database by passport number
+   * Uses AbortController to prevent race conditions
+   * Manual button trigger (NOT auto-trigger)
+   */
+  const lookupPassportNumber = async () => {
+    const passportNum = formData.passportNumber;
+
+    if (!passportNum || passportNum.trim().length < 5) {
+      setPassportLookupResult(null);
+      return;
+    }
+
+    // Cancel previous request if still in flight
+    if (lookupAbortController.current) {
+      lookupAbortController.current.abort();
+    }
+
+    const controller = new AbortController();
+    lookupAbortController.current = controller;
+
+    try {
+      setLookupLoading(true);
+      setPassportLookupResult(null);
+
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(
+        `${API_URL}/passports/lookup/${passportNum.trim()}`,
+        { signal: controller.signal }
+      );
+
+      const data = await response.json();
+
+      if (data.success && data.passport) {
+        // Passport found - auto-fill form with full_name (don't split it)
+        setPassportLookupResult(data.passport);
+
+        setFormData(prev => ({
+          ...prev,
+          passportNumber: data.passport.passport_number || prev.passportNumber,
+          surname: data.passport.full_name || prev.surname,  // Use full_name as-is
+          dateOfBirth: data.passport.date_of_birth ? data.passport.date_of_birth.split('T')[0] : prev.dateOfBirth,
+          nationality: data.passport.nationality || prev.nationality,
+        }));
+
+        toast({
+          title: "Passport Found",
+          description: `Found passport: ${data.passport.full_name}. Please verify all details.`,
+        });
+      } else {
+        // Not found - positive messaging
+        setPassportLookupResult({ notFound: true });
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('Lookup cancelled');
+        return;
+      }
+
+      console.error('Passport lookup error:', error);
+      setPassportLookupResult({ error: true });
+
+      toast({
+        title: "Lookup Failed",
+        description: "Couldn't check passport database. You can still enter details manually.",
+        variant: "destructive"
+      });
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
+  /**
+   * Handle camera OCR scan results (mobile devices)
+   */
+  const handleCameraScan = (passportData) => {
+    setShowCameraScanner(false);
+
+    if (passportData && passportData.passportNumber) {
+      // Update form with scanned data
+      setFormData({
+        passportNumber: passportData.passportNumber || '',
+        surname: passportData.surname || passportData.fullName || '',  // Use fullName if available
+        givenName: passportData.givenName || '',
+        dateOfBirth: passportData.dob || '',
+        nationality: passportData.nationality || '',
+        sex: passportData.sex || 'Male'
+      });
+
+      // Also try to lookup in database for additional data
+      if (passportData.passportNumber) {
+        lookupPassportNumber();
+      }
+
+      toast({
+        title: "Passport Scanned",
+        description: "Passport details extracted. Please verify all information.",
+      });
+    }
+  };
+
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -257,10 +375,10 @@ const PublicRegistration = () => {
         description: `Passport ${formData.passportNumber} has been registered with your voucher.`
       });
 
-      // Success - navigate to success page or show confirmation
+      // Success - navigate to voucher display page with Download/Print/Email options
       setTimeout(() => {
-        navigate(`/`);
-      }, 2000);
+        navigate(`/register/success/${voucherCode}`);
+      }, 1500);
 
     } catch (err) {
       console.error('Registration error:', err);
@@ -340,35 +458,115 @@ const PublicRegistration = () => {
           </CardHeader>
 
           <CardContent className="p-8">
-            {/* Scanner Status Indicator */}
-            {isScannerActive && (
-              <Alert className="mb-6 bg-emerald-50 border-emerald-300">
-                <AlertDescription className="text-emerald-900 font-medium">
-                  Scanning passport MRZ... Please scan the 2 lines at the bottom of your passport.
-                </AlertDescription>
-              </Alert>
-            )}
-            {!isScannerActive && (
-              <Alert className="mb-6 bg-blue-50 border-blue-300">
-                <AlertDescription className="text-blue-900">
-                  <strong>Tip:</strong> Use a hardware scanner to scan your passport MRZ for automatic form filling, or enter details manually below.
-                </AlertDescription>
-              </Alert>
-            )}
+            {/* Scanner Status Indicator with Connect Button */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-slate-700">MRZ Scanner</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                  disabled
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    Scanner Ready
+                  </span>
+                </Button>
+              </div>
+              {isScannerActive && (
+                <Alert className="bg-emerald-50 border-emerald-300">
+                  <AlertDescription className="text-emerald-900 font-medium">
+                    Scanning passport MRZ... Please scan the 2 lines at the bottom of your passport with the KB scanner.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {!isScannerActive && (
+                <Alert className="bg-blue-50 border-blue-300">
+                  <AlertDescription className="text-blue-900">
+                    <strong>Tip:</strong> Use the KB MRZ scanner to scan your passport for automatic form filling, or enter details manually below.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Passport Number */}
+              {/* Passport Number with Lookup Button */}
               <div className="space-y-2">
                 <Label htmlFor="passportNumber">Passport Number *</Label>
-                <Input
-                  id="passportNumber"
-                  data-testid="public-reg-passport-number"
-                  value={formData.passportNumber}
-                  onChange={(e) => setFormData({...formData, passportNumber: e.target.value})}
-                  placeholder="e.g., P1234567"
-                  required
-                  className="text-lg"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="passportNumber"
+                    data-testid="public-reg-passport-number"
+                    value={formData.passportNumber}
+                    onChange={(e) => setFormData({...formData, passportNumber: e.target.value})}
+                    placeholder="e.g., P1234567"
+                    required
+                    className="text-lg"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={lookupPassportNumber}
+                    disabled={lookupLoading || formData.passportNumber.length < 5}
+                    className="shrink-0"
+                  >
+                    {lookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Click search to check if this passport is in our database
+                </p>
+
+                {/* Device-Specific Scanner Options */}
+                {deviceType === 'mobile' && !showCameraScanner && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowCameraScanner(true)}
+                    className="w-full mt-2"
+                  >
+                    📱 Scan Passport with Camera
+                  </Button>
+                )}
+
+                {/* Camera Scanner Component */}
+                {showCameraScanner && (
+                  <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+                    <SimpleCameraScanner
+                      onScanSuccess={handleCameraScan}
+                      onClose={() => setShowCameraScanner(false)}
+                    />
+                    <p className="text-sm text-slate-500 mt-2">
+                      Point camera at the bottom 2 lines of your passport (MRZ zone)
+                    </p>
+                  </div>
+                )}
+
+                {/* Lookup Status Messages */}
+                {lookupLoading && (
+                  <Alert className="mt-3 bg-blue-50 border-blue-200">
+                    <AlertDescription className="text-blue-900">
+                      🔍 Searching passport database...
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {passportLookupResult && passportLookupResult.notFound && (
+                  <Alert className="mt-3 bg-gray-50 border-gray-300">
+                    <AlertDescription className="text-gray-700">
+                      ✨ First time registering this passport? No problem! Please enter details below.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {passportLookupResult && !passportLookupResult.notFound && !passportLookupResult.error && (
+                  <Alert className="mt-3 bg-green-50 border-green-200">
+                    <AlertDescription className="text-green-800">
+                      ✅ Passport found in database. Surname field auto-filled. Please verify and complete remaining fields.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
 
               {/* Name Fields - Optional */}

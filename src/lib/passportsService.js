@@ -1,14 +1,30 @@
 import api from './api/client';
 
-export const getPassports = async () => {
+export const getPassports = async (options = {}) => {
   try {
-    // Request all passports (high limit to get all records)
-    const response = await api.passports.getAll({ limit: 10000 });
-    const data = response.passports || response.data || response;
-    return data;
+    // Support pagination with default 100 per page
+    const { page = 1, limit = 100, search = '' } = options;
+
+    const params = { page, limit };
+    if (search) {
+      params.search = search;
+    }
+
+    const response = await api.passports.getAll(params);
+
+    // Return both data and pagination info
+    return {
+      passports: response.passports || response.data || response,
+      pagination: response.pagination || {
+        page,
+        limit,
+        total: response.total || 0,
+        totalPages: response.totalPages || Math.ceil((response.total || 0) / limit)
+      }
+    };
   } catch (error) {
     console.error('Error loading passports:', error);
-    return [];
+    return { passports: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } };
   }
 };
 

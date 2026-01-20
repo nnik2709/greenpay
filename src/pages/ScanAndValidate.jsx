@@ -27,6 +27,15 @@ const ScanAndValidate = () => {
   const audioContext = useRef(null);
   const scannerRef = useRef(null);
 
+  // Device detection: Mobile devices should use camera, desktop should use USB scanner
+  const [deviceType] = useState(() => {
+    const ua = navigator.userAgent;
+    const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const isTablet = /iPad|Android.*Tablet|Kindle|Silk/i.test(ua);
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    return (isMobile || isTablet || (isTouchDevice && window.innerWidth < 1024)) ? 'mobile' : 'desktop';
+  });
+
   // Initialize audio context
   useEffect(() => {
     audioContext.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -475,36 +484,50 @@ const ScanAndValidate = () => {
         <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-3">
           Scan & Validate
         </h1>
-        <p className="text-slate-600">Scan passport MRZ codes or voucher QR codes to validate.</p>
+        <p className="text-slate-600">Scan voucher barcodes or QR codes to validate.</p>
       </div>
 
       <Card className="mb-8">
         <CardContent className="p-6 space-y-4">
           {/* Scanner Options Grid */}
           <div className="grid grid-cols-1 gap-4">
-            {/* Primary: Mobile Camera Scanner (Full width on mobile) */}
-            <Button
-              variant={showCameraScanner ? "destructive" : "default"}
-              className="h-28 sm:h-24 text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
-              onClick={() => setShowCameraScanner(s => !s)}
-              disabled={!window.isSecureContext &&
-                       window.location.hostname !== 'localhost' &&
-                       window.location.hostname !== '127.0.0.1' &&
-                       window.location.protocol !== 'https:'}
-            >
-              <div className="text-center">
-                <span className="block text-xl sm:text-base font-bold">{showCameraScanner ? 'Close Camera' : 'Scan Voucher Barcode'}</span>
-                <span className="block text-sm sm:text-xs opacity-90 mt-1">Tap to open camera scanner</span>
-              </div>
-            </Button>
+            {/* Mobile: Camera Scanner Button (only show on mobile devices) */}
+            {deviceType === 'mobile' && (
+              <Button
+                variant={showCameraScanner ? "destructive" : "default"}
+                className="h-28 sm:h-24 text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
+                onClick={() => setShowCameraScanner(s => !s)}
+                disabled={!window.isSecureContext &&
+                         window.location.hostname !== 'localhost' &&
+                         window.location.hostname !== '127.0.0.1' &&
+                         window.location.protocol !== 'https:'}
+              >
+                <div className="text-center">
+                  <span className="block text-xl sm:text-base font-bold">{showCameraScanner ? 'Close Camera' : 'Scan Voucher Barcode'}</span>
+                  <span className="block text-sm sm:text-xs opacity-90 mt-1">Tap to open camera scanner</span>
+                </div>
+              </Button>
+            )}
 
-            {/* Hardware Scanner Status Indicator */}
-            {isScannerActive && (
+            {/* Desktop: Hardware Scanner Status Indicator (USB barcode scanner) */}
+            {deviceType === 'desktop' && isScannerActive && (
               <div className="bg-emerald-50 border-2 border-emerald-300 rounded-lg p-4 text-center">
                 <div className="flex items-center justify-center gap-3">
                   <div className="text-left">
-                    <p className="font-bold text-emerald-900">USB Scanner Ready</p>
-                    <p className="text-sm text-emerald-700">Simply scan a barcode or QR code</p>
+                    <p className="font-bold text-emerald-900">USB Barcode Scanner Ready</p>
+                    <p className="text-sm text-emerald-700">Scanner is active - simply scan a voucher barcode</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Desktop: Message when no USB scanner detected */}
+            {deviceType === 'desktop' && !isScannerActive && (
+              <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="text-left">
+                    <p className="font-bold text-blue-900">Waiting for USB Barcode Scanner</p>
+                    <p className="text-sm text-blue-700">Connect your USB barcode scanner and scan a voucher, or use manual entry below</p>
                   </div>
                 </div>
               </div>

@@ -34,14 +34,64 @@ const QuotationsReports = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filteredData, setFilteredData] = useState([]);
+  const [filters, setFilters] = useState({
+    status: '',
+    startDate: '',
+    endDate: '',
+    creator: ''
+  });
 
   useEffect(() => {
     fetchQuotations();
   }, []);
 
   useEffect(() => {
-    setFilteredData(data);
-  }, [data]);
+    applyFilters();
+  }, [data, filters]);
+
+  const applyFilters = () => {
+    let filtered = [...data];
+
+    // Filter by status
+    if (filters.status) {
+      filtered = filtered.filter(item =>
+        item.status.toLowerCase().includes(filters.status.toLowerCase())
+      );
+    }
+
+    // Filter by creator (customer name)
+    if (filters.creator) {
+      filtered = filtered.filter(item =>
+        item.customer.toLowerCase().includes(filters.creator.toLowerCase())
+      );
+    }
+
+    // Filter by date range
+    if (filters.startDate) {
+      filtered = filtered.filter(item => {
+        const itemDate = new Date(item.sentAt);
+        const startDate = new Date(filters.startDate);
+        return itemDate >= startDate;
+      });
+    }
+
+    if (filters.endDate) {
+      filtered = filtered.filter(item => {
+        const itemDate = new Date(item.sentAt);
+        const endDate = new Date(filters.endDate);
+        return itemDate <= endDate;
+      });
+    }
+
+    setFilteredData(filtered);
+  };
+
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   const fetchQuotations = async () => {
     try {
@@ -102,10 +152,28 @@ const QuotationsReports = () => {
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <Input placeholder="Filter by Status..." />
-          <Input type="date" placeholder="Start Date" />
-          <Input type="date" placeholder="End Date" />
-          <Input placeholder="Filter by Creator..." />
+          <Input
+            placeholder="Filter by Status..."
+            value={filters.status}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+          />
+          <Input
+            type="date"
+            placeholder="Start Date"
+            value={filters.startDate}
+            onChange={(e) => handleFilterChange('startDate', e.target.value)}
+          />
+          <Input
+            type="date"
+            placeholder="End Date"
+            value={filters.endDate}
+            onChange={(e) => handleFilterChange('endDate', e.target.value)}
+          />
+          <Input
+            placeholder="Filter by Customer..."
+            value={filters.creator}
+            onChange={(e) => handleFilterChange('creator', e.target.value)}
+          />
         </div>
         <DataTable
           columns={columns}

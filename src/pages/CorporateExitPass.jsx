@@ -39,6 +39,10 @@ const CorporateExitPass = () => {
   const [validUntil, setValidUntil] = useState('');
   const [applyGst, setApplyGst] = useState(false);
 
+  // POS Terminal transaction tracking (PCI-compliant - NO card data stored)
+  const [posTransactionRef, setPosTransactionRef] = useState('');
+  const [posApprovalCode, setPosApprovalCode] = useState('');
+
   // Invoice & vouchers
   const [invoice, setInvoice] = useState(null);
   const [generatedVouchers, setGeneratedVouchers] = useState([]);
@@ -64,6 +68,8 @@ const CorporateExitPass = () => {
   const totalAmount = totalVouchers * voucherValue;
   const amountAfterDiscount = totalAmount - (totalAmount * (discount / 100));
   const returnedAmount = collectedAmount - amountAfterDiscount;
+  const selectedModeObj = paymentModes.find(m => m.name === selectedMode);
+  const requiresCardDetails = selectedModeObj?.collectCardDetails;
 
   useEffect(() => {
     const loadPaymentModes = async () => {
@@ -120,6 +126,16 @@ const CorporateExitPass = () => {
       return;
     }
 
+    // For card/POS payments, require transaction reference
+    if (requiresCardDetails && !posTransactionRef) {
+      toast({
+        variant: "destructive",
+        title: "Transaction Reference Required",
+        description: "Please enter the POS transaction reference number from the receipt."
+      });
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
@@ -135,7 +151,10 @@ const CorporateExitPass = () => {
         discount: discount,
         valid_until: validUntil,
         payment_method: selectedMode,
-        apply_gst: applyGst
+        apply_gst: applyGst,
+        // PCI-compliant: Only store transaction references
+        posTransactionRef: requiresCardDetails ? posTransactionRef : null,
+        posApprovalCode: requiresCardDetails ? posApprovalCode : null,
       };
 
       const response = await createCorporateInvoice(payload);
@@ -298,6 +317,8 @@ const CorporateExitPass = () => {
     setGeneratedVouchers([]);
     setRecipientEmail('');
     setInvoice(null);
+    setPosTransactionRef('');
+    setPosApprovalCode('');
   };
 
   return (
@@ -483,6 +504,41 @@ const CorporateExitPass = () => {
                       ))}
                     </RadioGroup>
                   </div>
+
+                  {/* POS Terminal Transaction Details */}
+                  {requiresCardDetails && (
+                    <div className="space-y-4 border-t pt-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                        <p className="text-sm text-blue-900">
+                          <strong>POS Terminal Payment:</strong> Enter details from the POS terminal receipt.
+                        </p>
+                      </div>
+                      <h3 className="font-semibold text-slate-700">POS Terminal Transaction Details</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <Label>Transaction Reference Number *</Label>
+                          <Input
+                            placeholder="e.g., TXN123456789 (from POS receipt)"
+                            value={posTransactionRef}
+                            onChange={(e) => setPosTransactionRef(e.target.value)}
+                            className="text-base h-12"
+                            required
+                          />
+                          <p className="text-xs text-slate-500 mt-1">Required for transaction tracking and reconciliation</p>
+                        </div>
+                        <div>
+                          <Label>Approval Code</Label>
+                          <Input
+                            placeholder="e.g., APP123 (from receipt)"
+                            value={posApprovalCode}
+                            onChange={(e) => setPosApprovalCode(e.target.value)}
+                            className="text-base h-12"
+                          />
+                          <p className="text-xs text-slate-500 mt-1">Approval code from POS terminal (optional)</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex justify-end pt-4">
                     <Button

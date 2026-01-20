@@ -23,6 +23,7 @@ import TesseractScannerTest from '@/pages/TesseractScannerTest';
 // Public voucher purchase pages (no auth required)
 import PublicVoucherPurchase from '@/pages/PublicVoucherPurchase';
 import PublicPurchaseCallback from '@/pages/PublicPurchaseCallback';
+import RetrieveVouchers from '@/pages/RetrieveVouchers'; // Phase 2: Voucher retrieval
 import MockBSPPayment from '@/pages/MockBSPPayment';
 import Terms from '@/pages/Terms';
 import Privacy from '@/pages/Privacy';
@@ -155,6 +156,7 @@ const AppRoutes = () => {
         <Route path="/payment/failure" element={<PaymentFailure />} />
         <Route path="/buy-voucher" element={<PublicVoucherPurchase />} />
         <Route path="/purchase/callback" element={<PublicPurchaseCallback />} />
+        <Route path="/retrieve-vouchers" element={<RetrieveVouchers />} />
         <Route path="/mock-bsp-payment" element={<MockBSPPayment />} />
         <Route path="/register/:voucherCode" element={<PublicRegistration />} />
         <Route path="/register/success/:voucherCode" element={<PublicRegistrationSuccess />} />
@@ -205,6 +207,11 @@ const AppRoutes = () => {
           <Route path="scanner-test" element={
             <PrivateRoute roles={['Flex_Admin', 'IT_Support', 'Counter_Agent']}>
               <ScannerTest />
+            </PrivateRoute>
+          } />
+          <Route path="voucher-registration" element={
+            <PrivateRoute roles={['Flex_Admin', 'Counter_Agent']}>
+              <CorporateVoucherRegistration />
             </PrivateRoute>
           } />
           <Route path="mrz-scanner-test" element={
@@ -263,6 +270,11 @@ const AppRoutes = () => {
             </PrivateRoute>
           } />
           <Route path="quotations/create" element={
+            <PrivateRoute roles={['Flex_Admin', 'Finance_Manager']}>
+              <CreateQuotation />
+            </PrivateRoute>
+          } />
+          <Route path="quotations/edit/:id" element={
             <PrivateRoute roles={['Flex_Admin', 'Finance_Manager']}>
               <CreateQuotation />
             </PrivateRoute>

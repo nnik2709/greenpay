@@ -86,3 +86,4 @@ deployment-*.log
 docs/deployment/archives/
 docs/deployment/nginx/*.conf
 !docs/deployment/nginx/*.conf.example
+BREVO_QUICK_DEPLOY.md

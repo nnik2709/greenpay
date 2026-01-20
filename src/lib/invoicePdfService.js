@@ -4,8 +4,7 @@
  */
 
 import api from './api/client';
-
-const API_URL = import.meta.env.VITE_API_URL || 'https://greenpay.eywademo.cloud/api';
+import { API_URL } from '@/config/urls';
 
 /**
  * Download invoice as PDF

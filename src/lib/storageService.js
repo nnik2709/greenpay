@@ -4,7 +4,7 @@
  * Replaces Supabase Storage with server-side file storage
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://greenpay.eywademo.cloud/api';
+import { API_URL as API_BASE_URL } from '@/config/urls';
 
 export const MAX_FILE_SIZE = {
   PHOTO: 2 * 1024 * 1024, // 2MB

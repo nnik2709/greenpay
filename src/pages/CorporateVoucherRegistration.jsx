@@ -68,19 +68,20 @@ const CorporateVoucherRegistration = () => {
   const [emailAddress, setEmailAddress] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
 
-  // Detect mobile device
+  // Detect mobile device - prioritize user agent over screen size for hardware scanner
   useEffect(() => {
     const checkMobile = () => {
       const userAgent = navigator.userAgent.toLowerCase();
       const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'mobile', 'tablet'];
       const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword));
-      const hasSmallScreen = window.innerWidth <= 768;
-      setIsMobile(isMobileDevice || hasSmallScreen);
+
+      // For hardware scanner: only hide on actual mobile devices, not small desktop screens
+      // This ensures PrehKeyTec scanner is available even on narrow browser windows
+      setIsMobile(isMobileDevice);
     };
 
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    // Don't need resize listener since we're only checking user agent now
   }, []);
 
   // USB Barcode scanner for voucher code (Step 1)
@@ -105,17 +106,14 @@ const CorporateVoucherRegistration = () => {
   const processScannedPassport = useCallback((data) => {
     console.log('[VoucherRegistration] Processing scanned passport:', data);
 
-    // Convert 3-letter nationality code to full country name
-    const nationalityCode = data.nationality;
-    const nationalityFullName = nationalityCode ? convertCountryCodeToNationality(nationalityCode) : null;
-
     // Map Web Serial format (snake_case) to form format (camelCase)
+    // Note: useWebSerial already converts nationality code to full name
     setPassportData(prev => ({
       ...prev,
       passportNumber: data.passport_no || data.passportNumber || prev.passportNumber,
       surname: data.surname || prev.surname,
       givenName: data.given_name || data.givenName || prev.givenName,
-      nationality: nationalityFullName || prev.nationality,
+      nationality: data.nationality || prev.nationality, // Already converted by useWebSerial
       dateOfBirth: data.dob || prev.dateOfBirth,
       sex: data.sex || prev.sex,
       dateOfExpiry: data.date_of_expiry || data.dateOfExpiry || prev.dateOfExpiry
@@ -211,7 +209,7 @@ const CorporateVoucherRegistration = () => {
     setError(null);
 
     try {
-      const response = await fetch(`/api/voucher-registration/voucher/${voucherCode}`);
+      const response = await fetch(`/api/corporate-voucher-registration/voucher/${voucherCode}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -274,7 +272,7 @@ const CorporateVoucherRegistration = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/voucher-registration/register', {
+      const response = await fetch('/api/corporate-voucher-registration/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

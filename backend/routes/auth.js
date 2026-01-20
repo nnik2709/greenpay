@@ -126,7 +126,7 @@ router.post('/register',
 
       // Create user
       const result = await db.query(
-        `INSERT INTO "User" (name, email, password, "roleId", "isActive", "createdAt")
+        `INSERT INTO "User" (name, email, "passwordHash", "roleId", "isActive", "createdAt")
          VALUES ($1, $2, $3, $4, true, NOW())
          RETURNING id, name, email, "roleId", "isActive"`,
         [name, email, hashedPassword, roleId]
@@ -166,7 +166,7 @@ router.post('/change-password',
 
       // Get current user password
       const result = await db.query(
-        'SELECT password FROM "User" WHERE id = $1',
+        'SELECT "passwordHash" FROM "User" WHERE id = $1',
         [req.userId]
       );
 
@@ -177,7 +177,7 @@ router.post('/change-password',
       const user = result.rows[0];
 
       // Verify current password
-      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+      const isValidPassword = await bcrypt.compare(currentPassword, user.passwordHash);
       if (!isValidPassword) {
         return res.status(401).json({ error: 'Current password is incorrect' });
       }
@@ -187,7 +187,7 @@ router.post('/change-password',
 
       // Update password
       await db.query(
-        'UPDATE "User" SET password = $1 WHERE id = $2',
+        'UPDATE "User" SET "passwordHash" = $1 WHERE id = $2',
         [hashedPassword, req.userId]
       );
 

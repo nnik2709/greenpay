@@ -1,20 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
-import { useNavigate } from 'react-router-dom';
-import { createQuotation } from '@/lib/quotationsService';
+import { useNavigate, useParams } from 'react-router-dom';
+import { createQuotation, updateQuotation } from '@/lib/quotationsService';
 import { useAuth } from '@/contexts/AuthContext';
 import CustomerSelector from '@/components/CustomerSelector';
+import api from '@/lib/api/client';
 
 const CreateQuotation = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { id } = useParams(); // Get quotation ID from route params
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Edit mode flag
+  const isEditMode = !!id;
 
   // Form state
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -22,6 +28,46 @@ const CreateQuotation = () => {
   const [discount, setDiscount] = useState(0);
   const [validUntil, setValidUntil] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Load quotation data in edit mode
+  useEffect(() => {
+    if (isEditMode) {
+      loadQuotationData();
+    }
+  }, [id]);
+
+  const loadQuotationData = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.quotations.getById(id);
+      const quotation = response.data;
+
+      // Pre-populate form with quotation data
+      setTotalVouchers(quotation.number_of_vouchers || 1);
+      setDiscount(quotation.discount_percentage || 0);
+      setValidUntil(quotation.valid_until ? quotation.valid_until.split('T')[0] : '');
+      setNotes(quotation.notes || '');
+
+      // Set customer data
+      setSelectedCustomer({
+        id: quotation.id,
+        name: quotation.customer_name || quotation.company_name,
+        company_name: quotation.customer_name || quotation.company_name,
+        email: quotation.customer_email || quotation.contact_email,
+        phone: quotation.customer_phone || quotation.contact_phone,
+      });
+    } catch (error) {
+      console.error('Error loading quotation:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load quotation data'
+      });
+      navigate('/app/quotations');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const voucherValue = 50; // Price per passport/voucher
 
@@ -58,30 +104,46 @@ const CreateQuotation = () => {
         notes: notes,
       };
 
-      const result = await createQuotation(quotationData, user?.id);
+      let result;
+      if (isEditMode) {
+        result = await updateQuotation(id, quotationData, user?.id);
+        toast({
+          title: "Quotation Updated!",
+          description: `Quotation has been updated successfully.`,
+        });
+      } else {
+        result = await createQuotation(quotationData, user?.id);
+        toast({
+          title: "Quotation Created!",
+          description: `Quotation ${result.quotation_number || 'N/A'} has been saved successfully.`,
+        });
+      }
 
       if (!result) {
         throw new Error('No data returned from server');
       }
 
-      toast({
-        title: "Quotation Created!",
-        description: `Quotation ${result.quotation_number || 'N/A'} has been saved successfully.`,
-      });
-
       // Navigate back to quotations list
       navigate('/app/quotations');
     } catch (error) {
-      console.error('Error creating quotation:', error);
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} quotation:`, error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: `Failed to create quotation: ${error.message || 'Please try again.'}`,
+        description: `Failed to ${isEditMode ? 'update' : 'create'} quotation: ${error.message || 'Please try again.'}`,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -91,7 +153,7 @@ const CreateQuotation = () => {
       className="space-y-8"
     >
       <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-        Create New Quotation
+        {isEditMode ? 'Edit Quotation' : 'Create New Quotation'}
       </h1>
 
       <form onSubmit={handleSubmit}>
@@ -245,7 +307,7 @@ const CreateQuotation = () => {
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Creating...' : 'Create Quotation'}
+                {isSubmitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Quotation' : 'Create Quotation')}
               </Button>
             </div>
           </div>

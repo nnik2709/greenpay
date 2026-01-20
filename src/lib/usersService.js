@@ -1,5 +1,14 @@
 import api from './api/client';
 
+// Role name to ID mapping (matches production database Role table)
+// Verified from production: SELECT id, name FROM "Role" ORDER BY id;
+const ROLE_MAP = {
+  'Flex_Admin': 6,
+  'Finance_Manager': 7,
+  'Counter_Agent': 8,
+  'IT_Support': 5
+};
+
 export const getUsers = async () => {
   try {
     const response = await api.users.getAll();
@@ -23,11 +32,18 @@ export const getUserById = async (id) => {
 
 export const createUser = async (userData) => {
   try {
-    // Create user via API - backend will handle user creation and role assignment
+    // Map role name to roleId for backend
+    const roleId = ROLE_MAP[userData.role];
+
+    if (!roleId) {
+      throw new Error(`Invalid role: ${userData.role}`);
+    }
+
+    // Create user via API - backend expects roleId (integer)
     const payload = {
       email: userData.email,
       password: userData.password,
-      role: userData.role,
+      roleId: roleId, // Backend expects roleId, not role
       name: userData.name || userData.email.split('@')[0],
     };
 
@@ -43,11 +59,23 @@ export const updateUser = async (id, updates) => {
   try {
     const updateData = {};
     if (updates.email !== undefined) updateData.email = updates.email;
-    if (updates.role !== undefined) updateData.roleId = updates.role; // Backend expects roleId
+
+    // Handle role mapping: if role name is provided, convert to roleId
+    if (updates.role !== undefined) {
+      const roleId = ROLE_MAP[updates.role];
+      if (!roleId) {
+        throw new Error(`Invalid role: ${updates.role}`);
+      }
+      updateData.roleId = roleId;
+    }
+
     if (updates.roleId !== undefined) updateData.roleId = updates.roleId;
     if (updates.active !== undefined) updateData.isActive = updates.active; // Backend expects isActive
     if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
     if (updates.name !== undefined) updateData.name = updates.name;
+
+    // Handle password updates
+    if (updates.password !== undefined) updateData.password = updates.password;
 
     const response = await api.users.update(id, updateData);
     return response.user || response.data || response;

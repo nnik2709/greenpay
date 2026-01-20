@@ -7,71 +7,34 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { NationalityCombobox } from '@/components/NationalityCombobox';
 import api from '@/lib/api/client';
-import { useScannerInput } from '@/hooks/useScannerInput';
-import SimpleCameraScanner from '@/components/SimpleCameraScanner';
-import { Camera } from 'lucide-react';
+import { Users, ShoppingCart, AlertCircle } from 'lucide-react';
+
 /**
- * Public Buy Online Page - Phase 2 Enhanced
+ * Public Buy Online Page - Pure Approach B (Multi-Voucher Support)
  *
  * Flow:
- * 1. Collect passport data
- * 2. Call /api/buy-online/prepare-payment (stores passport in DB session)
- * 3. Redirect to payment gateway
- * 4. Payment webhook creates passport + voucher atomically
- * 5. User returns to success page with voucher details
+ * 1. User selects quantity (1-5 vouchers)
+ * 2. User enters email address
+ * 3. Redirects to payment gateway
+ * 4. Payment webhook creates N PENDING vouchers
+ * 5. User returns to success page with all voucher codes
+ * 6. User can register each voucher at /voucher-registration (scan passport)
  *
- * NO AUTHENTICATION REQUIRED
+ * Security: ALL vouchers require passport registration before use
+ * NO AUTHENTICATION REQUIRED for purchase
  */
 
 const BuyOnline = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [showCameraScanner, setShowCameraScanner] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   const [formData, setFormData] = useState({
-    passportNumber: '',
-    surname: '',
-    givenName: '',
-    dateOfBirth: '',
-    nationality: 'Papua New Guinea',
-    sex: 'Male',
-    email: ''
+    quantity: 1,
+    email: '',
+    emailConfirm: '' // Phase 2: Email confirmation
   });
-
-  // Detect mobile device and auto-show scanner
-  useEffect(() => {
-    const checkMobile = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'mobile', 'tablet'];
-      const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword));
-      const hasSmallScreen = window.innerWidth <= 768;
-      return isMobileDevice || hasSmallScreen;
-    };
-
-    const isMobileResult = checkMobile();
-    setIsMobile(isMobileResult);
-    
-    // Auto-show scanner on mobile for instant scan experience
-    // Only if no passport data has been entered yet
-    if (isMobileResult && !formData.passportNumber && !showCameraScanner) {
-      // Small delay to ensure component is rendered
-      const timer = setTimeout(() => {
-        setShowCameraScanner(true);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-    
-    const handleResize = () => {
-      setIsMobile(checkMobile());
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Math verification for bot protection
   const [mathQuestion, setMathQuestion] = useState({ num1: 0, num2: 0, answer: 0 });
@@ -88,73 +51,40 @@ const BuyOnline = () => {
     setMathQuestion({ num1, num2, answer: num1 + num2 });
   }, []);
 
-  // Hardware scanner support with MRZ parsing (for desktop with USB scanners)
-  const { isScanning: isScannerActive } = useScannerInput({
-    onScanComplete: (data) => {
-      if (data.type === 'mrz') {
-        // MRZ passport scan - auto-fill all passport fields
-        setFormData(prev => ({
-          ...prev,
-          passportNumber: data.passportNumber,
-          surname: data.surname,
-          givenName: data.givenName,
-          nationality: data.nationality,
-          dateOfBirth: data.dob,
-          sex: data.sex
-        }));
-
-        toast({
-          title: 'Passport Scanned!',
-          description: 'Passport details filled automatically.',
-        });
-      }
-    },
-    enableMrzParsing: true,
-    autoFocus: false
-  });
-
-  // Camera scan handler (for mobile devices)
-  const handleCameraScan = (passportData) => {
-    setFormData(prev => ({
-      ...prev,
-      passportNumber: passportData.passportNumber,
-      surname: passportData.surname,
-      givenName: passportData.givenName,
-      nationality: passportData.nationality,
-      dateOfBirth: passportData.dateOfBirth,
-      sex: passportData.sex
-    }));
-
-    setShowCameraScanner(false);
-
-    toast({
-      title: 'Passport Scanned!',
-      description: 'Passport details filled automatically from camera.',
-    });
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleContinueToPayment = async () => {
-    // Validate required fields
-    if (!formData.passportNumber || !formData.surname || !formData.givenName || !formData.email) {
-      toast({
-        variant: 'destructive',
-        title: 'Missing Information',
-        description: 'Please fill in passport number, surname, given name, and email.',
-      });
-      return;
-    }
+  const totalAmount = formData.quantity * 50.00;
 
-    // Validate email format
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+  const handleContinueToPayment = async () => {
+    // Validate email
+    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       toast({
         variant: 'destructive',
         title: 'Invalid Email',
         description: 'Please enter a valid email address.',
+      });
+      return;
+    }
+
+    // Phase 2: Validate email confirmation matches
+    if (formData.email !== formData.emailConfirm) {
+      toast({
+        variant: 'destructive',
+        title: 'Email Mismatch',
+        description: 'Email addresses do not match. Please check and try again.',
+      });
+      return;
+    }
+
+    // Validate quantity
+    if (formData.quantity < 1 || formData.quantity > 5) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Quantity',
+        description: 'Please select between 1 and 5 vouchers.',
       });
       return;
     }
@@ -199,16 +129,9 @@ const BuyOnline = () => {
       const frontendUrl = window.location.origin;
 
       const response = await api.post('/buy-online/prepare-payment', {
-        passportData: {
-          passportNumber: formData.passportNumber,
-          surname: formData.surname,
-          givenName: formData.givenName,
-          dateOfBirth: formData.dateOfBirth,
-          nationality: formData.nationality,
-          sex: formData.sex
-        },
         email: formData.email,
-        amount: 50.00, // Green fee voucher: PGK 50.00 per passport
+        quantity: formData.quantity,
+        amount: totalAmount,
         returnUrl: `${frontendUrl}/payment/success?payment_session={SESSION_ID}`,
         cancelUrl: `${frontendUrl}/payment/cancelled`,
         // Math verification for bot protection
@@ -220,13 +143,13 @@ const BuyOnline = () => {
       });
 
       if (response.success) {
-        // Store session ID and passport data in sessionStorage
+        // Store session ID in sessionStorage
         sessionStorage.setItem('paymentSessionId', response.data.sessionId);
-        sessionStorage.setItem('passportData', JSON.stringify(formData));
+        sessionStorage.setItem('voucherQuantity', formData.quantity);
 
         toast({
           title: 'Redirecting to Payment',
-          description: 'Please complete your payment securely.',
+          description: `Processing payment for ${formData.quantity} voucher${formData.quantity > 1 ? 's' : ''}`,
         });
 
         // Check if this is a hosted payment page (requires form submission)
@@ -296,14 +219,14 @@ const BuyOnline = () => {
           className="text-center mb-8"
         >
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
-            Buy Green Fee Online
+            Buy Green Fee Vouchers
           </h1>
           <p className="text-slate-600 text-lg">
-            Your passport will be registered automatically after payment
+            Purchase vouchers now, register passports later
           </p>
         </motion.div>
 
-        {/* Passport Details Form */}
+        {/* Payment Form */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -311,120 +234,58 @@ const BuyOnline = () => {
         >
           <Card className="glass-effect border-emerald-100 shadow-xl">
             <CardHeader>
-              <CardTitle className="text-2xl text-emerald-700">Passport Details</CardTitle>
+              <CardTitle className="text-2xl text-emerald-700 flex items-center gap-2">
+                <ShoppingCart className="h-6 w-6" />
+                Purchase Details
+              </CardTitle>
               <CardDescription>
-                Enter your passport information - it will be registered after payment
+                Select quantity and provide email to receive your voucher codes
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Mobile Camera Scanner Button - Shows if scanner was closed */}
-              {isMobile && !showCameraScanner && (
-                <div className="bg-gradient-to-r from-blue-50 to-emerald-50 border-2 border-blue-200 rounded-lg p-4 mb-4">
-                  <div className="flex flex-col items-center gap-3">
-                    <p className="text-blue-700 font-medium text-center">
-                      Scan your passport to auto-fill details
-                    </p>
-                    <Button
-                      onClick={() => setShowCameraScanner(true)}
-                      className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2 py-6 px-8 text-lg"
-                      disabled={loading}
-                    >
-                      <Camera className="h-6 w-6" />
-                      Scan Passport
-                    </Button>
-                    <p className="text-xs text-slate-500 text-center">
-                      Or fill in the details manually below
+            <CardContent className="space-y-6">
+              {/* Quantity Selector */}
+              <div className="space-y-3">
+                <Label htmlFor="quantity" className="text-lg font-semibold">
+                  How many vouchers? *
+                </Label>
+                <Select
+                  value={formData.quantity.toString()}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, quantity: parseInt(value) }))}
+                  disabled={loading}
+                >
+                  <SelectTrigger className="text-lg h-14">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5].map(num => (
+                      <SelectItem key={num} value={num.toString()}>
+                        <div className="flex items-center gap-3">
+                          <Users className="h-4 w-4 text-emerald-600" />
+                          <span>{num} Voucher{num > 1 ? 's' : ''}</span>
+                          <span className="text-slate-500">- K {(num * 50).toFixed(2)}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-slate-600">
+                  Perfect for families or groups. Each voucher requires passport registration after purchase.
+                </p>
+              </div>
+
+              {/* Total Amount Display */}
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-lg p-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-slate-600 mb-1">Total Amount</p>
+                    <p className="text-4xl font-bold text-emerald-700">
+                      K {totalAmount.toFixed(2)}
                     </p>
                   </div>
-                </div>
-              )}
-
-              {/* Hardware Scanner (Desktop) */}
-              {!isMobile && isScannerActive && (
-                <div className="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-4 mb-4">
-                  <p className="text-emerald-700 font-medium text-center">
-                    Hardware Scanner Active - Ready to scan passport MRZ
-                  </p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="passportNumber">Passport Number *</Label>
-                  <Input
-                    id="passportNumber"
-                    name="passportNumber"
-                    value={formData.passportNumber}
-                    onChange={handleInputChange}
-                    placeholder="e.g., AB123456"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="nationality">Nationality *</Label>
-                  <NationalityCombobox
-                    value={formData.nationality}
-                    onChange={(value) => setFormData(prev => ({ ...prev, nationality: value }))}
-                    disabled={loading}
-                    placeholder="Select nationality..."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="surname">Surname *</Label>
-                  <Input
-                    id="surname"
-                    name="surname"
-                    value={formData.surname}
-                    onChange={handleInputChange}
-                    placeholder="Last Name"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="givenName">Given Name *</Label>
-                  <Input
-                    id="givenName"
-                    name="givenName"
-                    value={formData.givenName}
-                    onChange={handleInputChange}
-                    placeholder="First Name"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                  <Input
-                    id="dateOfBirth"
-                    name="dateOfBirth"
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={handleInputChange}
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="sex">Sex</Label>
-                  <Select
-                    value={formData.sex}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, sex: value }))}
-                    disabled={loading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="text-right">
+                    <p className="text-sm text-slate-600 mb-1">Price per voucher</p>
+                    <p className="text-lg font-semibold text-slate-700">K 50.00</p>
+                  </div>
                 </div>
               </div>
 
@@ -440,10 +301,59 @@ const BuyOnline = () => {
                   placeholder="your.email@example.com"
                   required
                   disabled={loading}
+                  className="h-12"
                 />
                 <p className="text-xs text-slate-500">
-                  Your voucher will be sent to this email. You can add another email address later.
+                  Your voucher codes will be sent to this email after payment
                 </p>
+              </div>
+
+              {/* Email Confirmation Field - Phase 2 */}
+              {formData.email && (
+                <div className="space-y-2">
+                  <Label htmlFor="emailConfirm">Confirm Email Address *</Label>
+                  <Input
+                    id="emailConfirm"
+                    name="emailConfirm"
+                    type="email"
+                    value={formData.emailConfirm}
+                    onChange={handleInputChange}
+                    placeholder="your.email@example.com (re-enter to confirm)"
+                    required
+                    disabled={loading}
+                    className="h-12"
+                  />
+                  {formData.emailConfirm && formData.email !== formData.emailConfirm && (
+                    <p className="text-xs text-red-600 font-medium">
+                      ⚠ Emails do not match
+                    </p>
+                  )}
+                  {formData.emailConfirm && formData.email === formData.emailConfirm && (
+                    <p className="text-xs text-emerald-600 font-medium">
+                      ✓ Emails match
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Important Notice */}
+              <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4">
+                <div className="flex gap-3">
+                  <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    <p className="font-semibold text-blue-900">Registration Required</p>
+                    <p className="text-sm text-blue-800">
+                      After payment, you'll receive {formData.quantity} voucher code{formData.quantity > 1 ? 's' : ''}.
+                      Each voucher must be registered with a passport at <strong>/voucher-registration</strong> before use.
+                    </p>
+                    <p className="text-xs text-blue-700">
+                      ✓ Pay once for multiple vouchers<br />
+                      ✓ Register passports at your convenience<br />
+                      ✓ Use camera scanner for fast registration<br />
+                      ✓ Each voucher linked to one passport
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Honeypot field - Hidden from users, catches bots */}
@@ -482,7 +392,7 @@ const BuyOnline = () => {
                   onClick={handleContinueToPayment}
                   size="lg"
                   disabled={loading}
-                  className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white"
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-8 py-6 text-lg"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
@@ -490,7 +400,7 @@ const BuyOnline = () => {
                       Preparing Payment...
                     </div>
                   ) : (
-                    'Continue to Payment →'
+                    <>Continue to Payment ({formData.quantity} × K 50.00 = K {totalAmount.toFixed(2)}) →</>
                   )}
                 </Button>
               </div>
@@ -503,41 +413,48 @@ const BuyOnline = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="mt-6 text-center text-sm text-slate-500"
+          className="mt-6 text-center text-sm text-slate-500 space-y-2"
         >
           <p>Secure payment processing • Your data is encrypted and protected</p>
-          <p className="mt-2">
-            Amount: <span className="font-bold text-emerald-600">K 50.00</span> (Green Fee per Passport)
+          <p className="text-emerald-600 font-semibold">
+            After payment, register each voucher at /voucher-registration
           </p>
         </motion.div>
-      </div>
 
-      {/* Camera Scanner Modal - Full screen on mobile for best UX */}
-      {showCameraScanner && (
-        <div
-          className="fixed inset-0 bg-white z-[9999] flex flex-col"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'white',
-            zIndex: 9999,
-            overflow: 'hidden'
-          }}
+        {/* How It Works */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="mt-8"
         >
-          <div className="flex-1 overflow-auto p-2 md:p-4 safe-area-inset">
-            <SimpleCameraScanner
-              onScanSuccess={handleCameraScan}
-              onClose={() => setShowCameraScanner(false)}
-              autoStart={isMobile}
-            />
-          </div>
-        </div>
-      )}
+          <Card className="border-slate-200">
+            <CardHeader>
+              <CardTitle className="text-lg">How It Works</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ol className="space-y-3 text-sm text-slate-700">
+                <li className="flex gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-semibold">1</span>
+                  <span><strong>Purchase:</strong> Select quantity and complete payment</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-semibold">2</span>
+                  <span><strong>Receive Codes:</strong> Get {formData.quantity} voucher code{formData.quantity > 1 ? 's' : ''} via email</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-semibold">3</span>
+                  <span><strong>Register:</strong> Visit /voucher-registration and scan passport for each voucher</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-semibold">4</span>
+                  <span><strong>Use:</strong> Present registered voucher at gate</span>
+                </li>
+              </ol>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
     </div>
   );
 };

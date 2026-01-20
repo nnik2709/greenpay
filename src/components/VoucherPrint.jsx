@@ -3,6 +3,7 @@ import JsBarcode from 'jsbarcode';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Printer, X } from 'lucide-react';
+import { getRegistrationUrl } from '@/config/urls';
 
 const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
   const [barcodeDataUrl, setBarcodeDataUrl] = useState('');
@@ -35,8 +36,8 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
 
   if (!voucher) return null;
 
-  // Registration URL
-  const registrationUrl = `https://pnggreenfees.gov.pg/voucher/register/${voucher.voucher_code}`;
+  // Registration URL - uses centralized config
+  const registrationUrl = getRegistrationUrl(voucher.voucher_code);
 
   // Show authorized officer only if voucher was issued at desk/corporate (has created_by_name)
   const showAuthorizingOfficer = voucher.created_by_name && voucher.created_by_name !== 'AUTHORIZED OFFICER';

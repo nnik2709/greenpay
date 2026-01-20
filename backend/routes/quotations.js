@@ -11,12 +11,13 @@ router.get('/',
   checkRole('Flex_Admin', 'Finance_Manager', 'Counter_Agent'),
   async (req, res) => {
     try {
-      const { status, startDate, endDate } = req.query;
+      const { status, customer, from_date, to_date } = req.query;
 
       let query = `
-        SELECT q.*, u.name as created_by_name
+        SELECT q.*, u.name as created_by_name, i.invoice_number
         FROM quotations q
         LEFT JOIN "User" u ON q.created_by = u.id
+        LEFT JOIN invoices i ON q.id = i.quotation_id
         WHERE 1=1
       `;
       const params = [];
@@ -27,14 +28,22 @@ router.get('/',
         params.push(status);
       }
 
-      if (startDate) {
-        query += ` AND q.created_at >= $${paramCount++}`;
-        params.push(startDate);
+      if (customer) {
+        query += ` AND (q.company_name ILIKE $${paramCount++} OR q.customer_name ILIKE $${paramCount++} OR q.customer_email ILIKE $${paramCount++})`;
+        params.push(`%${customer}%`);
+        params.push(`%${customer}%`);
+        params.push(`%${customer}%`);
+        paramCount += 2; // Increment for the extra placeholders
       }
 
-      if (endDate) {
+      if (from_date) {
+        query += ` AND q.created_at >= $${paramCount++}`;
+        params.push(from_date);
+      }
+
+      if (to_date) {
         query += ` AND q.created_at <= $${paramCount++}`;
-        params.push(endDate);
+        params.push(to_date);
       }
 
       query += ' ORDER BY q.created_at DESC';
@@ -57,9 +66,10 @@ router.get('/:id',
       const { id } = req.params;
 
       const result = await db.query(
-        `SELECT q.*, u.name as created_by_name
+        `SELECT q.*, u.name as created_by_name, i.invoice_number
          FROM quotations q
          LEFT JOIN "User" u ON q.created_by = u.id
+         LEFT JOIN invoices i ON q.id = i.quotation_id
          WHERE q.id = $1`,
         [id]
       );
@@ -170,11 +180,33 @@ router.put('/:id',
   async (req, res) => {
     try {
       const { id } = req.params;
+
+      // Check if quotation exists and is not converted to invoice
+      const existingQuotation = await db.query(
+        'SELECT converted_to_invoice, status FROM quotations WHERE id = $1',
+        [id]
+      );
+
+      if (existingQuotation.rows.length === 0) {
+        return res.status(404).json({ error: 'Quotation not found' });
+      }
+
+      if (existingQuotation.rows[0].converted_to_invoice) {
+        return res.status(400).json({
+          error: 'Cannot edit quotation that has been converted to invoice'
+        });
+      }
+
       const {
         company_name,
         contact_person,
         contact_email,
         contact_phone,
+        number_of_vouchers,
+        unit_price,
+        line_total,
+        discount_percentage,
+        discount_amount,
         amount,
         tax_amount,
         total_amount,
@@ -189,46 +221,76 @@ router.put('/:id',
       const values = [];
       let paramCount = 1;
 
+      // After editing, quotation must be re-sent before conversion
+      // Reset status to 'draft' unless explicitly setting to 'sent'
+      const newStatus = status === 'sent' ? 'sent' : 'draft';
+      updates.push(`status = $${paramCount++}`);
+      values.push(newStatus);
+
+      // Map frontend fields to actual database columns
       if (company_name !== undefined) {
+        // Update both customer_name and company_name for compatibility
+        updates.push(`customer_name = $${paramCount++}`);
+        values.push(company_name);
         updates.push(`company_name = $${paramCount++}`);
         values.push(company_name);
       }
-      if (contact_person !== undefined) {
-        updates.push(`contact_person = $${paramCount++}`);
-        values.push(contact_person);
-      }
       if (contact_email !== undefined) {
-        updates.push(`contact_email = $${paramCount++}`);
+        updates.push(`customer_email = $${paramCount++}`);
         values.push(contact_email);
       }
-      if (contact_phone !== undefined) {
-        updates.push(`contact_phone = $${paramCount++}`);
-        values.push(contact_phone);
+      // Contact person and phone go into description field
+      if (contact_person !== undefined || contact_phone !== undefined || notes !== undefined) {
+        const contactInfo = `Contact: ${contact_person || ''}, Phone: ${contact_phone || ''}`;
+        const fullDescription = notes ? `${notes}\n${contactInfo}` : contactInfo;
+        updates.push(`description = $${paramCount++}`);
+        values.push(fullDescription);
+      }
+      if (number_of_vouchers !== undefined) {
+        updates.push(`number_of_vouchers = $${paramCount++}`);
+        values.push(number_of_vouchers);
+      }
+      if (unit_price !== undefined) {
+        updates.push(`unit_price = $${paramCount++}`);
+        values.push(unit_price);
+      }
+      if (line_total !== undefined) {
+        updates.push(`line_total = $${paramCount++}`);
+        values.push(line_total);
+      }
+      if (discount_percentage !== undefined) {
+        updates.push(`discount_percentage = $${paramCount++}`);
+        values.push(discount_percentage);
+      }
+      if (discount_amount !== undefined) {
+        updates.push(`discount_amount = $${paramCount++}`);
+        values.push(discount_amount);
       }
       if (amount !== undefined) {
-        updates.push(`amount = $${paramCount++}`);
+        updates.push(`subtotal = $${paramCount++}`);
         values.push(amount);
       }
       if (tax_amount !== undefined) {
+        // Update both tax_amount and gst_amount (they're the same)
         updates.push(`tax_amount = $${paramCount++}`);
         values.push(tax_amount);
+        updates.push(`gst_amount = $${paramCount++}`);
+        values.push(tax_amount);
+        updates.push(`gst_rate = $${paramCount++}`);
+        values.push(10.00); // PNG GST rate
+        updates.push(`tax_percentage = $${paramCount++}`);
+        values.push(10.00);
       }
       if (total_amount !== undefined) {
         updates.push(`total_amount = $${paramCount++}`);
         values.push(total_amount);
       }
-      if (status !== undefined) {
-        updates.push(`status = $${paramCount++}`);
-        values.push(status);
-      }
+      // Status is already set at the beginning (draft or sent)
       if (valid_until !== undefined) {
         updates.push(`valid_until = $${paramCount++}`);
         values.push(valid_until);
       }
-      if (notes !== undefined) {
-        updates.push(`notes = $${paramCount++}`);
-        values.push(notes);
-      }
+      // notes is already handled above in description field
       if (items !== undefined) {
         updates.push(`items = $${paramCount++}`);
         values.push(JSON.stringify(items));
@@ -268,14 +330,26 @@ router.delete('/:id',
     try {
       const { id } = req.params;
 
+      // Check if quotation exists and is not converted to invoice
+      const existingQuotation = await db.query(
+        'SELECT converted_to_invoice FROM quotations WHERE id = $1',
+        [id]
+      );
+
+      if (existingQuotation.rows.length === 0) {
+        return res.status(404).json({ error: 'Quotation not found' });
+      }
+
+      if (existingQuotation.rows[0].converted_to_invoice) {
+        return res.status(400).json({
+          error: 'Cannot delete quotation that has been converted to invoice'
+        });
+      }
+
       const result = await db.query(
         'DELETE FROM quotations WHERE id = $1 RETURNING id',
         [id]
       );
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Quotation not found' });
-      }
 
       res.json({ message: 'Quotation deleted successfully' });
     } catch (error) {

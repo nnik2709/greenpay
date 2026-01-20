@@ -179,6 +179,9 @@ router.get('/validate/:code',
         CASE
           WHEN used_at IS NOT NULL THEN 'used'
           WHEN valid_until < NOW() THEN 'expired'
+          WHEN passport_number IS NULL
+            OR passport_number = ''
+            OR UPPER(TRIM(passport_number)) IN ('PENDING', 'NA', 'N/A', 'NONE') THEN 'pending_passport'
           ELSE 'active'
         END as computed_status
       FROM individual_purchases
@@ -267,7 +270,7 @@ router.get('/validate/:code',
       return res.json({
         type: 'voucher',
         status: 'error',
-        message: 'INVALID - Passport not registered',
+        message: 'INVALID - Passport registration required. Please register your passport to this voucher before use.',
         data: { ...voucherData, voucherType, actualStatus, requiresRegistration: true }
       });
     }
@@ -680,6 +683,7 @@ router.post('/bulk-corporate', auth, checkRole('Flex_Admin', 'Finance_Manager', 
 /**
  * Email corporate vouchers to customer
  * POST /api/vouchers/email-vouchers
+ * ENHANCED: Sends each voucher as a separate PDF attachment
  */
 router.post('/email-vouchers', auth, checkRole('Flex_Admin', 'Finance_Manager', 'Counter_Agent'), async (req, res) => {
   try {
@@ -707,8 +711,17 @@ router.post('/email-vouchers', auth, checkRole('Flex_Admin', 'Finance_Manager', 
     const vouchers = result.rows;
     const companyName = company_name || vouchers[0].company_name;
 
-    // Generate PDF
-    const pdfBuffer = await generateVouchersPDF(vouchers, companyName);
+    // Generate SEPARATE PDF for EACH voucher using standardized template
+    const pdfAttachments = [];
+    for (const voucher of vouchers) {
+      // Use generateVoucherPDFBuffer for standardized template
+      const pdfBuffer = await generateVouchersPDF([voucher], companyName);
+      pdfAttachments.push({
+        filename: `voucher-${voucher.voucher_code}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      });
+    }
 
     // Send email
     const transporter = createTransporter();
@@ -719,7 +732,7 @@ router.post('/email-vouchers', auth, checkRole('Flex_Admin', 'Finance_Manager', 
       });
     }
 
-    // Email HTML - Using Bulk Purchase template text
+    // Email HTML - Updated to mention separate PDFs
     const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -746,24 +759,22 @@ router.post('/email-vouchers', auth, checkRole('Flex_Admin', 'Finance_Manager', 
 
     <div class="content">
       <p>Dear ${companyName},</p>
-      
+
       <div class="message">
-        <p>Your passport vouchers are attached to this email.</p>
+        <p>Your ${vouchers.length} passport voucher${vouchers.length > 1 ? 's are' : ' is'} attached to this email as separate PDF files.</p>
       </div>
 
       <div class="voucher-list">
-        <p style="margin-top: 0;"><strong>Your Vouchers Include:</strong></p>
+        <p style="margin-top: 0;"><strong>Attached Vouchers (${vouchers.length} files):</strong></p>
         <ul style="margin-bottom: 0;">
-          <li>Passport information already linked to each voucher</li>
-          <li>Unique voucher codes for redemption</li>
-          <li>Voucher value and validity details</li>
-          <li>QR codes for easy processing</li>
+          ${vouchers.map(v => `<li><strong>${v.voucher_code}</strong> - ${v.passport_number || 'Unregistered'}</li>`).join('\n          ')}
         </ul>
       </div>
 
       <div class="message">
         <p style="margin-top: 0;"><strong>How to Use Your Vouchers:</strong></p>
         <ol style="margin-bottom: 0;">
+          <li>Each voucher is attached as a separate PDF file</li>
           <li>Present your voucher at the counter</li>
           <li>Show valid identification</li>
           <li>Your passport details are already linked</li>
@@ -800,22 +811,16 @@ router.post('/email-vouchers', auth, checkRole('Flex_Admin', 'Finance_Manager', 
     const mailOptions = {
       from: process.env.SMTP_FROM || '"PNG Green Fees" <noreply@greenpay.eywademo.cloud>',
       to: recipient_email,
-      subject: `${companyName} - Airport Exit Vouchers (${vouchers.length} vouchers)`,
+      subject: `${companyName} - Airport Exit Vouchers (${vouchers.length} voucher${vouchers.length > 1 ? 's' : ''})`,
       html: htmlContent,
-      attachments: [
-        {
-          filename: `${companyName.replace(/\s+/g, '_')}_Vouchers_${new Date().toISOString().split('T')[0]}.pdf`,
-          content: pdfBuffer,
-          contentType: 'application/pdf'
-        }
-      ]
+      attachments: pdfAttachments // Each voucher as separate PDF
     };
 
     await transporter.sendMail(mailOptions);
 
     res.json({
       success: true,
-      message: `Vouchers emailed successfully to ${recipient_email}`,
+      message: `${vouchers.length} voucher${vouchers.length > 1 ? 's' : ''} emailed successfully to ${recipient_email} as separate PDF files`,
       voucher_count: vouchers.length
     });
 
@@ -1166,6 +1171,162 @@ router.post('/email-batch', auth, checkRole('Flex_Admin', 'Finance_Manager', 'Co
 });
 
 // GET /api/vouchers/by-passport/:passportNumber endpoint removed - feature deprecated
+
+/**
+ * POST /api/vouchers/bulk-email
+ * Email multiple individual vouchers
+ * Requires: Authentication
+ */
+router.post('/bulk-email',
+  auth,
+  [
+    body('voucherIds')
+      .isArray({ min: 1 })
+      .withMessage('At least one voucher ID required'),
+    body('email')
+      .trim()
+      .isEmail()
+      .normalizeEmail()
+      .withMessage('Valid email address required')
+  ],
+  validate,
+  async (req, res) => {
+  try {
+    const { voucherIds, email } = req.body;
+
+    // Find vouchers in individual_purchases table
+    const result = await db.query(`
+      SELECT ip.*
+      FROM individual_purchases ip
+      WHERE ip.id = ANY($1)
+      ORDER BY ip.created_at
+    `, [voucherIds]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No vouchers found' });
+    }
+
+    const vouchers = result.rows;
+
+    // Create email transporter
+    const transporter = createTransporter();
+    if (!transporter) {
+      return res.status(500).json({ error: 'Email service not configured' });
+    }
+
+    // Generate separate PDF for each voucher
+    const { generateVoucherPDFBuffer } = require('../utils/pdfGenerator');
+    const pdfAttachments = [];
+
+    for (const voucher of vouchers) {
+      const pdfBuffer = await generateVoucherPDFBuffer([voucher], voucher.customer_name || 'Individual');
+      pdfAttachments.push({
+        filename: `voucher-${voucher.voucher_code}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      });
+    }
+
+    // Send email with all voucher PDFs
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || 'noreply@greenpay.gov.pg',
+      to: email,
+      subject: `PNG Green Fee Vouchers (${vouchers.length} vouchers)`,
+      html: `
+        <h2>PNG Green Fee Vouchers</h2>
+        <p>Dear Customer,</p>
+        <p>Please find attached your ${vouchers.length} PNG Green Fee voucher(s).</p>
+        <ul>
+          ${vouchers.map(v => `
+            <li><strong>${v.voucher_code}</strong> - PGK ${parseFloat(v.amount || 0).toFixed(2)}${v.passport_number ? ` (Passport: ${v.passport_number})` : ''}</li>
+          `).join('')}
+        </ul>
+        <p>Please present these vouchers at the airport.</p>
+        <p>Thank you,<br>PNG Green Fees Team</p>
+      `,
+      attachments: pdfAttachments
+    });
+
+    console.log(`Bulk email sent successfully to ${email} with ${vouchers.length} vouchers`);
+
+    res.json({
+      success: true,
+      message: `${vouchers.length} voucher(s) sent to ${email}`,
+      vouchers_sent: vouchers.length
+    });
+
+  } catch (error) {
+    console.error('Bulk email error:', error);
+    res.status(500).json({
+      error: 'Failed to send bulk email',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/vouchers/bulk-download
+ * Download multiple vouchers as a ZIP file
+ * Requires: Authentication
+ */
+router.post('/bulk-download',
+  auth,
+  [
+    body('voucherIds')
+      .isArray({ min: 1 })
+      .withMessage('At least one voucher ID required')
+  ],
+  validate,
+  async (req, res) => {
+  try {
+    const { voucherIds } = req.body;
+
+    // Find vouchers in individual_purchases table
+    const result = await db.query(`
+      SELECT ip.*
+      FROM individual_purchases ip
+      WHERE ip.id = ANY($1)
+      ORDER BY ip.created_at
+    `, [voucherIds]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No vouchers found' });
+    }
+
+    const vouchers = result.rows;
+
+    // Generate PDFs for each voucher
+    const { generateVoucherPDFBuffer } = require('../utils/pdfGenerator');
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    // Set response headers for ZIP download
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="vouchers-${Date.now()}.zip"`);
+
+    // Pipe archive to response
+    archive.pipe(res);
+
+    // Add each voucher PDF to the ZIP
+    for (const voucher of vouchers) {
+      const pdfBuffer = await generateVoucherPDFBuffer([voucher], voucher.customer_name || 'Individual');
+      archive.append(pdfBuffer, { name: `voucher-${voucher.voucher_code}.pdf` });
+    }
+
+    // Finalize the archive
+    await archive.finalize();
+
+    console.log(`Bulk download generated for ${vouchers.length} vouchers`);
+
+  } catch (error) {
+    console.error('Bulk download error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: 'Failed to generate bulk download',
+        message: error.message
+      });
+    }
+  }
+});
 
 /**
  * POST /api/vouchers/:voucherCode/email

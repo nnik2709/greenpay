@@ -3,6 +3,8 @@
  * Sends voucher codes via SMS and Email
  */
 
+const { PUBLIC_URL, getAppUrl } = require('../config/urls');
+
 /**
  * Send SMS via Digicel/Bmobile PNG SMS Gateway
  *
@@ -113,8 +115,9 @@ async function sendEmail(to, subject, htmlBody, textBody, attachments = []) {
 /**
  * Send voucher notification via SMS and Email
  * Called after successful payment
+ * ENHANCED: Sends each voucher as a separate PDF attachment
  */
-async function sendVoucherNotification(customerData, vouchers) {
+async function sendVoucherNotification(customerData, vouchers, sessionId = null) {
   const { customerEmail, customerPhone, quantity } = customerData;
 
   // Format voucher codes for messaging
@@ -122,6 +125,18 @@ async function sendVoucherNotification(customerData, vouchers) {
   const voucherList = vouchers.map((v, i) =>
     `${i + 1}. ${v.voucher_code} (Valid until ${new Date(v.valid_until).toLocaleDateString('en-GB')})`
   ).join('\n');
+
+  // Generate SEPARATE PDF for EACH voucher using standardized template
+  const { generateVoucherPDFBuffer } = require('../utils/pdfGenerator');
+  const pdfAttachments = [];
+  for (const voucher of vouchers) {
+    const pdfBuffer = await generateVoucherPDFBuffer([voucher], 'Online Purchase');
+    pdfAttachments.push({
+      filename: `voucher-${voucher.voucher_code}.pdf`,
+      content: pdfBuffer,
+      contentType: 'application/pdf'
+    });
+  }
 
   const registrationUrl = process.env.PUBLIC_URL || 'https://pnggreenfees.gov.pg';
   const policyLinks = `
@@ -195,6 +210,15 @@ async function sendVoucherNotification(customerData, vouchers) {
         </ul>
       </div>
 
+      <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+        <p><strong>📧 Lost this email?</strong></p>
+        <p>You can retrieve your vouchers anytime using your payment session ID and email address:</p>
+        ${sessionId ? `<p style="margin: 10px 0;"><strong>Payment Session ID:</strong> <code style="background: #dbeafe; padding: 4px 8px; border-radius: 4px; font-family: monospace;">${sessionId}</code></p>` : ''}
+        <p style="margin: 10px 0;">
+          <a href="${registrationUrl}/retrieve-vouchers" style="color: #2563eb; text-decoration: underline; font-weight: 600;">Retrieve Your Vouchers</a>
+        </p>
+      </div>
+
       <div class="footer">
         <p>This is an automated message from PNG Green Fees System</p>
         <p>For support, contact: support@greenpay.gov.pg | +675 XXX XXXX</p>
@@ -241,10 +265,10 @@ Need help? Contact support@greenpay.gov.pg or +675 XXX XXXX
     }
   }
 
-  // Send Email if email provided
+  // Send Email if email provided (with PDF attachments)
   if (customerEmail) {
     try {
-      results.email = await sendEmail(customerEmail, emailSubject, emailHtml, emailText);
+      results.email = await sendEmail(customerEmail, emailSubject, emailHtml, emailText, pdfAttachments);
     } catch (error) {
       console.error('❌ Email delivery failed:', error);
       results.email = { success: false, error: error.message };
@@ -483,7 +507,7 @@ const sendInvoiceEmail = async (options) => {
   await transporter.verify();
   console.log('✅ SMTP connection verified');
 
-  const publicUrl = process.env.PUBLIC_URL || 'https://greenpay.eywademo.cloud';
+  const publicUrl = PUBLIC_URL;
 
   const mailOptions = {
     from: process.env.SMTP_FROM || '"PNG Green Fees" <noreply@greenpay.gov.pg>',
@@ -751,7 +775,7 @@ async function sendTicketNotification(ticketData, createdByUser) {
       </div>
 
       <div style="text-align: center; margin-top: 30px;">
-        <a href="${process.env.PUBLIC_URL || 'https://greenpay.eywademo.cloud'}/app/tickets" class="button">View Ticket</a>
+        <a href="${getAppUrl('/tickets')}" class="button">View Ticket</a>
       </div>
 
       <div class="footer">
@@ -787,7 +811,7 @@ Submitted: ${new Date(created_at).toLocaleString('en-US', {
 DESCRIPTION:
 ${description}
 
-View this ticket at: ${process.env.PUBLIC_URL || 'https://greenpay.eywademo.cloud'}/app/tickets
+View this ticket at: ${getAppUrl('/tickets')}
 
 ---
 PNG Green Fees System

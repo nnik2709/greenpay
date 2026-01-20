@@ -245,16 +245,24 @@ export function useWebSerial({
     };
   }, [isSupported, autoReconnect, connectionState]);
 
-  // Cleanup on unmount - DON'T disconnect, keep port available for page reload
-  // The port permission persists in browser, and we want fast reconnect
+  // Cleanup on unmount - release reader but keep port available for fast remount
   useEffect(() => {
     return () => {
-      console.log('[WebSerial] Component unmounting - keeping port open for reconnect');
+      console.log('[WebSerial] Component unmounting - releasing reader');
       clearTimeout(reconnectTimeoutRef.current);
-      // Only stop the read loop, don't close the port
-      // This allows faster reconnection on page reload
       readLoopRef.current = false;
-      // Note: We intentionally do NOT call disconnect() here
+
+      // Cancel and release the reader so the next mount can acquire it
+      if (readerRef.current) {
+        try {
+          readerRef.current.cancel().catch(() => {});
+        } catch (err) {
+          // Ignore
+        }
+        readerRef.current = null;
+      }
+
+      // Keep the port open but idle - this allows instant reconnection
       // The port will be closed when the browser tab is closed
     };
   }, []);

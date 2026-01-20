@@ -2,6 +2,7 @@ const PDFDocument = require('pdfkit');
 const bwipjs = require('bwip-js');
 const path = require('path');
 const fs = require('fs');
+const { getRegistrationUrl } = require('../config/urls');
 
 // Generate a single PDF that contains all vouchers in the array.
 // This is used for bulk email/download of corporate vouchers.
@@ -110,7 +111,12 @@ const generateVoucherPDFBuffer = async (vouchers, companyName) => {
 
         // Conditional section: Show passport number OR registration QR code + link
         const passportNumber = voucher.passport_number;
-        const hasPassport = passportNumber && passportNumber !== 'PENDING';
+        const hasPassport = passportNumber &&
+                           passportNumber !== null &&
+                           passportNumber !== 'PENDING' &&
+                           passportNumber !== 'pending' &&
+                           passportNumber !== '' &&
+                           String(passportNumber).trim() !== '';
 
         if (hasPassport) {
           // REGISTERED PASSPORT SECTION
@@ -154,7 +160,7 @@ const generateVoucherPDFBuffer = async (vouchers, companyName) => {
           yPos += 35;
 
           // Generate QR code for registration URL
-          const registrationUrl = `https://greenpay.eywademo.cloud/register/${voucherCode}`;
+          const registrationUrl = getRegistrationUrl(voucherCode);
 
           try {
             const QRCode = require('qrcode');
@@ -553,7 +559,12 @@ async function generateVoucherPDF(voucher) {
 
       // Conditional section: Show passport number OR registration link
       const passportNumber = voucher.passport_number;
-      const hasPassport = passportNumber && passportNumber !== 'PENDING';
+      const hasPassport = passportNumber &&
+                         passportNumber !== null &&
+                         passportNumber !== 'PENDING' &&
+                         passportNumber !== 'pending' &&
+                         passportNumber !== '' &&
+                         String(passportNumber).trim() !== '';
 
       if (hasPassport) {
         // Show passport number when attached
@@ -581,7 +592,7 @@ async function generateVoucherPDF(voucher) {
         yPos += 30;
 
         // Registration URL
-        const registrationUrl = `https://greenpay.eywademo.cloud/register/${voucherCode}`;
+        const registrationUrl = getRegistrationUrl(voucherCode);
         doc.fontSize(10)
            .fillColor('#666666')
            .font('Helvetica')

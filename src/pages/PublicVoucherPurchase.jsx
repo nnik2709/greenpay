@@ -27,6 +27,7 @@ const PublicVoucherPurchase = () => {
     const saved = localStorage.getItem('pending-purchase');
     return saved ? JSON.parse(saved) : {
       email: '',
+      emailConfirm: '', // Phase 2: Email confirmation
       phone: '',
       quantity: 1,
       preferSMS: true, // SMS-first for PNG
@@ -125,6 +126,16 @@ const PublicVoucherPurchase = () => {
         variant: "destructive",
         title: "Invalid Email",
         description: "Please enter a valid email address"
+      });
+      return false;
+    }
+
+    // Phase 2: Validate email confirmation matches
+    if (formData.email && formData.email !== formData.emailConfirm) {
+      toast({
+        variant: "destructive",
+        title: "Email Mismatch",
+        description: "Email addresses do not match. Please check and try again."
       });
       return false;
     }
@@ -332,6 +343,34 @@ const PublicVoucherPurchase = () => {
                   Voucher code and receipt will be sent to this email
                 </p>
               </div>
+
+              {/* Email Confirmation Field - Phase 2 */}
+              {formData.email && (
+                <div className="space-y-2">
+                  <Label htmlFor="emailConfirm">
+                    Confirm Email Address <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="emailConfirm"
+                    type="email"
+                    value={formData.emailConfirm}
+                    onChange={(e) => handleFieldChange('emailConfirm', e.target.value)}
+                    placeholder="your@email.com (re-enter to confirm)"
+                    className="text-lg"
+                    disabled={isSubmitting}
+                  />
+                  {formData.emailConfirm && formData.email !== formData.emailConfirm && (
+                    <p className="text-xs text-red-600 font-medium">
+                      ⚠ Emails do not match
+                    </p>
+                  )}
+                  {formData.emailConfirm && formData.email === formData.emailConfirm && (
+                    <p className="text-xs text-emerald-600 font-medium">
+                      ✓ Emails match
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Phone Field - CRITICAL for PNG */}
               <div className="space-y-2">

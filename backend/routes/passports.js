@@ -4,6 +4,7 @@ const { body, param, query } = require('express-validator');
 const db = require('../config/database');
 const validate = require('../middleware/validator');
 const { auth, checkRole } = require('../middleware/auth');
+const rateLimit = require('express-rate-limit');
 
 /**
  * GET /api/passports
@@ -337,5 +338,75 @@ router.delete('/:id',
     }
   }
 );
+
+// Rate limiter for passport lookup endpoint
+// Prevents passport enumeration attacks
+const passportLookupLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Limit each IP to 20 requests per 15 minutes
+  message: {
+    success: false,
+    error: 'Too many passport lookup requests. Please try again in 15 minutes.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * GET /api/passports/lookup/:passportNumber
+ * PUBLIC endpoint - No auth required (but rate-limited)
+ * Lookup passport by number for auto-fill in PublicRegistration page
+ * Used to reduce data entry and improve accuracy
+ *
+ * Rate limit: 20 requests per 15 minutes per IP
+ */
+router.get('/lookup/:passportNumber', passportLookupLimiter, async (req, res) => {
+  try {
+    const { passportNumber } = req.params;
+
+    if (!passportNumber || passportNumber.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'Passport number is required'
+      });
+    }
+
+    // Search for passport in database
+    const query = `
+      SELECT
+        passport_number,
+        full_name,
+        date_of_birth,
+        nationality,
+        passport_type,
+        issue_date,
+        expiry_date
+      FROM passports
+      WHERE passport_number = $1
+      LIMIT 1
+    `;
+
+    const result = await db.query(query, [passportNumber.toUpperCase().trim()]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Passport not found'
+      });
+    }
+
+    return res.json({
+      success: true,
+      passport: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Passport lookup error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to lookup passport'
+    });
+  }
+});
 
 module.exports = router;

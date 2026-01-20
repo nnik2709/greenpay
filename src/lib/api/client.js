@@ -2,7 +2,7 @@
  * GreenPay API Client - PostgreSQL Backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://greenpay.eywademo.cloud/api';
+import { API_URL as API_BASE_URL } from '@/config/urls';
 
 // Token management
 const TOKEN_KEY = 'greenpay_auth_token';
@@ -218,6 +218,13 @@ export const api = {
     create: (data) => fetchAPI('/quotations', {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+    update: (id, data) => fetchAPI(`/quotations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    delete: (id) => fetchAPI(`/quotations/${id}`, {
+      method: 'DELETE',
     }),
   },
 

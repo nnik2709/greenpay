@@ -1,6 +1,7 @@
 const PDFService = require('../PDFService');
 const colors = require('../styles/colors');
 const { generateBarcode } = require('../components/Barcode');
+const { getRegistrationUrl } = require('../../config/urls');
 
 /**
  * Voucher PDF Template
@@ -25,9 +26,8 @@ class VoucherTemplate extends PDFService {
    * @returns {Promise<Buffer>} PDF buffer
    */
   async generateVoucher(voucher, options = {}) {
-    const { baseUrl = 'https://pnggreenfees.gov.pg' } = options;
     const hasPassport = Boolean(voucher.passport_number);
-    const registrationUrl = `${baseUrl}/voucher/register/${voucher.voucher_code}`;
+    const registrationUrl = getRegistrationUrl(voucher.voucher_code);
 
     return this.generatePDF(async (doc) => {
       let yPos = this.margin;

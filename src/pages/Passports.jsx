@@ -59,16 +59,21 @@ const Passports = () => {
   const [allPassports, setAllPassports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load all passports on component mount
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 0, page: 1, limit: 100 });
+
+  // Load passports on component mount and when page changes
   useEffect(() => {
     loadAllPassports();
-  }, []);
+  }, [currentPage]);
 
   const loadAllPassports = async () => {
     setIsLoading(true);
     try {
-      const passports = await getPassports();
-      setAllPassports(passports);
+      const response = await getPassports({ page: currentPage, limit: 100 });
+      setAllPassports(response.passports || []);
+      setPagination(response.pagination || { total: 0, totalPages: 0, page: currentPage, limit: 100 });
     } catch (error) {
       console.error('Error loading passports:', error);
       toast({
@@ -332,7 +337,7 @@ const Passports = () => {
               <CardTitle className="text-2xl font-semibold text-slate-800 flex items-center justify-between">
                 <span>All Passports</span>
                 <span className="text-base font-normal text-slate-500">
-                  {isLoading ? 'Loading...' : `${allPassports.length} total`}
+                  {isLoading ? 'Loading...' : `${pagination.total} total (page ${pagination.page} of ${pagination.totalPages})`}
                 </span>
               </CardTitle>
             </CardHeader>
@@ -403,6 +408,52 @@ const Passports = () => {
                       ))}
                     </tbody>
                   </table>
+
+                  {/* Pagination Controls */}
+                  {pagination.totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                      <div className="text-sm text-slate-600">
+                        Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} passports
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(1)}
+                          disabled={pagination.page === 1 || isLoading}
+                        >
+                          First
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={pagination.page === 1 || isLoading}
+                        >
+                          Previous
+                        </Button>
+                        <span className="px-4 py-2 text-sm font-medium text-slate-700">
+                          Page {pagination.page} of {pagination.totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                          disabled={pagination.page === pagination.totalPages || isLoading}
+                        >
+                          Next
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(pagination.totalPages)}
+                          disabled={pagination.page === pagination.totalPages || isLoading}
+                        >
+                          Last
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-center text-slate-500 py-8">No passports found. Create your first passport to get started.</p>

@@ -937,7 +937,7 @@ async function completeVoucherPurchase(sessionId, paymentData) {
           customerEmail: session.customer_email,
           customerPhone: session.customer_phone,
           quantity: session.quantity
-        }, vouchers);
+        }, vouchers, sessionId);
 
         console.log('✅ Notifications sent:', notificationResult);
       } catch (error) {

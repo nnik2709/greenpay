@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api/client';
+import { useWebSerial } from '@/hooks/useWebSerial';
 
 const VOUCHER_AMOUNT = 50;
 
@@ -16,7 +17,7 @@ export default function IndividualPurchase() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const [step, setStep] = useState('create'); // 'create' | 'list'
+  const [step, setStep] = useState('create'); // 'create' | 'list' | 'wizard' | 'completion'
   const [quantity, setQuantity] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [collectedAmount, setCollectedAmount] = useState(50);
@@ -27,6 +28,102 @@ export default function IndividualPurchase() {
 
   const [batchId, setBatchId] = useState(null);
   const [vouchers, setVouchers] = useState([]);
+
+  // Registration wizard state
+  const [wizardProgress, setWizardProgress] = useState({
+    currentIndex: 0,
+    registeredVouchers: new Set(), // Set of voucher IDs that have been registered
+    registeredData: {} // Map of voucherId -> { passportNumber, surname, givenName }
+  });
+
+  // Controlled inputs for passport fields in wizard
+  const [passportNumber, setPassportNumber] = useState('');
+  const [surname, setSurname] = useState('');
+  const [givenName, setGivenName] = useState('');
+
+  // MRZ Scanner integration - WebSerial (real USB connection)
+  const scanner = useWebSerial({
+    autoConnect: true,
+    autoReconnect: true,
+    onScan: (scannedData) => {
+      if (scannedData.passport_no && step === 'wizard' && vouchers.length > 0) {
+        // MRZ data scanned successfully - populate fields
+        setPassportNumber(scannedData.passport_no);
+        setSurname(scannedData.surname);
+        setGivenName(scannedData.given_name);
+
+        // Auto-register and move to next voucher after a short delay
+        setTimeout(() => {
+          setWizardProgress(prev => {
+            const currentVoucher = vouchers[prev.currentIndex];
+            if (!currentVoucher) return prev;
+
+            // Add to registered set
+            const newRegistered = new Set(prev.registeredVouchers);
+            newRegistered.add(currentVoucher.id);
+
+            // Save registration data
+            const newData = {
+              ...prev.registeredData,
+              [currentVoucher.id]: {
+                passportNumber: scannedData.passport_no,
+                surname: scannedData.surname,
+                givenName: scannedData.given_name
+              }
+            };
+
+            // Find next unregistered voucher
+            const nextUnregisteredIndex = vouchers.findIndex(
+              (v, idx) => idx > prev.currentIndex && !newRegistered.has(v.id)
+            );
+
+            toast({
+              title: 'Voucher Registered',
+              description: `${currentVoucher.voucherCode} → Auto-advancing to next voucher`
+            });
+
+            if (nextUnregisteredIndex !== -1) {
+              // Move to next unregistered
+              return {
+                currentIndex: nextUnregisteredIndex,
+                registeredVouchers: newRegistered,
+                registeredData: newData
+              };
+            } else {
+              // All done, stay here (will go to completion on render)
+              return {
+                ...prev,
+                registeredVouchers: newRegistered,
+                registeredData: newData
+              };
+            }
+          });
+        }, 500); // Short delay to show the populated data
+      }
+    }
+  });
+
+  // Clear passport fields when currentIndex changes
+  useEffect(() => {
+    if (step === 'wizard' && vouchers.length > 0 && wizardProgress.currentIndex < vouchers.length) {
+      const currentVoucher = vouchers[wizardProgress.currentIndex];
+      if (currentVoucher) {
+        const existingData = wizardProgress.registeredData[currentVoucher.id];
+
+        if (existingData) {
+          // Load existing data if voucher was already registered
+          setPassportNumber(existingData.passportNumber || '');
+          setSurname(existingData.surname || '');
+          setGivenName(existingData.givenName || '');
+        } else {
+          // Clear fields for new voucher
+          setPassportNumber('');
+          setSurname('');
+          setGivenName('');
+        }
+      }
+    }
+  }, [wizardProgress.currentIndex, step]);
 
   const totalAmount = quantity * VOUCHER_AMOUNT;
 
@@ -81,6 +178,608 @@ export default function IndividualPurchase() {
     }
   };
 
+  // COMPLETION STEP
+  if (step === 'completion') {
+    const registeredIds = Array.from(wizardProgress.registeredVouchers);
+    const registeredVouchers = vouchers.filter(v => registeredIds.includes(v.id));
+    const unregisteredVouchers = vouchers.filter(v => !registeredIds.includes(v.id));
+
+    return (
+      <div className="container mx-auto p-6 max-w-4xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>Registration Wizard Complete</CardTitle>
+            <CardDescription>
+              {registeredIds.length} of {vouchers.length} vouchers have been registered
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Bulk Actions for All Registered Vouchers */}
+            {registeredVouchers.length > 1 && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="font-semibold text-blue-900 mb-3">Bulk Actions ({registeredVouchers.length} vouchers)</h3>
+                <div className="flex gap-3 flex-wrap">
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const email = customerEmail || prompt('Enter email address for all vouchers:');
+                        if (!email) return;
+
+                        const voucherIds = registeredVouchers.map(v => v.id);
+                        await api.post('/vouchers/bulk-email', { voucherIds, email });
+                        toast({
+                          title: 'Emails Sent',
+                          description: `${registeredVouchers.length} vouchers sent to ${email}`
+                        });
+                      } catch (error) {
+                        toast({
+                          variant: 'destructive',
+                          title: 'Error',
+                          description: 'Failed to send bulk emails'
+                        });
+                      }
+                    }}
+                  >
+                    Email All ({registeredVouchers.length})
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const voucherCodes = registeredVouchers.map(v => v.voucherCode).join(',');
+                        window.open(`/api/vouchers/bulk-print?codes=${voucherCodes}`, '_blank');
+                        toast({
+                          title: 'Opening Print View',
+                          description: `Preparing ${registeredVouchers.length} vouchers for printing`
+                        });
+                      } catch (error) {
+                        toast({
+                          variant: 'destructive',
+                          title: 'Error',
+                          description: 'Failed to generate bulk print'
+                        });
+                      }
+                    }}
+                  >
+                    Print All ({registeredVouchers.length})
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const voucherIds = registeredVouchers.map(v => v.id);
+                        const response = await api.post('/vouchers/bulk-download', { voucherIds }, {
+                          responseType: 'blob'
+                        });
+                        const blob = new Blob([response], { type: 'application/zip' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `vouchers-batch-${batchId}.zip`;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        toast({
+                          title: 'Download Started',
+                          description: `Downloading ${registeredVouchers.length} vouchers as ZIP`
+                        });
+                      } catch (error) {
+                        toast({
+                          variant: 'destructive',
+                          title: 'Error',
+                          description: 'Failed to download bulk vouchers'
+                        });
+                      }
+                    }}
+                  >
+                    Download All as ZIP ({registeredVouchers.length})
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Registered Vouchers */}
+            {registeredVouchers.length > 0 && (
+              <div className="mb-8">
+                <h3 className="font-semibold text-lg mb-4 text-green-900">✅ Registered Vouchers</h3>
+                <div className="space-y-3">
+                  {registeredVouchers.map(v => {
+                    const data = wizardProgress.registeredData[v.id];
+                    return (
+                      <Card key={v.id} className="p-4 border-green-300">
+                        <div className="flex flex-col gap-4">
+                          <div>
+                            <p className="font-mono font-bold text-lg">{v.voucherCode}</p>
+                            <p className="text-sm text-gray-600">
+                              Passport: {data?.passportNumber} | {data?.surname}, {data?.givenName}
+                            </p>
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/app/voucher-registration?code=${v.voucherCode}`)}
+                            >
+                              View Details
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  const response = await api.get(`/vouchers/pdf/${v.voucherCode}`);
+                                  if (response.pdfUrl) {
+                                    window.open(response.pdfUrl, '_blank');
+                                  }
+                                } catch (error) {
+                                  toast({
+                                    variant: 'destructive',
+                                    title: 'Error',
+                                    description: 'Failed to generate PDF'
+                                  });
+                                }
+                              }}
+                            >
+                              Print PDF
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  const email = customerEmail || prompt('Enter email address:');
+                                  if (!email) return;
+
+                                  await api.post(`/vouchers/${v.voucherCode}/email`, { recipient_email: email });
+                                  toast({
+                                    title: 'Email Sent',
+                                    description: `Voucher sent to ${email}`
+                                  });
+                                } catch (error) {
+                                  toast({
+                                    variant: 'destructive',
+                                    title: 'Error',
+                                    description: error.response?.data?.message || 'Failed to send email'
+                                  });
+                                }
+                              }}
+                            >
+                              Email
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  const response = await api.get(`/vouchers/pdf/${v.voucherCode}`, {
+                                    responseType: 'blob'
+                                  });
+                                  const blob = new Blob([response], { type: 'application/pdf' });
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `voucher-${v.voucherCode}.pdf`;
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                } catch (error) {
+                                  toast({
+                                    variant: 'destructive',
+                                    title: 'Error',
+                                    description: 'Failed to download PDF'
+                                  });
+                                }
+                              }}
+                            >
+                              Download
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Unregistered Vouchers */}
+            {unregisteredVouchers.length > 0 && (
+              <div className="mb-8">
+                <h3 className="font-semibold text-lg mb-4 text-yellow-900">⏳ Unregistered Vouchers</h3>
+                <div className="space-y-3">
+                  {unregisteredVouchers.map(v => (
+                    <Card key={v.id} className="p-4 border-yellow-300">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-mono font-bold">{v.voucherCode}</p>
+                          <p className="text-sm text-yellow-600">Not registered yet</p>
+                        </div>
+                        <Button
+                          onClick={() => {
+                            const index = vouchers.findIndex(vv => vv.id === v.id);
+                            setWizardProgress({ ...wizardProgress, currentIndex: index });
+                            setStep('wizard');
+                          }}
+                        >
+                          Register Now →
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-4 justify-end mt-8">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // Reset everything
+                  setStep('create');
+                  setVouchers([]);
+                  setBatchId(null);
+                  setQuantity(1);
+                  setCollectedAmount(50);
+                  setCustomerEmail('');
+                  setWizardProgress({
+                    currentIndex: 0,
+                    registeredVouchers: new Set(),
+                    registeredData: {}
+                  });
+                }}
+              >
+                Create More Vouchers
+              </Button>
+              <Button onClick={() => navigate('/app/agent-landing')}>
+                Return to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // WIZARD STEP - MVP Version
+  if (step === 'wizard') {
+    // Check if we're done (current index is past last voucher)
+    if (wizardProgress.currentIndex >= vouchers.length) {
+      // Move to completion
+      setStep('completion');
+      return null;
+    }
+
+    const currentVoucher = vouchers[wizardProgress.currentIndex];
+
+    // Safety check - if currentVoucher is undefined, go back to list
+    if (!currentVoucher) {
+      setStep('list');
+      return null;
+    }
+
+    const isRegistered = wizardProgress.registeredVouchers.has(currentVoucher.id);
+    const registeredCount = wizardProgress.registeredVouchers.size;
+    const totalCount = vouchers.length;
+
+    return (
+      <div className="container mx-auto p-6">
+        <div className="grid grid-cols-12 gap-6">
+          {/* LEFT SIDEBAR - Voucher Cards (3 columns, scrollable) */}
+          <div className="col-span-3">
+            <div className="sticky top-6">
+              <h3 className="text-lg font-semibold mb-4">3 Vouchers</h3>
+              <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+                {vouchers.map((v, index) => {
+                  const vIsRegistered = wizardProgress.registeredVouchers.has(v.id);
+                  const vIsCurrent = index === wizardProgress.currentIndex;
+                  const vData = wizardProgress.registeredData[v.id];
+
+                  return (
+                    <Card
+                      key={v.id}
+                      className={`p-4 cursor-pointer transition-all ${
+                        vIsCurrent
+                          ? 'border-2 border-blue-500 shadow-md'
+                          : vIsRegistered
+                          ? 'border-2 border-green-500 bg-green-50'
+                          : 'border-2 border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => setWizardProgress({ ...wizardProgress, currentIndex: index })}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start">
+                          <span className="text-sm font-semibold text-gray-600">
+                            Voucher {index + 1} of {vouchers.length}
+                          </span>
+                          {vIsRegistered && (
+                            <span className="text-green-600 text-lg">✓</span>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-gray-500">Voucher Code</p>
+                          <p className="font-mono text-sm font-bold text-green-700">{v.voucherCode}</p>
+                        </div>
+
+                        {vIsRegistered && vData ? (
+                          <>
+                            <div>
+                              <p className="text-xs text-gray-500">Passport Number</p>
+                              <p className="font-semibold text-sm">{vData.passportNumber}</p>
+                            </div>
+                            <div className="pt-2 flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs h-7"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // TODO: Print PDF
+                                  toast({ title: 'Print feature coming soon' });
+                                }}
+                              >
+                                Print
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs h-7"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // TODO: Email
+                                  toast({ title: 'Email feature coming soon' });
+                                }}
+                              >
+                                Email
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-500">PENDING</p>
+                        )}
+
+                        <div className="text-xs text-gray-500">
+                          <p>Amount: K 50</p>
+                          <p>Valid: 1/20/2026 - 1/20/2027</p>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT MAIN AREA - Registration Form (9 columns) */}
+          <div className="col-span-9">
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  Registering Voucher {wizardProgress.currentIndex + 1} of {vouchers.length}
+                </CardTitle>
+                <CardDescription>
+                  Voucher Code: <span className="font-mono font-bold">{currentVoucher.voucherCode}</span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isRegistered ? (
+                  /* Already Registered - Show Summary */
+                  <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-4xl">✅</span>
+                      <div>
+                        <h3 className="text-lg font-semibold text-green-900">Already Registered</h3>
+                        <p className="text-sm text-green-700">
+                          This voucher has been registered with passport {wizardProgress.registeredData[currentVoucher.id]?.passportNumber}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={() => {
+                          const nextUnregisteredIndex = vouchers.findIndex(
+                            (v, idx) => idx > wizardProgress.currentIndex && !wizardProgress.registeredVouchers.has(v.id)
+                          );
+                          if (nextUnregisteredIndex !== -1) {
+                            setWizardProgress({ ...wizardProgress, currentIndex: nextUnregisteredIndex });
+                          } else {
+                            setStep('completion');
+                          }
+                        }}
+                      >
+                        Next Unregistered Voucher →
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          // Re-register (remove from registered set)
+                          const newRegistered = new Set(wizardProgress.registeredVouchers);
+                          newRegistered.delete(currentVoucher.id);
+                          const newData = { ...wizardProgress.registeredData };
+                          delete newData[currentVoucher.id];
+                          setWizardProgress({
+                            ...wizardProgress,
+                            registeredVouchers: newRegistered,
+                            registeredData: newData
+                          });
+                        }}
+                      >
+                        Re-register
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Registration Form with MRZ Scanner */
+                  <div className="space-y-4">
+                    {/* Scanner Status with WebSerial Connect/Disconnect */}
+                    <div className={`border rounded-lg p-4 mb-4 ${
+                      scanner.isReady ? 'bg-green-50 border-green-200' :
+                      scanner.isConnecting ? 'bg-yellow-50 border-yellow-200' :
+                      'bg-gray-50 border-gray-200'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${
+                            scanner.isReady ? 'bg-green-500' :
+                            scanner.isConnecting ? 'bg-yellow-500 animate-pulse' :
+                            'bg-gray-400'
+                          }`}></div>
+                          <span className="text-sm font-medium">
+                            MRZ Scanner: {
+                              scanner.isReady ? 'Ready (LED Green)' :
+                              scanner.isConnecting ? 'Connecting...' :
+                              scanner.isConnected ? 'Connected' :
+                              'Not Connected'
+                            }
+                          </span>
+                        </div>
+                        {scanner.isConnected ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={scanner.disconnect}
+                            className="h-8"
+                          >
+                            Disconnect Scanner
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={scanner.connect}
+                            disabled={scanner.isConnecting || !scanner.isSupported}
+                            className="h-8"
+                          >
+                            {scanner.isConnecting ? 'Connecting...' : 'Connect Scanner'}
+                          </Button>
+                        )}
+                      </div>
+                      {scanner.error && (
+                        <p className="text-xs text-red-700 mt-2">
+                          {scanner.error}
+                        </p>
+                      )}
+                      {scanner.isReady && scanner.scanCount > 0 && (
+                        <p className="text-xs text-green-700 mt-2">
+                          ✅ {scanner.scanCount} passport{scanner.scanCount > 1 ? 's' : ''} scanned this session
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="passportNumber">Passport Number *</Label>
+                      <Input
+                        id="passportNumber"
+                        placeholder="XX123456"
+                        value={passportNumber}
+                        onChange={(e) => setPassportNumber(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="surname">Surname *</Label>
+                      <Input
+                        id="surname"
+                        placeholder="SMITH"
+                        value={surname}
+                        onChange={(e) => setSurname(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="givenName">Given Name *</Label>
+                      <Input
+                        id="givenName"
+                        placeholder="JOHN"
+                        value={givenName}
+                        onChange={(e) => setGivenName(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                      <Button
+                        onClick={() => {
+                          if (!passportNumber || !surname || !givenName) {
+                            toast({
+                              variant: 'destructive',
+                              title: 'Missing Information',
+                              description: 'Please fill in all required fields'
+                            });
+                            return;
+                          }
+
+                          // Add to registered set
+                          const newRegistered = new Set(wizardProgress.registeredVouchers);
+                          newRegistered.add(currentVoucher.id);
+
+                          // Save registration data
+                          const newData = {
+                            ...wizardProgress.registeredData,
+                            [currentVoucher.id]: { passportNumber, surname, givenName }
+                          };
+
+                          // Find next unregistered voucher
+                          const nextUnregisteredIndex = vouchers.findIndex(
+                            (v, idx) => idx > wizardProgress.currentIndex && !newRegistered.has(v.id)
+                          );
+
+                          if (nextUnregisteredIndex !== -1) {
+                            // Move to next unregistered
+                            setWizardProgress({
+                              currentIndex: nextUnregisteredIndex,
+                              registeredVouchers: newRegistered,
+                              registeredData: newData
+                            });
+                          } else {
+                            // All done, go to completion
+                            setWizardProgress({
+                              ...wizardProgress,
+                              registeredVouchers: newRegistered,
+                              registeredData: newData
+                            });
+                            setStep('completion');
+                          }
+
+                          toast({
+                            title: 'Voucher Registered',
+                            description: `Voucher ${currentVoucher.voucherCode} registered successfully`
+                          });
+                        }}
+                        className="flex-1"
+                      >
+                        Register & Continue →
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          // Skip this voucher - find next unregistered
+                          const nextUnregisteredIndex = vouchers.findIndex(
+                            (v, idx) => idx > wizardProgress.currentIndex && !wizardProgress.registeredVouchers.has(v.id)
+                          );
+
+                          if (nextUnregisteredIndex !== -1) {
+                            setWizardProgress({ ...wizardProgress, currentIndex: nextUnregisteredIndex });
+                          } else {
+                            // No more unregistered, go to completion
+                            setStep('completion');
+                          }
+
+                          toast({
+                            title: 'Voucher Skipped',
+                            description: 'You can register it later from the voucher list'
+                          });
+                        }}
+                      >
+                        Skip This One
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (step === 'list') {
     return (
       <div className="container mx-auto p-6 max-w-4xl">
@@ -93,7 +792,25 @@ export default function IndividualPurchase() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {vouchers.map((voucher) => (
+              {/* Show wizard button only if quantity > 1 */}
+              {vouchers.length > 1 && (
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-semibold text-blue-900 mb-2">Register Multiple Vouchers</h4>
+                  <p className="text-sm text-blue-800 mb-4">
+                    Use the registration wizard to register all {vouchers.length} vouchers sequentially with MRZ scanner support and status tracking.
+                  </p>
+                  <Button
+                    onClick={() => setStep('wizard')}
+                    className="bg-blue-600 hover:bg-blue-700"
+                    size="lg"
+                  >
+                    Start Registration Wizard →
+                  </Button>
+                </div>
+              )}
+
+              {/* Individual voucher cards */}
+              {vouchers.map((voucher, idx) => (
                 <Card key={voucher.id} className="p-4 border-2">
                   <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                     <div>
@@ -108,12 +825,26 @@ export default function IndividualPurchase() {
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        onClick={() => window.open(`/register/${voucher.voucherCode}`, '_blank')}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Register Passport →
-                      </Button>
+                      {vouchers.length === 1 ? (
+                        // Single voucher - allow direct navigation
+                        <Button
+                          onClick={() => navigate(`/app/voucher-registration?code=${voucher.voucherCode}`)}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          Register Passport →
+                        </Button>
+                      ) : (
+                        // Multiple vouchers - use wizard
+                        <Button
+                          onClick={() => {
+                            setWizardProgress({ ...wizardProgress, currentIndex: idx });
+                            setStep('wizard');
+                          }}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          Register in Wizard
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         onClick={() => {

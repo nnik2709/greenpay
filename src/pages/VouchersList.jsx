@@ -1,26 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { Printer, FileEdit } from 'lucide-react';
 import api from '@/lib/api/client';
 import * as XLSX from 'xlsx';
+import VoucherPrint from '@/components/VoucherPrint';
 
 const VouchersList = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [vouchers, setVouchers] = useState([]);
   const [filteredVouchers, setFilteredVouchers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all'); // all, individual, corporate
   const [statusFilter, setStatusFilter] = useState('all'); // all, active, used, expired
+  const [printVoucher, setPrintVoucher] = useState(null);
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 0, page: 1, limit: 100 });
 
   useEffect(() => {
     loadVouchers();
-  }, []);
+  }, [currentPage]);
 
   useEffect(() => {
     filterVouchers();
@@ -29,9 +39,14 @@ const VouchersList = () => {
   const loadVouchers = async () => {
     setIsLoading(true);
     try {
-      // Load individual vouchers
-      const individualResponse = await api.get('/individual-purchases');
-      const individualVouchers = (individualResponse.data || []).map(v => {
+      // Load individual vouchers with pagination
+      const individualResponse = await api.get('/individual-purchases', {
+        params: { page: currentPage, limit: 100 }
+      });
+      const individualData = individualResponse.data || [];
+      const individualPagination = individualResponse.pagination || {};
+
+      const individualVouchers = individualData.map(v => {
         const passportNumber = v.passport_number || null;
         return {
           ...v,
@@ -43,9 +58,14 @@ const VouchersList = () => {
         };
       });
 
-      // Load corporate vouchers
-      const corporateResponse = await api.get('/vouchers/corporate-vouchers');
-      const corporateVouchers = (corporateResponse.vouchers || []).map(v => {
+      // Load corporate vouchers with pagination
+      const corporateResponse = await api.get('/vouchers/corporate-vouchers', {
+        params: { page: currentPage, limit: 100 }
+      });
+      const corporateData = corporateResponse.vouchers || [];
+      const corporatePagination = corporateResponse.pagination || {};
+
+      const corporateVouchers = corporateData.map(v => {
         const passportNumber = v.passport_number || v.employee_name || null;
         return {
           ...v,
@@ -60,6 +80,17 @@ const VouchersList = () => {
       const allVouchers = [...individualVouchers, ...corporateVouchers].sort(
         (a, b) => new Date(b.created_at || b.issued_date) - new Date(a.created_at || a.issued_date)
       );
+
+      // Combine pagination info (total from both sources)
+      const combinedTotal = (individualPagination.total || 0) + (corporatePagination.total || 0);
+      const combinedTotalPages = Math.ceil(combinedTotal / 100);
+
+      setPagination({
+        page: currentPage,
+        limit: 100,
+        total: combinedTotal,
+        totalPages: combinedTotalPages
+      });
 
       setVouchers(allVouchers);
       setFilteredVouchers(allVouchers);
@@ -183,6 +214,20 @@ const VouchersList = () => {
     }
   };
 
+  const handlePrintVoucher = (voucher) => {
+    setPrintVoucher(voucher);
+    setIsPrintDialogOpen(true);
+  };
+
+  const handleClosePrint = () => {
+    setIsPrintDialogOpen(false);
+    setPrintVoucher(null);
+  };
+
+  const handleRegisterPassport = (voucherCode) => {
+    navigate(`/app/voucher-registration?code=${voucherCode}`);
+  };
+
   const getStats = () => {
     const stats = {
       total: filteredVouchers.length,
@@ -298,7 +343,12 @@ const VouchersList = () => {
       {/* Vouchers Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Vouchers List ({filteredVouchers.length})</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>Vouchers List</span>
+            <span className="text-base font-normal text-slate-500">
+              {isLoading ? 'Loading...' : `${pagination.total} total (page ${pagination.page} of ${pagination.totalPages})`}
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -319,6 +369,7 @@ const VouchersList = () => {
                     <th className="pb-3 font-semibold">Valid Until</th>
                     <th className="pb-3 font-semibold">Used Date</th>
                     <th className="pb-3 font-semibold">Created</th>
+                    <th className="pb-3 font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -373,14 +424,93 @@ const VouchersList = () => {
                           {new Date(voucher.created_at || voucher.issued_date).toLocaleDateString()}
                         </span>
                       </td>
+                      <td className="py-3">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handlePrintVoucher(voucher)}
+                            className="h-8"
+                          >
+                            <Printer className="h-4 w-4 mr-1" />
+                            Print
+                          </Button>
+                          {!voucher.passport_number && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleRegisterPassport(voucher.voucher_code)}
+                              className="h-8 bg-green-600 hover:bg-green-700"
+                            >
+                              <FileEdit className="h-4 w-4 mr-1" />
+                              Register
+                            </Button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+
+              {/* Pagination Controls */}
+              {pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <div className="text-sm text-slate-600">
+                    Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} vouchers
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(1)}
+                      disabled={pagination.page === 1 || isLoading}
+                    >
+                      First
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={pagination.page === 1 || isLoading}
+                    >
+                      Previous
+                    </Button>
+                    <span className="px-4 py-2 text-sm font-medium text-slate-700">
+                      Page {pagination.page} of {pagination.totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                      disabled={pagination.page === pagination.totalPages || isLoading}
+                    >
+                      Next
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(pagination.totalPages)}
+                      disabled={pagination.page === pagination.totalPages || isLoading}
+                    >
+                      Last
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Print Dialog */}
+      {printVoucher && (
+        <VoucherPrint
+          voucher={printVoucher}
+          isOpen={isPrintDialogOpen}
+          onClose={handleClosePrint}
+          voucherType={printVoucher.type}
+        />
+      )}
     </motion.div>
   );
 };

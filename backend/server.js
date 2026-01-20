@@ -51,6 +51,7 @@ const publicPurchasesRoutes = require('./routes/public-purchases'); // Public vo
 const { router: buyOnlineRoutes } = require('./routes/buy-online'); // Buy Online with passport (no auth)
 const cashReconciliationRoutes = require('./routes/cash-reconciliations'); // Cash reconciliation for agents
 const paymentWebhookDokuRoutes = require('./routes/payment-webhook-doku'); // BSP DOKU payment webhooks
+const voucherRetrievalRoutes = require('./routes/voucher-retrieval'); // Voucher retrieval for customers (no auth)
 const ocrRoutes = require('./routes/ocr'); // Python OCR service integration for MRZ scanning
 
 app.use('/api/auth', authRoutes);
@@ -62,7 +63,7 @@ app.use('/api/quotations', quotationRoutes);
 app.use('/api/customers', customerRoutes); // Customer management
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/vouchers', voucherRoutes);
-app.use('/api/voucher-registration', corporateVoucherRegistrationRoutes); // Voucher passport registration (corporate, individual, bulk)
+app.use('/api/corporate-voucher-registration', corporateVoucherRegistrationRoutes); // Voucher passport registration (corporate, individual, bulk)
 app.use('/api/payment-modes', paymentModeRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/login-events', loginEventsRoutes);
@@ -72,6 +73,7 @@ app.use('/api/buy-online', buyOnlineRoutes); // Buy Online with passport (no aut
 app.use('/api/cash-reconciliations', cashReconciliationRoutes); // Cash reconciliation
 app.use('/api/payment/webhook/doku', paymentWebhookDokuRoutes); // BSP DOKU webhooks (no authentication)
 app.use('/api/payment/doku-notify', paymentWebhookDokuRoutes); // ALIAS for BSP testing (bypasses ISP filters)
+app.use('/api/voucher-retrieval', voucherRetrievalRoutes); // Voucher retrieval (no authentication - email verification required)
 app.use('/api/ocr', ocrRoutes); // Python OCR service (no authentication - public)
 
 // Laravel-compatible passport scan endpoint (for passport_ocr_service.exe)

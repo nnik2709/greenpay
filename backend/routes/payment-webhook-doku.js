@@ -9,6 +9,8 @@
  * 2. Redirect - Customer redirect after payment (browser redirect)
  */
 
+const { getPaymentCallbackUrl } = require('../config/urls');
+
 const express = require('express');
 const router = express.Router();
 const PaymentGatewayFactory = require('../services/payment-gateways/PaymentGatewayFactory');
@@ -160,55 +162,68 @@ async function createVoucherFromPayment(sessionId, paymentData) {
       console.log('[DOKU VOUCHER] No voucher found - creating new voucher despite completed status');
     }
 
-    // 3. Extract passport data from session
+    // 3. Extract passport data from session (optional for BSP flow)
     const passportData = session.passport_data;
-    if (!passportData) {
-      throw new Error('No passport data in session');
-    }
 
-    console.log('[DOKU VOUCHER] Passport data:', passportData.passportNumber);
+    // Support TWO flows:
+    // Flow 1 (Old): Passport data collected upfront → Create passport + voucher atomically
+    // Flow 2 (New BSP): No passport data → Create voucher with PENDING status for later registration
 
-    // 4. Check if passport already exists
-    let passportId;
-    const existingPassport = await client.query(
-      'SELECT id FROM passports WHERE passport_number = $1',
-      [passportData.passportNumber]
-    );
+    let passportId = null;
+    let passportNumber = 'PENDING'; // Default for BSP flow
+    let customerName = session.customer_email || 'Unknown'; // Fallback name
 
-    if (existingPassport.rows.length > 0) {
-      passportId = existingPassport.rows[0].id;
-      console.log('[DOKU VOUCHER] Using existing passport ID:', passportId);
-    } else {
-      // Create new passport record
-      // Combine surname and given name into full_name
-      const fullName = `${passportData.surname}, ${passportData.givenName}`;
+    if (passportData) {
+      // FLOW 1: Has passport data - create/update passport atomically
+      console.log('[DOKU VOUCHER] Passport data provided:', passportData.passportNumber);
 
-      const newPassport = await client.query(
-        `INSERT INTO passports (
-          passport_number, full_name, nationality,
-          date_of_birth, expiry_date
-        ) VALUES ($1, $2, $3, $4, $5)
-        RETURNING id`,
-        [
-          passportData.passportNumber,
-          fullName,
-          passportData.nationality || null,
-          passportData.dateOfBirth || null, // Convert empty string to null
-          passportData.expiryDate || null    // Convert empty string to null
-        ]
+      passportNumber = passportData.passportNumber;
+      customerName = `${passportData.surname}, ${passportData.givenName}`;
+
+      // 4. Check if passport already exists
+      const existingPassport = await client.query(
+        'SELECT id FROM passports WHERE passport_number = $1',
+        [passportData.passportNumber]
       );
-      passportId = newPassport.rows[0].id;
-      console.log('[DOKU VOUCHER] Created new passport ID:', passportId);
+
+      if (existingPassport.rows.length > 0) {
+        passportId = existingPassport.rows[0].id;
+        console.log('[DOKU VOUCHER] Using existing passport ID:', passportId);
+      } else {
+        // Create new passport record
+        const fullName = `${passportData.surname}, ${passportData.givenName}`;
+
+        const newPassport = await client.query(
+          `INSERT INTO passports (
+            passport_number, full_name, nationality,
+            date_of_birth, expiry_date
+          ) VALUES ($1, $2, $3, $4, $5)
+          RETURNING id`,
+          [
+            passportData.passportNumber,
+            fullName,
+            passportData.nationality || null,
+            passportData.dateOfBirth || null,
+            passportData.expiryDate || null
+          ]
+        );
+        passportId = newPassport.rows[0].id;
+        console.log('[DOKU VOUCHER] Created new passport ID:', passportId);
+      }
+    } else {
+      // FLOW 2: No passport data - BSP flow (voucher created without passport)
+      console.log('[DOKU VOUCHER] No passport data - creating PENDING voucher for BSP flow');
     }
 
-    // 5. Generate voucher code (8-char alphanumeric)
-    const voucherCode = voucherConfig.helpers.generateVoucherCode('ONL');
+    // 5. Get quantity and generate multiple vouchers
+    const quantity = session.quantity || 1;
     const validFrom = new Date();
     const validUntil = voucherConfig.helpers.calculateValidUntil(validFrom);
+    const vouchers = [];
 
-    console.log('[DOKU VOUCHER] Generated voucher code:', voucherCode);
+    console.log('[DOKU VOUCHER] Generating', quantity, 'voucher(s)');
 
-    // 6. Create voucher (linked via passport_number)
+    // 6. Create vouchers based on quantity
     const voucherQuery = `
       INSERT INTO individual_purchases (
         voucher_code,
@@ -228,26 +243,38 @@ async function createVoucherFromPayment(sessionId, paymentData) {
       RETURNING *
     `;
 
-    const voucherValues = [
-      voucherCode,
-      passportData.passportNumber,
-      session.amount,
-      'BSP DOKU Card', // Payment mode
-      0, // discount
-      session.amount, // collected_amount (full amount for online payment)
-      0, // returned_amount
-      validUntil,
-      validFrom,
-      `${passportData.surname}, ${passportData.givenName}`,
-      session.customer_email || null,
-      sessionId, // Link voucher to purchase session
-      'active' // status
-    ];
+    // Loop to create all vouchers
+    for (let i = 0; i < quantity; i++) {
+      const voucherCode = voucherConfig.helpers.generateVoucherCode('ONL');
+      console.log('[DOKU VOUCHER] Generating voucher', (i + 1), 'of', quantity, ':', voucherCode);
 
-    const voucherResult = await client.query(voucherQuery, voucherValues);
-    const voucher = voucherResult.rows[0];
+      const voucherValues = [
+        voucherCode,
+        passportNumber, // Either passport number or 'PENDING'
+        session.amount / quantity, // Split amount evenly across vouchers
+        'BSP DOKU Card', // Payment mode
+        0, // discount
+        session.amount / quantity, // collected_amount per voucher
+        0, // returned_amount
+        validUntil,
+        validFrom,
+        customerName, // Either full name from passport or email
+        session.customer_email || null,
+        sessionId, // Link voucher to purchase session
+        passportNumber === 'PENDING' ? 'pending_passport' : 'active' // Status based on passport
+      ];
 
-    console.log('[DOKU VOUCHER] Created voucher:', voucherCode, 'for passport', passportData.passportNumber);
+      const voucherResult = await client.query(voucherQuery, voucherValues);
+      vouchers.push(voucherResult.rows[0]);
+
+      if (passportNumber === 'PENDING') {
+        console.log('[DOKU VOUCHER] Created voucher:', voucherCode, 'with PENDING status (BSP flow - registration required)');
+      } else {
+        console.log('[DOKU VOUCHER] Created voucher:', voucherCode, 'for passport', passportNumber, '(ready to scan)');
+      }
+    }
+
+    console.log('[DOKU VOUCHER] ✅ Created', vouchers.length, 'voucher(s) successfully');
 
     // 8. Update session as completed
     const updateSessionQuery = `
@@ -268,16 +295,17 @@ async function createVoucherFromPayment(sessionId, paymentData) {
 
     console.log('[DOKU VOUCHER] Updated session as completed');
 
-    // 9. Send email notification (async, don't wait)
+    // 9. Send email notification with ALL vouchers (async, don't wait)
     if (session.customer_email) {
-      console.log('[DOKU VOUCHER] Sending email notification to:', session.customer_email);
+      console.log('[DOKU VOUCHER] Sending email notification to:', session.customer_email, 'with', vouchers.length, 'voucher(s)');
       sendVoucherNotification(
         {
           customerEmail: session.customer_email,
           customerPhone: null,
-          quantity: 1
+          quantity: vouchers.length // Actual quantity
         },
-        [voucher] // Pass as array
+        vouchers, // All vouchers in array
+        sessionId  // Payment session ID for retrieval
       ).catch(err => {
         console.error('[DOKU VOUCHER] Email notification failed:', err.message);
         // Don't fail the transaction if email fails
@@ -287,7 +315,7 @@ async function createVoucherFromPayment(sessionId, paymentData) {
     await client.query('COMMIT');
     console.log('[DOKU VOUCHER] ✅ Voucher creation completed successfully');
 
-    return voucher;
+    return vouchers; // Return all vouchers
 
   } catch (error) {
     await client.query('ROLLBACK');
@@ -452,7 +480,7 @@ router.post('/redirect', async (req, res) => {
     // Validate required parameters
     if (!TRANSIDMERCHANT || !STATUSCODE) {
       console.error('[DOKU REDIRECT] Missing required parameters');
-      return res.redirect('https://greenpay.eywademo.cloud/payment/failure?error=Invalid+response');
+      return res.redirect(getPaymentCallbackUrl('failure?error=Invalid+response'));
     }
 
     console.log('[DOKU REDIRECT] Status Code:', STATUSCODE);
@@ -465,20 +493,22 @@ router.post('/redirect', async (req, res) => {
       console.log('[DOKU REDIRECT] ✅ Payment successful - redirecting to success page');
       console.log('='.repeat(80));
       // Redirect to success page with transaction ID
-      res.redirect(`https://greenpay.eywademo.cloud/payment/success?session=${encodeURIComponent(TRANSIDMERCHANT)}`);
+      res.redirect(getPaymentCallbackUrl(`success?session=${encodeURIComponent(TRANSIDMERCHANT)}`));
     } else {
       console.log('[DOKU REDIRECT] ❌ Payment failed - redirecting to failure page');
       console.log('='.repeat(80));
       // Redirect to failure page with error message
       const errorMsg = RESULTMSG || 'Payment failed';
-      res.redirect(`https://greenpay.eywademo.cloud/payment/failure?session=${encodeURIComponent(TRANSIDMERCHANT)}&error=${encodeURIComponent(errorMsg)}`);
+      res.redirect(getPaymentCallbackUrl(`failure?session=${encodeURIComponent(TRANSIDMERCHANT)}&error=${encodeURIComponent(errorMsg)}`));
     }
 
   } catch (error) {
     console.error('[DOKU REDIRECT] ❌ Error processing redirect:', error.message);
     console.log('='.repeat(80));
-    res.redirect('https://greenpay.eywademo.cloud/payment/failure?error=System+error');
+    res.redirect(getPaymentCallbackUrl('failure?error=System+error'));
   }
 });
 
+// Export the voucher creation function for use by voucher retrieval endpoint
 module.exports = router;
+module.exports.createVoucherFromPayment = createVoucherFromPayment;

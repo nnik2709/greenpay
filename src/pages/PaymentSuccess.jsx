@@ -21,7 +21,7 @@ const PaymentSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
-  const [voucher, setVoucher] = useState(null);
+  const [vouchers, setVouchers] = useState([]); // Changed from single voucher to array
   const [error, setError] = useState(null);
 
   // Email dialog state
@@ -53,11 +53,11 @@ const PaymentSuccess = () => {
           try {
             const response = await api.get(`/buy-online/voucher/${paymentSessionId}`);
 
-            if (response.success && response.voucher) {
-              setVoucher(response.voucher);
-              // Pre-fill email dialog with Stripe email
-              if (response.voucher.customerEmail) {
-                setEmailInput(response.voucher.customerEmail);
+            if (response.success && response.vouchers && response.vouchers.length > 0) {
+              setVouchers(response.vouchers); // Set array of all vouchers
+              // Pre-fill email dialog with email from first voucher
+              if (response.vouchers[0].customerEmail) {
+                setEmailInput(response.vouchers[0].customerEmail);
               }
               setLoading(false);
               // Clear session storage
@@ -244,77 +244,118 @@ const PaymentSuccess = () => {
             </svg>
           </div>
           <h1 className="text-4xl font-bold text-emerald-700 mb-2">Payment Successful!</h1>
-          <p className="text-slate-600 text-lg">Your green fee voucher is ready</p>
+          <p className="text-slate-600 text-lg">
+            {vouchers.length === 1 ? 'Your green fee voucher is ready' : `Your ${vouchers.length} green fee vouchers are ready`}
+          </p>
         </motion.div>
 
         <Card className="glass-effect border-emerald-200 shadow-2xl">
           <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50">
-            <CardTitle className="text-2xl text-emerald-800">Voucher Details</CardTitle>
+            <CardTitle className="text-2xl text-emerald-800">
+              {vouchers.length === 1 ? 'Voucher Details' : `${vouchers.length} Vouchers`}
+            </CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
-            {/* Voucher Code + Barcode */}
-            <div className="bg-white rounded-lg p-6 border-2 border-emerald-200">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm text-slate-600 mb-2">Voucher Code</p>
-                  <p className="text-3xl font-bold text-emerald-700 tracking-wider font-mono mb-4">
-                    {voucher?.voucherCode || voucher?.code}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Present this code at the gate for entry
-                  </p>
-                </div>
-                <div className="flex items-center justify-center">
-                  {(voucher?.qrCode || voucher?.barcode) && (
-                    <div className="bg-white p-4 rounded-lg border-2 border-slate-200">
-                      <img
-                        src={voucher.qrCode || voucher.barcode}
-                        alt="Barcode"
-                        className="w-full max-w-[300px] h-auto"
-                      />
-                      <p className="text-xs text-center text-slate-500 mt-2">
-                        Scan barcode at gate
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            {/* Display ALL Vouchers */}
+            {vouchers.map((voucher, index) => (
+              <div key={voucher.code} className="bg-white rounded-lg p-6 border-2 border-emerald-200 space-y-4">
+                {vouchers.length > 1 && (
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
+                    <span className="text-lg font-bold text-emerald-700">
+                      Voucher {index + 1} of {vouchers.length}
+                    </span>
+                  </div>
+                )}
 
-            {/* Details Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-xs text-slate-600 mb-1">Passport Number</p>
-                <p className="font-semibold text-slate-800">
-                  {voucher?.passportNumber}
-                </p>
+                {/* Voucher Code + Barcode */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-sm text-slate-600 mb-2">Voucher Code</p>
+                    <p className="text-3xl font-bold text-emerald-700 tracking-wider font-mono mb-4">
+                      {voucher.voucherCode || voucher.code}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Present this code at the gate for entry
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center">
+                    {(voucher.qrCode || voucher.barcode) && (
+                      <div className="bg-white p-4 rounded-lg border-2 border-slate-200">
+                        <img
+                          src={voucher.qrCode || voucher.barcode}
+                          alt="Barcode"
+                          className="w-full max-w-[300px] h-auto"
+                        />
+                        <p className="text-xs text-center text-slate-500 mt-2">
+                          Scan barcode at gate
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <p className="text-xs text-slate-600 mb-1">Passport Number</p>
+                    <p className="font-semibold text-slate-800">
+                      {voucher.passportNumber}
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <p className="text-xs text-slate-600 mb-1">Amount</p>
+                    <p className="font-semibold text-slate-800">K {voucher.amount || '50.00'}</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <p className="text-xs text-slate-600 mb-1">Valid From</p>
+                    <p className="font-semibold text-slate-800">
+                      {voucher.validFrom ? new Date(voucher.validFrom).toLocaleDateString() : 'Today'}
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <p className="text-xs text-slate-600 mb-1">Valid Until</p>
+                    <p className="font-semibold text-slate-800">
+                      {voucher.validUntil ? new Date(voucher.validUntil).toLocaleDateString() : '1 year'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Register Passport Button */}
+                <div className="mt-4 pt-4 border-t border-emerald-200">
+                  <Button
+                    onClick={() => {
+                      const registrationUrl = `${window.location.origin}/register/${voucher.voucherCode || voucher.code}`;
+                      window.open(registrationUrl, '_blank');
+                    }}
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Register Passport for This Voucher
+                  </Button>
+                  <p className="text-xs text-center text-slate-500 mt-2">
+                    Opens registration form in a new tab
+                  </p>
+                </div>
               </div>
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-xs text-slate-600 mb-1">Amount Paid</p>
-                <p className="font-semibold text-slate-800">K {voucher?.amount || '50.00'}</p>
-              </div>
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-xs text-slate-600 mb-1">Valid From</p>
-                <p className="font-semibold text-slate-800">
-                  {voucher?.validFrom ? new Date(voucher.validFrom).toLocaleDateString() : 'Today'}
-                </p>
-              </div>
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-xs text-slate-600 mb-1">Valid Until</p>
-                <p className="font-semibold text-slate-800">
-                  {voucher?.validUntil ? new Date(voucher.validUntil).toLocaleDateString() : '1 year'}
-                </p>
-              </div>
-            </div>
+            ))}
 
             {/* Instructions */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
               <h3 className="font-semibold text-emerald-900 mb-2">Next Steps:</h3>
               <ol className="text-sm text-emerald-700 space-y-1 list-decimal list-inside">
                 <li>Save or print this voucher confirmation</li>
+                <li><strong>Register your passport</strong> to this voucher using the registration link</li>
                 <li>Present your voucher code at the entry checkpoint</li>
                 <li>Keep your passport with you for verification</li>
               </ol>
+              <div className="mt-3 pt-3 border-t border-emerald-200">
+                <p className="text-xs text-emerald-700">
+                  <strong>Note:</strong> You must register your passport details before using the voucher at the checkpoint.
+                  Click the "Register Passport" button on each voucher card below.
+                </p>
+              </div>
             </div>
 
             {/* Actions */}
@@ -322,7 +363,7 @@ const PaymentSuccess = () => {
               <Button
                 onClick={async () => {
                   try {
-                    // Universal PDF download for iOS, Android, and Desktop
+                    // Download PDF with ALL vouchers
                     const response = await fetch(`/api/buy-online/voucher/${paymentSessionId}/pdf`);
 
                     if (!response.ok) {
@@ -330,7 +371,9 @@ const PaymentSuccess = () => {
                     }
 
                     const blob = await response.blob();
-                    const filename = `voucher-${voucher?.code}.pdf`;
+                    const filename = vouchers.length === 1
+                      ? `voucher-${vouchers[0].code}.pdf`
+                      : `vouchers-${paymentSessionId}.pdf`;
 
                     // Direct download (skip share API to avoid delays)
                     const blobUrl = window.URL.createObjectURL(blob);
@@ -354,18 +397,18 @@ const PaymentSuccess = () => {
                     }, 100);
                   } catch (err) {
                     console.error('Download failed:', err);
-                    alert('Unable to download PDF automatically. Please use the "Email Voucher" option to receive your voucher via email.');
+                    alert('Unable to download PDF automatically. Please use the "Email Voucher" option to receive your vouchers via email.');
                   }
                 }}
                 variant="outline"
                 className="border-emerald-600 text-emerald-700 hover:bg-emerald-50"
               >
-                Download PDF
+                {vouchers.length === 1 ? 'Download PDF' : `Download All (${vouchers.length})`}
               </Button>
               <Button
                 onClick={async () => {
                   try {
-                    // Fetch PDF voucher and open in print dialog
+                    // Fetch PDF with ALL vouchers and open in print dialog
                     const response = await fetch(`/api/buy-online/voucher/${paymentSessionId}/pdf`);
 
                     if (!response.ok) {
@@ -403,20 +446,20 @@ const PaymentSuccess = () => {
                     }
                   } catch (err) {
                     console.error('Print failed:', err);
-                    alert('Unable to print PDF. Please download the voucher and print from your device.');
+                    alert('Unable to print PDF. Please download the vouchers and print from your device.');
                   }
                 }}
                 variant="outline"
                 className="border-emerald-600 text-emerald-700 hover:bg-emerald-50"
               >
-                Print
+                {vouchers.length === 1 ? 'Print' : `Print All (${vouchers.length})`}
               </Button>
               <Button
                 onClick={() => setShowEmailDialog(true)}
                 variant="outline"
                 className="border-blue-600 text-blue-700 hover:bg-blue-50"
               >
-                Email Voucher
+                {vouchers.length === 1 ? 'Email Voucher' : `Email All (${vouchers.length})`}
               </Button>
               <Button
                 onClick={() => navigate('/')}
@@ -438,9 +481,14 @@ const PaymentSuccess = () => {
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Email Voucher</DialogTitle>
+            <DialogTitle>
+              {vouchers.length === 1 ? 'Email Voucher' : `Email ${vouchers.length} Vouchers`}
+            </DialogTitle>
             <DialogDescription>
-              Send voucher to the email used during payment, or change to a different email
+              {vouchers.length === 1
+                ? 'Send voucher to the email used during payment, or change to a different email'
+                : `Send all ${vouchers.length} vouchers to the email used during payment, or change to a different email`
+              }
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

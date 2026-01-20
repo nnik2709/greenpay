@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { getQuotations } from '@/lib/quotationsService';
+import { getQuotations, deleteQuotation } from '@/lib/quotationsService';
 import { getQuotationStatistics, markQuotationAsSent } from '@/lib/quotationWorkflowService';
 import { convertQuotationToInvoice } from '@/lib/invoiceService';
 import { formatPGK, calculateGST } from '@/lib/gstUtils';
@@ -36,15 +36,23 @@ const Quotations = () => {
   const [selectedQuotationId, setSelectedQuotationId] = useState(null);
   const [selectedAction, setSelectedAction] = useState('');
 
+  // Filters
+  const [statusFilter, setStatusFilter] = useState('');
+  const [customerFilter, setCustomerFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
   // Dialog states
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Action states
   const [dueDays, setDueDays] = useState(30);
   const [applyGst, setApplyGst] = useState(false);
   const [convertingToInvoice, setConvertingToInvoice] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
 
   useEffect(() => {
     loadQuotations();
@@ -54,7 +62,14 @@ const Quotations = () => {
   const loadQuotations = async () => {
     try {
       setLoading(true);
-      const data = await getQuotations();
+      // Only include filters that have values
+      const filters = {};
+      if (statusFilter) filters.status = statusFilter;
+      if (customerFilter) filters.customer = customerFilter;
+      if (fromDate) filters.from_date = fromDate;
+      if (toDate) filters.to_date = toDate;
+
+      const data = await getQuotations(filters);
       setQuotations(data);
     } catch (error) {
       console.error('Error loading quotations:', error);
@@ -83,6 +98,20 @@ const Quotations = () => {
 
   const handleActionChange = (value) => {
     setSelectedAction(value);
+  };
+
+  const canEditOrDelete = () => {
+    const quotation = getSelectedQuotation();
+    if (!quotation) return false;
+
+    // Only allow edit/delete if user is Finance_Manager or Flex_Admin
+    const isAuthorized = user?.role === 'Finance_Manager' || user?.role === 'Flex_Admin';
+
+    // Prevent edit/delete if quotation has been converted to invoice
+    // Allow if converted_to_invoice is false, null, or undefined
+    const isNotConverted = quotation.converted_to_invoice !== true;
+
+    return isAuthorized && isNotConverted;
   };
 
   const handleDownloadPDF = async (quotation) => {
@@ -124,7 +153,30 @@ const Quotations = () => {
         handleDownloadPDF(quotation);
         break;
       case 'email':
+        setEmailTo(quotation.customer_email || '');
         setEmailDialogOpen(true);
+        break;
+      case 'edit':
+        if (!canEditOrDelete()) {
+          toast({
+            variant: 'destructive',
+            title: 'Cannot Edit',
+            description: 'This quotation has been converted to an invoice and cannot be edited'
+          });
+          return;
+        }
+        navigate(`/app/quotations/edit/${quotation.id}`);
+        break;
+      case 'delete':
+        if (!canEditOrDelete()) {
+          toast({
+            variant: 'destructive',
+            title: 'Cannot Delete',
+            description: 'This quotation has been converted to an invoice and cannot be deleted'
+          });
+          return;
+        }
+        setDeleteDialogOpen(true);
         break;
       case 'convert_invoice':
         if (quotation.status !== 'approved' && quotation.status !== 'sent') {
@@ -158,11 +210,32 @@ const Quotations = () => {
     const quotation = getSelectedQuotation();
     if (!quotation) return;
 
+    // Validate email address
+    if (!emailTo || !emailTo.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Email Required',
+        description: 'Please enter a valid email address'
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailTo.trim())) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Email',
+        description: 'Please enter a valid email address'
+      });
+      return;
+    }
+
     try {
       await markQuotationAsSent(quotation.id);
       toast({
         title: 'Quotation Sent',
-        description: `Quotation ${quotation.quotation_number} has been emailed to ${quotation.customer_email}`
+        description: `Quotation ${quotation.quotation_number} has been emailed to ${emailTo.trim()}`
       });
       setEmailDialogOpen(false);
       await loadQuotations();
@@ -214,6 +287,33 @@ const Quotations = () => {
     }
   };
 
+  const handleDeleteQuotation = async () => {
+    const quotation = getSelectedQuotation();
+    if (!quotation) return;
+
+    try {
+      await deleteQuotation(quotation.id);
+
+      setDeleteDialogOpen(false);
+      setSelectedQuotationId(null);
+      setSelectedAction('');
+
+      await loadQuotations();
+      await loadStatistics();
+
+      toast({
+        title: 'Quotation Deleted',
+        description: `Quotation ${quotation.quotation_number} has been deleted successfully`
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Deletion Failed',
+        description: error.response?.data?.error || 'Failed to delete quotation'
+      });
+    }
+  };
+
   const stats = statistics ? [
     { title: 'Total', value: statistics.total_count || '0' },
     { title: 'Draft', value: statistics.draft_count || '0' },
@@ -255,6 +355,87 @@ const Quotations = () => {
         {summaryStats.map(stat => <StatCard key={stat.title} {...stat} />)}
       </div>
 
+      {/* Filters */}
+      <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-100">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+          <div>
+            <Label>Status</Label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-md"
+            >
+              <option value="">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="sent">Sent</option>
+              <option value="approved">Approved</option>
+              <option value="converted">Converted</option>
+              <option value="rejected">Rejected</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+
+          <div>
+            <Label>Customer</Label>
+            <Input
+              placeholder="Search customer..."
+              value={customerFilter}
+              onChange={(e) => setCustomerFilter(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label>From Date</Label>
+            <Input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label>To Date</Label>
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-end gap-2">
+            <Button onClick={loadQuotations} className="flex-1">
+              Filter
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                setStatusFilter('');
+                setCustomerFilter('');
+                setFromDate('');
+                setToDate('');
+                // Reload with empty filters immediately
+                try {
+                  setLoading(true);
+                  const data = await getQuotations({});
+                  setQuotations(data);
+                } catch (error) {
+                  console.error('Error loading quotations:', error);
+                  toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Failed to load quotations'
+                  });
+                } finally {
+                  setLoading(false);
+                }
+              }}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Action Bar */}
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-4 border border-emerald-200">
         <div className="flex flex-col gap-4">
@@ -271,6 +452,12 @@ const Quotations = () => {
                   <SelectItem value="view">View Quotation</SelectItem>
                   <SelectItem value="download_pdf">Download PDF</SelectItem>
                   <SelectItem value="email">Email Quotation</SelectItem>
+                  {canEditOrDelete() && (
+                    <>
+                      <SelectItem value="edit">Edit Quotation</SelectItem>
+                      <SelectItem value="delete">Delete Quotation</SelectItem>
+                    </>
+                  )}
                   <SelectItem value="convert_invoice">Convert to Invoice</SelectItem>
                 </SelectContent>
               </Select>
@@ -316,6 +503,7 @@ const Quotations = () => {
                 <th scope="col" className="px-6 py-3">Vouchers</th>
                 <th scope="col" className="px-6 py-3">Amount</th>
                 <th scope="col" className="px-6 py-3">Status</th>
+                <th scope="col" className="px-6 py-3">Invoice</th>
                 <th scope="col" className="px-6 py-3">Valid Until</th>
                 <th scope="col" className="px-6 py-3">Created</th>
               </tr>
@@ -323,13 +511,13 @@ const Quotations = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-8">
+                  <td colSpan="10" className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
                   </td>
                 </tr>
               ) : quotations.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-16">
+                  <td colSpan="10" className="text-center py-16">
                     <h3 className="mt-2 text-lg font-medium text-slate-800">No quotations found</h3>
                     <p className="mt-1 text-sm text-slate-500">Create your first quotation to get started.</p>
                     <Button onClick={() => navigate('/app/quotations/create')} className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white">
@@ -375,6 +563,13 @@ const Quotations = () => {
                         {quotation.status?.toUpperCase()}
                       </span>
                     </td>
+                    <td className="px-6 py-4">
+                      {quotation.invoice_number ? (
+                        <span className="text-sm font-medium text-emerald-700">{quotation.invoice_number}</span>
+                      ) : (
+                        <span className="text-xs text-slate-400">-</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">{new Date(quotation.valid_until).toLocaleDateString()}</td>
                     <td className="px-6 py-4 text-xs text-slate-500">{new Date(quotation.created_at).toLocaleDateString()}</td>
                   </tr>
@@ -400,8 +595,23 @@ const Quotations = () => {
               <div className="bg-slate-50 p-4 rounded-lg">
                 <p className="text-sm text-slate-600 mb-2">Customer Details:</p>
                 <p className="font-semibold">{getSelectedQuotation().customer_name}</p>
-                <p className="text-sm text-slate-600">{getSelectedQuotation().customer_email}</p>
               </div>
+
+              <div>
+                <Label htmlFor="email-to">Email To:</Label>
+                <Input
+                  id="email-to"
+                  type="email"
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  className="mt-1"
+                  placeholder="customer@example.com"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  You can edit the email address before sending
+                </p>
+              </div>
+
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <p className="text-sm text-blue-800">
                   This quotation will be emailed as a PDF attachment to the customer.
@@ -557,6 +767,43 @@ const Quotations = () => {
           onClose={() => setPdfDialogOpen(false)}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Quotation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this quotation? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {getSelectedQuotation() && (
+            <div className="space-y-4">
+              <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                <p className="font-semibold text-red-900">{getSelectedQuotation().quotation_number}</p>
+                <p className="text-sm text-red-800">{getSelectedQuotation().customer_name}</p>
+                <p className="text-sm text-red-800">Amount: PGK {parseFloat(getSelectedQuotation().total_amount || 0).toFixed(2)}</p>
+              </div>
+              <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                <p className="text-sm text-amber-900 font-semibold">Warning!</p>
+                <p className="text-sm text-amber-800">
+                  This quotation will be permanently deleted from the system.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleDeleteQuotation} className="bg-red-600 hover:bg-red-700">
+              Delete Quotation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
     </main>
   );

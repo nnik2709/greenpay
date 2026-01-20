@@ -10,6 +10,7 @@
 
 const crypto = require('crypto');
 const PaymentGatewayInterface = require('./PaymentGatewayInterface');
+const { FRONTEND_URL } = require('../../config/urls');
 
 class BSPGateway extends PaymentGatewayInterface {
   constructor() {
@@ -249,7 +250,7 @@ class BSPGateway extends PaymentGatewayInterface {
     const basket = `Green Fee Voucher,${amount},${quantity},${amount}`;
 
     // Webhook URL for DOKU to send payment notifications
-    const baseUrl = process.env.FRONTEND_URL || 'https://greenpay.eywademo.cloud';
+    const baseUrl = FRONTEND_URL;
     const responseUrl = `${baseUrl}/api/payment/webhook/doku/notify`;
 
     // Build payment request parameters (as per DOKU API section 3.2.2)
