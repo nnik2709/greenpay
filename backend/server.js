@@ -53,6 +53,7 @@ const cashReconciliationRoutes = require('./routes/cash-reconciliations'); // Ca
 const paymentWebhookDokuRoutes = require('./routes/payment-webhook-doku'); // BSP DOKU payment webhooks
 const voucherRetrievalRoutes = require('./routes/voucher-retrieval'); // Voucher retrieval for customers (no auth)
 const ocrRoutes = require('./routes/ocr'); // Python OCR service integration for MRZ scanning
+const emailTemplatesRoutes = require('./routes/email-templates'); // Email templates management
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -68,6 +69,7 @@ app.use('/api/payment-modes', paymentModeRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/login-events', loginEventsRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/email-templates', emailTemplatesRoutes); // Email templates
 app.use('/api/public-purchases', publicPurchasesRoutes); // Public routes (no authentication)
 app.use('/api/buy-online', buyOnlineRoutes); // Buy Online with passport (no authentication)
 app.use('/api/cash-reconciliations', cashReconciliationRoutes); // Cash reconciliation

@@ -1413,4 +1413,61 @@ router.post('/:voucherCode/email',
   }
 });
 
+/**
+ * GET /api/vouchers/:voucherCode/thermal-receipt
+ * Generate thermal receipt PDF for POS printers (80mm width)
+ * Optimized for Epson TM-T82II and similar thermal printers
+ */
+router.get('/:voucherCode/thermal-receipt', auth, async (req, res) => {
+  try {
+    const { voucherCode } = req.params;
+    const { generateThermalReceiptPDF } = require('../utils/pdfGenerator');
+
+    // Try to find voucher in individual_purchases first
+    let voucher = null;
+    let source = null;
+
+    const individualResult = await db.query(
+      'SELECT * FROM individual_purchases WHERE voucher_code = $1',
+      [voucherCode]
+    );
+
+    if (individualResult.rows.length > 0) {
+      voucher = individualResult.rows[0];
+      source = 'individual';
+    } else {
+      // Try corporate_vouchers
+      const corporateResult = await db.query(
+        'SELECT * FROM corporate_vouchers WHERE voucher_code = $1',
+        [voucherCode]
+      );
+
+      if (corporateResult.rows.length > 0) {
+        voucher = corporateResult.rows[0];
+        source = 'corporate';
+      }
+    }
+
+    if (!voucher) {
+      return res.status(404).json({ error: 'Voucher not found' });
+    }
+
+    // Generate thermal receipt PDF
+    const pdfBuffer = await generateThermalReceiptPDF(voucher);
+
+    // Set response headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="receipt-${voucherCode}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+
+    res.send(pdfBuffer);
+
+    console.log(`Thermal receipt generated for voucher ${voucherCode} (${source})`);
+
+  } catch (error) {
+    console.error('Error generating thermal receipt:', error);
+    res.status(500).json({ error: 'Failed to generate thermal receipt' });
+  }
+});
+
 module.exports = router;

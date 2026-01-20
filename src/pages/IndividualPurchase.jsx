@@ -53,51 +53,68 @@ export default function IndividualPurchase() {
         setGivenName(scannedData.given_name);
 
         // Auto-register and move to next voucher after a short delay
-        setTimeout(() => {
-          setWizardProgress(prev => {
-            const currentVoucher = vouchers[prev.currentIndex];
-            if (!currentVoucher) return prev;
+        setTimeout(async () => {
+          const currentVoucher = vouchers[wizardProgress.currentIndex];
+          if (!currentVoucher) return;
 
-            // Add to registered set
-            const newRegistered = new Set(prev.registeredVouchers);
-            newRegistered.add(currentVoucher.id);
-
-            // Save registration data
-            const newData = {
-              ...prev.registeredData,
-              [currentVoucher.id]: {
-                passportNumber: scannedData.passport_no,
-                surname: scannedData.surname,
-                givenName: scannedData.given_name
-              }
-            };
-
-            // Find next unregistered voucher
-            const nextUnregisteredIndex = vouchers.findIndex(
-              (v, idx) => idx > prev.currentIndex && !newRegistered.has(v.id)
-            );
-
-            toast({
-              title: 'Voucher Registered',
-              description: `${currentVoucher.voucherCode} → Auto-advancing to next voucher`
+          try {
+            // Call API to register passport with voucher
+            await api.post('/public-purchases/register-passport', {
+              voucherCode: currentVoucher.voucherCode,
+              passportNumber: scannedData.passport_no.toUpperCase(),
+              surname: scannedData.surname.toUpperCase(),
+              givenName: scannedData.given_name.toUpperCase()
             });
 
-            if (nextUnregisteredIndex !== -1) {
-              // Move to next unregistered
-              return {
-                currentIndex: nextUnregisteredIndex,
-                registeredVouchers: newRegistered,
-                registeredData: newData
+            setWizardProgress(prev => {
+              // Add to registered set
+              const newRegistered = new Set(prev.registeredVouchers);
+              newRegistered.add(currentVoucher.id);
+
+              // Save registration data
+              const newData = {
+                ...prev.registeredData,
+                [currentVoucher.id]: {
+                  passportNumber: scannedData.passport_no,
+                  surname: scannedData.surname,
+                  givenName: scannedData.given_name
+                }
               };
-            } else {
-              // All done, stay here (will go to completion on render)
-              return {
-                ...prev,
-                registeredVouchers: newRegistered,
-                registeredData: newData
-              };
-            }
-          });
+
+              // Find next unregistered voucher
+              const nextUnregisteredIndex = vouchers.findIndex(
+                (v, idx) => idx > prev.currentIndex && !newRegistered.has(v.id)
+              );
+
+              toast({
+                title: 'Voucher Registered',
+                description: `${currentVoucher.voucherCode} → Auto-advancing to next voucher`
+              });
+
+              if (nextUnregisteredIndex !== -1) {
+                // Move to next unregistered
+                return {
+                  currentIndex: nextUnregisteredIndex,
+                  registeredVouchers: newRegistered,
+                  registeredData: newData
+                };
+              } else {
+                // All done, stay here (will go to completion on render)
+                return {
+                  ...prev,
+                  registeredVouchers: newRegistered,
+                  registeredData: newData
+                };
+              }
+            });
+          } catch (error) {
+            console.error('Error auto-registering passport:', error);
+            toast({
+              variant: 'destructive',
+              title: 'Auto-Registration Failed',
+              description: 'Failed to save passport data. Please try again manually.'
+            });
+          }
         }, 500); // Short delay to show the populated data
       }
     }
@@ -694,7 +711,7 @@ export default function IndividualPurchase() {
 
                     <div className="flex gap-3 pt-4">
                       <Button
-                        onClick={() => {
+                        onClick={async () => {
                           if (!passportNumber || !surname || !givenName) {
                             toast({
                               variant: 'destructive',
@@ -704,42 +721,59 @@ export default function IndividualPurchase() {
                             return;
                           }
 
-                          // Add to registered set
-                          const newRegistered = new Set(wizardProgress.registeredVouchers);
-                          newRegistered.add(currentVoucher.id);
-
-                          // Save registration data
-                          const newData = {
-                            ...wizardProgress.registeredData,
-                            [currentVoucher.id]: { passportNumber, surname, givenName }
-                          };
-
-                          // Find next unregistered voucher
-                          const nextUnregisteredIndex = vouchers.findIndex(
-                            (v, idx) => idx > wizardProgress.currentIndex && !newRegistered.has(v.id)
-                          );
-
-                          if (nextUnregisteredIndex !== -1) {
-                            // Move to next unregistered
-                            setWizardProgress({
-                              currentIndex: nextUnregisteredIndex,
-                              registeredVouchers: newRegistered,
-                              registeredData: newData
+                          try {
+                            // Call API to register passport with voucher
+                            await api.post('/public-purchases/register-passport', {
+                              voucherCode: currentVoucher.voucherCode,
+                              passportNumber: passportNumber.toUpperCase(),
+                              surname: surname.toUpperCase(),
+                              givenName: givenName.toUpperCase()
                             });
-                          } else {
-                            // All done, go to completion
-                            setWizardProgress({
-                              ...wizardProgress,
-                              registeredVouchers: newRegistered,
-                              registeredData: newData
+
+                            // Add to registered set
+                            const newRegistered = new Set(wizardProgress.registeredVouchers);
+                            newRegistered.add(currentVoucher.id);
+
+                            // Save registration data
+                            const newData = {
+                              ...wizardProgress.registeredData,
+                              [currentVoucher.id]: { passportNumber, surname, givenName }
+                            };
+
+                            // Find next unregistered voucher
+                            const nextUnregisteredIndex = vouchers.findIndex(
+                              (v, idx) => idx > wizardProgress.currentIndex && !newRegistered.has(v.id)
+                            );
+
+                            if (nextUnregisteredIndex !== -1) {
+                              // Move to next unregistered
+                              setWizardProgress({
+                                currentIndex: nextUnregisteredIndex,
+                                registeredVouchers: newRegistered,
+                                registeredData: newData
+                              });
+                            } else {
+                              // All done, go to completion
+                              setWizardProgress({
+                                ...wizardProgress,
+                                registeredVouchers: newRegistered,
+                                registeredData: newData
+                              });
+                              setStep('completion');
+                            }
+
+                            toast({
+                              title: 'Voucher Registered',
+                              description: `Voucher ${currentVoucher.voucherCode} registered to passport ${passportNumber}`
                             });
-                            setStep('completion');
+                          } catch (error) {
+                            console.error('Error registering passport:', error);
+                            toast({
+                              variant: 'destructive',
+                              title: 'Registration Failed',
+                              description: error.response?.data?.error || 'Failed to save passport data to database'
+                            });
                           }
-
-                          toast({
-                            title: 'Voucher Registered',
-                            description: `Voucher ${currentVoucher.voucherCode} registered successfully`
-                          });
                         }}
                         className="flex-1"
                       >

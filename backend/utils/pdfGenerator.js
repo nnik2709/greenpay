@@ -870,9 +870,204 @@ async function generateQuotationPDF(quotation) {
   });
 }
 
+/**
+ * Generate a thermal receipt (80mm width) for POS printers like Epson TM-T82II
+ * Optimized for thermal printing: compact layout, black/white only, minimal graphics
+ */
+const generateThermalReceiptPDF = async (voucher) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // 80mm = 226.77 points (1mm = 2.83465 points)
+      const receiptWidth = 226.77;
+      const margin = 10;
+      const contentWidth = receiptWidth - (margin * 2);
+
+      const doc = new PDFDocument({
+        size: [receiptWidth, 600], // Width fixed, height auto-grows
+        margin: margin,
+        bufferPages: true
+      });
+
+      const chunks = [];
+      doc.on('data', chunk => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      let yPos = margin;
+
+      // Header - Compact logo (if exists)
+      try {
+        const ccdaLogoPath = path.join(__dirname, '../assets/logos/ccda-logo.png');
+        if (fs.existsSync(ccdaLogoPath)) {
+          const logoSize = 30;
+          const logoX = (receiptWidth - logoSize) / 2;
+          doc.image(ccdaLogoPath, logoX, yPos, { width: logoSize });
+          yPos += logoSize + 5;
+        }
+      } catch (err) {
+        console.error('Error loading logo for thermal receipt:', err.message);
+      }
+
+      // Title
+      doc.fontSize(14)
+         .fillColor('#000000')
+         .font('Helvetica-Bold')
+         .text('GREEN CARD', margin, yPos, { width: contentWidth, align: 'center' });
+      yPos += 18;
+
+      // Separator line
+      doc.moveTo(margin, yPos)
+         .lineTo(receiptWidth - margin, yPos)
+         .lineWidth(1)
+         .stroke('#000000');
+      yPos += 8;
+
+      // Subtitle
+      doc.fontSize(9)
+         .font('Helvetica')
+         .text('Foreign Passport Holder', margin, yPos, { width: contentWidth, align: 'center' });
+      yPos += 15;
+
+      // Voucher Code
+      const voucherCode = voucher.voucher_code || voucher.code || 'UNKNOWN';
+
+      doc.fontSize(8)
+         .font('Helvetica')
+         .text('Voucher:', margin, yPos, { width: contentWidth, align: 'center' });
+      yPos += 10;
+
+      doc.fontSize(11)
+         .font('Helvetica-Bold')
+         .text(voucherCode, margin, yPos, { width: contentWidth, align: 'center' });
+      yPos += 18;
+
+      // Barcode (compact version for thermal)
+      try {
+        const barcodePng = await bwipjs.toBuffer({
+          bcid: 'code128',
+          text: voucherCode,
+          scale: 2,
+          height: 10,
+          includetext: false,
+          paddingwidth: 5,
+          paddingheight: 3
+        });
+
+        // Center and fit barcode to receipt width
+        const barcodeWidth = contentWidth - 10;
+        const barcodeHeight = 40;
+        const barcodeX = (receiptWidth - barcodeWidth) / 2;
+
+        doc.image(barcodePng, barcodeX, yPos, { width: barcodeWidth, height: barcodeHeight });
+        yPos += barcodeHeight + 10;
+      } catch (err) {
+        console.error('Error adding barcode to thermal receipt:', err);
+        yPos += 10;
+      }
+
+      // Passport Section
+      const passportNumber = voucher.passport_number;
+      const hasPassport = passportNumber &&
+                         passportNumber !== null &&
+                         passportNumber !== 'PENDING' &&
+                         passportNumber !== 'pending' &&
+                         passportNumber !== '' &&
+                         String(passportNumber).trim() !== '';
+
+      if (hasPassport) {
+        // Registered passport
+        doc.fontSize(8)
+           .font('Helvetica')
+           .text('REGISTERED PASSPORT', margin, yPos, { width: contentWidth, align: 'center' });
+        yPos += 12;
+
+        doc.fontSize(10)
+           .font('Helvetica-Bold')
+           .text(passportNumber, margin, yPos, { width: contentWidth, align: 'center' });
+        yPos += 15;
+
+        // Customer name if available
+        if (voucher.customer_name) {
+          doc.fontSize(8)
+             .font('Helvetica')
+             .text(voucher.customer_name, margin, yPos, { width: contentWidth, align: 'center' });
+          yPos += 12;
+        }
+      } else {
+        // Not registered - show registration instructions
+        doc.fontSize(8)
+           .font('Helvetica-Bold')
+           .text('REGISTER YOUR PASSPORT', margin, yPos, { width: contentWidth, align: 'center' });
+        yPos += 12;
+
+        doc.fontSize(7)
+           .font('Helvetica')
+           .text('Scan barcode or visit:', margin, yPos, { width: contentWidth, align: 'center' });
+        yPos += 10;
+
+        const registrationUrl = getRegistrationUrl(voucherCode);
+        doc.fontSize(6)
+           .font('Helvetica')
+           .text(registrationUrl, margin, yPos, { width: contentWidth, align: 'center' });
+        yPos += 15;
+      }
+
+      // Separator
+      doc.moveTo(margin, yPos)
+         .lineTo(receiptWidth - margin, yPos)
+         .lineWidth(1)
+         .stroke('#000000');
+      yPos += 8;
+
+      // Amount and validity
+      doc.fontSize(8)
+         .font('Helvetica')
+         .text('Amount: PGK 50.00', margin, yPos, { width: contentWidth, align: 'left' });
+      yPos += 10;
+
+      if (voucher.valid_until) {
+        const validDate = new Date(voucher.valid_until).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+        doc.fontSize(8)
+           .text(`Valid Until: ${validDate}`, margin, yPos, { width: contentWidth, align: 'left' });
+        yPos += 10;
+      }
+
+      // Footer
+      yPos += 5;
+      doc.fontSize(6)
+         .font('Helvetica')
+         .text('Climate Change & Development Authority', margin, yPos, { width: contentWidth, align: 'center' });
+      yPos += 8;
+
+      doc.fontSize(6)
+         .text('png.greenfees@ccda.gov.pg', margin, yPos, { width: contentWidth, align: 'center' });
+      yPos += 8;
+
+      doc.fontSize(6)
+         .text(`Printed: ${new Date().toLocaleString()}`, margin, yPos, { width: contentWidth, align: 'center' });
+      yPos += 10;
+
+      // Separator at bottom
+      doc.moveTo(margin, yPos)
+         .lineTo(receiptWidth - margin, yPos)
+         .lineWidth(1)
+         .stroke('#000000');
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
 module.exports = {
   generateInvoicePDF,
   generateVoucherPDF,
   generateQuotationPDF,
-  generateVoucherPDFBuffer
+  generateVoucherPDFBuffer,
+  generateThermalReceiptPDF
 };

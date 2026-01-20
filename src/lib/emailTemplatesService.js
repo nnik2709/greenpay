@@ -1,91 +1,147 @@
 
 /**
- * Email Templates Service (Postgres/local fallback)
- * Supabase is not used; this module now provides an in-memory fallback to avoid runtime errors.
- * If/when backend endpoints are added, swap the implementations to real API calls.
+ * Email Templates Service
+ * Uses real backend API endpoints for email template management
  */
 
-let localStore = [];
-let idSeq = 1;
+import api from './api/client';
 
 // Get all email templates
 export const getEmailTemplates = async () => {
-  return [...localStore];
+  try {
+    const response = await api.get('/email-templates');
+    return response.templates || [];
+  } catch (error) {
+    console.error('Error fetching email templates:', error);
+    throw error;
+  }
+};
+
+// Get email template by ID
+export const getEmailTemplateById = async (id) => {
+  try {
+    const response = await api.get(`/email-templates/${id}`);
+    return response.template || null;
+  } catch (error) {
+    console.error('Error fetching email template:', error);
+    throw error;
+  }
 };
 
 // Get email template by name
 export const getEmailTemplate = async (name) => {
-  return localStore.find(t => t.name === name) || null;
+  try {
+    const response = await api.get(`/email-templates/name/${name}`);
+    return response.template || null;
+  } catch (error) {
+    console.error('Error fetching email template by name:', error);
+    throw error;
+  }
 };
 
 // Create new email template
 export const createEmailTemplate = async (template) => {
-  const record = {
-    id: idSeq++,
-    name: template.name,
-    subject: template.subject,
-    body: template.body,
-    variables: template.variables || [],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-  localStore.push(record);
-  return record;
+  try {
+    const response = await api.post('/email-templates', {
+      name: template.name,
+      description: template.description || '',
+      subject: template.subject,
+      body: template.body,
+      variables: template.variables || [],
+      is_active: template.is_active !== undefined ? template.is_active : true
+    });
+    return response.template;
+  } catch (error) {
+    console.error('Error creating email template:', error);
+    throw error;
+  }
 };
 
 // Update email template
 export const updateEmailTemplate = async (id, template) => {
-  const idx = localStore.findIndex(t => t.id === id);
-  if (idx === -1) throw new Error('Template not found');
-  const updated = {
-    ...localStore[idx],
-    name: template.name,
-    subject: template.subject,
-    body: template.body,
-    variables: template.variables || [],
-    updated_at: new Date().toISOString()
-  };
-  localStore[idx] = updated;
-  return updated;
+  try {
+    const response = await api.put(`/email-templates/${id}`, {
+      name: template.name,
+      description: template.description,
+      subject: template.subject,
+      body: template.body,
+      variables: template.variables,
+      is_active: template.is_active
+    });
+    return response.template;
+  } catch (error) {
+    console.error('Error updating email template:', error);
+    throw error;
+  }
 };
 
 // Delete email template
 export const deleteEmailTemplate = async (id) => {
-  const before = localStore.length;
-  localStore = localStore.filter(t => t.id !== id);
-  if (localStore.length === before) throw new Error('Template not found');
-  return true;
+  try {
+    await api.delete(`/email-templates/${id}`);
+    return true;
+  } catch (error) {
+    console.error('Error deleting email template:', error);
+    throw error;
+  }
 };
 
-// Test email template by sending a test email (noop)
-export const testEmailTemplate = async (_templateName, _testData = {}) => {
-  return { success: true };
+// Preview email template with variables
+export const previewEmailTemplate = async (id, variables) => {
+  try {
+    const response = await api.post(`/email-templates/${id}/preview`, {
+      variables
+    });
+    return response.preview;
+  } catch (error) {
+    console.error('Error previewing email template:', error);
+    throw error;
+  }
+};
+
+// Send test email
+export const sendTestEmail = async (id, email, variables) => {
+  try {
+    const response = await api.post(`/email-templates/${id}/send-test`, {
+      email,
+      variables
+    });
+    return response;
+  } catch (error) {
+    console.error('Error sending test email:', error);
+    throw error;
+  }
+};
+
+// Test email template (alias for backward compatibility)
+export const testEmailTemplate = async (templateId, testData = {}) => {
+  try {
+    // If testData has an email field, send test email
+    if (testData.email) {
+      return await sendTestEmail(templateId, testData.email, testData.variables || {});
+    }
+    // Otherwise just preview
+    return await previewEmailTemplate(templateId, testData);
+  } catch (error) {
+    console.error('Error testing email template:', error);
+    throw error;
+  }
 };
 
 // Parse variables from template body
 export const parseTemplateVariables = (body) => {
   const variables = new Set();
-  
-  // Match Laravel Blade syntax: {{ $variable }}
-  const bladeMatches = body.match(/\{\{\s*\$([^}]+)\s*\}\}/g);
-  if (bladeMatches) {
-    bladeMatches.forEach(match => {
-      const variable = match.replace(/\{\{\s*\$|\s*\}\}/g, '');
+
+  // Match our template syntax: {{VARIABLE_NAME}}
+  const matches = body.match(/\{\{([^}]+)\}\}/g);
+  if (matches) {
+    matches.forEach(match => {
+      // Extract variable name (remove {{ and }})
+      const variable = match.replace(/\{\{|\}\}/g, '').trim();
       variables.add(variable);
     });
   }
-  
-  // Match simple placeholder syntax: {variable}
-  const placeholderMatches = body.match(/\{([^}]+)\}/g);
-  if (placeholderMatches) {
-    placeholderMatches.forEach(match => {
-      const variable = match.replace(/\{|\}/g, '');
-      if (!variable.includes('$')) { // Exclude already parsed Laravel variables
-        variables.add(variable);
-      }
-    });
-  }
-  
+
   return Array.from(variables);
 };
 
@@ -119,64 +175,54 @@ export const validateTemplateVariables = (template) => {
 // Generate preview HTML with sample data
 export const generateTemplatePreview = (template, sampleData = {}) => {
   let preview = template.body;
-  
-  // Replace variables with sample data
+
+  // Replace variables with sample data using our {{VARIABLE}} syntax
   Object.keys(sampleData).forEach(key => {
-    const regex = new RegExp(`\\{\\{[^}]*\\$${key}[^}]*\\}\\}`, 'g');
+    const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
     preview = preview.replace(regex, sampleData[key]);
-    
-    // Also replace simple placeholders
-    const simpleRegex = new RegExp(`\\{${key}\\}`, 'g');
-    preview = preview.replace(simpleRegex, sampleData[key]);
   });
-  
+
   return preview;
 };
 
-// Default sample data for different template types
+// Default sample data for different template types (matching our template variables)
 export const getDefaultSampleData = (templateName) => {
   const samples = {
-    'individual-passport-voucher': {
-      customer_name: 'John Doe',
-      voucher_code: 'VOUCHER-12345',
-      amount: 'PGK 100.00',
-      validity_date: '2025-12-31'
+    'individual_purchase': {
+      CUSTOMER_NAME: 'John Smith',
+      VOUCHER_CODE: 'IND-TEST123',
+      AMOUNT: '50.00',
+      PAYMENT_METHOD: 'CASH',
+      ISSUE_DATE: new Date().toLocaleDateString(),
+      VALID_UNTIL: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+      REGISTRATION_URL: 'https://greenpay.eywademo.cloud/voucher/IND-TEST123'
     },
-    'invoice-email': {
-      'invoice->client_name': 'Corporate Client Ltd.',
-      'invoice->invoice_number': 'INV-2025-001',
-      'invoice->invoice_date': '2025-01-15',
-      'invoice->due_date': '2025-02-15',
-      'invoice->total_vouchers': '50',
-      'invoice->voucher_value': '100.00',
-      'invoice->amount_after_discount': '5000.00',
-      'invoice->payment_mode': 'bank transfer'
+    'corporate_purchase': {
+      CONTACT_NAME: 'Jane Doe',
+      COMPANY_NAME: 'ABC Corporation Ltd.',
+      VOUCHER_COUNT: '25',
+      BATCH_ID: 'BATCH-2026-001',
+      TOTAL_AMOUNT: '1250.00',
+      PAYMENT_METHOD: 'Bank Transfer',
+      ISSUE_DATE: new Date().toLocaleDateString(),
+      REGISTRATION_BASE_URL: 'https://greenpay.eywademo.cloud/voucher/'
     },
-    'welcome': {
-      'user->name': 'Jane Smith',
-      'user->email': 'jane.smith@example.com',
-      password: 'temp123',
-      loginUrl: 'https://app.example.com/login'
+    'quotation_email': {
+      CUSTOMER_NAME: 'Michael Johnson',
+      QUOTATION_NUMBER: 'QUO-2026-001',
+      QUANTITY: '50',
+      TOTAL_AMOUNT: '2500.00',
+      VALID_UNTIL: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
     },
-    'quotation-email': {
-      'quotation->client_name': 'ABC Corporation',
-      'quotation->quotation_number': 'QUO-2025-001',
-      'quotation->subject': 'Government Exit Pass Vouchers',
-      'quotation->total_amount': '10000.00',
-      'quotation->total_vouchers': '100',
-      'quotation->voucher_value': '100.00',
-      'quotation->validity_date': '2025-12-31'
-    },
-    'ticket_created': {
-      'ticket->subject': 'Unable to access system',
-      'ticket->category': 'Technical Support',
-      'ticket->priority': 'High',
-      'ticket->description': 'I am unable to log into the system. Getting an error message.',
-      'ticket->user->name': 'John User',
-      'ticket->created_at': '2025-01-15 10:30:00'
+    'invoice_email': {
+      CUSTOMER_NAME: 'Sarah Williams',
+      INVOICE_NUMBER: 'INV-2026-001',
+      TOTAL_AMOUNT: '3500.00',
+      PAYMENT_METHOD: 'Credit Card',
+      INVOICE_DATE: new Date().toLocaleDateString()
     }
   };
-  
+
   return samples[templateName] || {};
 };
 

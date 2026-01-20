@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  getEmailTemplates, 
-  createEmailTemplate, 
-  updateEmailTemplate, 
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import './EmailTemplates.css';
+import {
+  getEmailTemplates,
+  createEmailTemplate,
+  updateEmailTemplate,
   deleteEmailTemplate,
   testEmailTemplate,
   parseTemplateVariables,
@@ -15,24 +18,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
-  DialogFooter 
+  DialogFooter
 } from '@/components/ui/dialog';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const EmailTemplates = () => {
   const { toast } = useToast();
@@ -44,12 +48,39 @@ const EmailTemplates = () => {
   const [showTestDialog, setShowTestDialog] = useState(false);
   const [previewData, setPreviewData] = useState({});
   const [testEmail, setTestEmail] = useState('');
+  const [editorMode, setEditorMode] = useState('visual'); // 'visual' or 'html'
   const [formData, setFormData] = useState({
     name: '',
+    description: '',
     subject: '',
     body: '',
-    variables: []
+    variables: [],
+    is_active: true
   });
+
+  // Quill editor configuration
+  const quillModules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'align': [] }],
+      ['link', 'image'],
+      ['clean'],
+      ['code-block']
+    ]
+  };
+
+  const quillFormats = [
+    'header',
+    'bold', 'italic', 'underline', 'strike',
+    'color', 'background',
+    'list', 'bullet',
+    'align',
+    'link', 'image',
+    'code-block'
+  ];
 
   useEffect(() => {
     fetchTemplates();
@@ -75,9 +106,11 @@ const EmailTemplates = () => {
     setSelectedTemplate(template);
     setFormData({
       name: template.name,
+      description: template.description || '',
       subject: template.subject,
       body: template.body,
-      variables: template.variables || []
+      variables: template.variables || [],
+      is_active: template.is_active !== undefined ? template.is_active : true
     });
     setShowEditDialog(true);
   };
@@ -86,9 +119,11 @@ const EmailTemplates = () => {
     setSelectedTemplate(null);
     setFormData({
       name: '',
+      description: '',
       subject: '',
       body: '',
-      variables: []
+      variables: [],
+      is_active: true
     });
     setShowEditDialog(true);
   };
@@ -246,6 +281,7 @@ const EmailTemplates = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Variables</TableHead>
                   <TableHead>Updated</TableHead>
@@ -257,6 +293,9 @@ const EmailTemplates = () => {
                   <TableRow key={template.id}>
                     <TableCell className="font-medium">
                       {template.name}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate text-sm text-slate-600">
+                      {template.description || '-'}
                     </TableCell>
                     <TableCell className="max-w-xs truncate">
                       {template.subject}
@@ -335,36 +374,102 @@ const EmailTemplates = () => {
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
-                placeholder="e.g., welcome-email"
+                placeholder="e.g., welcome_email"
+                disabled={!!selectedTemplate}
+              />
+              {selectedTemplate && (
+                <p className="text-xs text-slate-500 mt-1">Template name cannot be changed after creation</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                placeholder="Brief description of this template"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="subject">Subject Line</Label>
               <Input
                 id="subject"
                 value={formData.subject}
                 onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                placeholder="e.g., Welcome to {app.name}"
+                placeholder="e.g., Welcome {{CUSTOMER_NAME}}"
               />
             </div>
             
             <div>
-              <Label htmlFor="body">Email Body (HTML)</Label>
-              <Textarea
-                id="body"
-                value={formData.body}
-                onChange={(e) => setFormData({...formData, body: e.target.value})}
-                placeholder="Enter HTML content..."
-                className="min-h-[400px] font-mono text-sm"
-              />
-              <p className="text-sm text-slate-500 mt-1">
-                Use {'{{ $variable }}'} for Laravel syntax or {'{variable}'} for simple placeholders
-              </p>
+              <Label htmlFor="body">Email Body</Label>
+              <Tabs value={editorMode} onValueChange={setEditorMode} className="mt-2">
+                <TabsList>
+                  <TabsTrigger value="visual">Visual Editor</TabsTrigger>
+                  <TabsTrigger value="html">HTML Code</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="visual" className="mt-4">
+                  <div className="border rounded-md">
+                    <ReactQuill
+                      theme="snow"
+                      value={formData.body}
+                      onChange={(value) => setFormData({...formData, body: value})}
+                      modules={quillModules}
+                      formats={quillFormats}
+                      placeholder="Compose your email content here..."
+                      style={{ minHeight: '300px' }}
+                    />
+                  </div>
+                  <p className="text-sm text-slate-500 mt-2">
+                    💡 Use the HTML editor to insert variables like {'{{'} CUSTOMER_NAME {'}}'}
+                  </p>
+                </TabsContent>
+
+                <TabsContent value="html" className="mt-4">
+                  <Textarea
+                    id="body"
+                    value={formData.body}
+                    onChange={(e) => setFormData({...formData, body: e.target.value})}
+                    placeholder="Enter HTML content..."
+                    className="min-h-[400px] font-mono text-sm"
+                  />
+                  <p className="text-sm text-slate-500 mt-2">
+                    Use {'{{'} VARIABLE_NAME {'}}'} for dynamic content (e.g., {'{{'} CUSTOMER_NAME {'}}'}
+                  </p>
+                </TabsContent>
+              </Tabs>
             </div>
             
             <div>
-              <Label>Detected Variables</Label>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Common Variables</Label>
+                <span className="text-xs text-slate-500">Click to copy</span>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {['CUSTOMER_NAME', 'VOUCHER_CODE', 'AMOUNT', 'ISSUE_DATE', 'COMPANY_NAME', 'REGISTRATION_URL'].map((variable) => (
+                  <Button
+                    key={variable}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const variableText = `{{${variable}}}`;
+                      navigator.clipboard.writeText(variableText);
+                      toast({
+                        title: 'Copied!',
+                        description: `Variable {{${variable}}} copied to clipboard`
+                      });
+                    }}
+                    className="text-xs"
+                  >
+                    {'{{'}{variable}{'}}'}
+                  </Button>
+                ))}
+              </div>
+
+              <Label>Detected Variables in Template</Label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {parseTemplateVariables(formData.body).map((variable, index) => (
                   <Badge key={index} variant="secondary">
