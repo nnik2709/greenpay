@@ -531,36 +531,79 @@ router.post('/register-passport', async (req, res) => {
       });
     }
 
+    // Create/update passport record in passports table
+    let passportId = null;
+    const upperPassportNumber = passportNumber.toUpperCase();
+    const customerName = surname && givenName
+      ? `${surname} ${givenName}`.toUpperCase()
+      : upperPassportNumber;
+
+    // Check if passport already exists
+    const existingPassportQuery = `
+      SELECT id FROM passports
+      WHERE passport_number = $1
+      LIMIT 1
+    `;
+    const existingPassport = await pool.query(existingPassportQuery, [upperPassportNumber]);
+
+    if (existingPassport.rows.length > 0) {
+      // Passport exists, use existing ID
+      passportId = existingPassport.rows[0].id;
+    } else {
+      // Create new passport record
+      const newPassportQuery = `
+        INSERT INTO passports (
+          passport_number,
+          full_name,
+          nationality,
+          date_of_birth,
+          issue_date,
+          expiry_date,
+          passport_type,
+          sex
+        )
+        VALUES ($1, $2, $3, $4, NULL, NULL, 'P', $5)
+        RETURNING id
+      `;
+      const newPassport = await pool.query(newPassportQuery, [
+        upperPassportNumber,
+        customerName,
+        nationality || null,
+        dateOfBirth || null,
+        sex || null
+      ]);
+      passportId = newPassport.rows[0].id;
+    }
+
     // Update voucher with passport information
     const updateQuery = `
       UPDATE individual_purchases
       SET passport_number = $1,
-          customer_name = $2
-      WHERE voucher_code = $3
+          customer_name = $2,
+          passport_id = $3
+      WHERE voucher_code = $4
       RETURNING *
     `;
 
-    const customerName = surname && givenName
-      ? `${surname} ${givenName}`.toUpperCase()
-      : passportNumber;
-
     const updateValues = [
-      passportNumber.toUpperCase(),
+      upperPassportNumber,
       customerName,
+      passportId,
       voucherCode
     ];
 
     const updateResult = await pool.query(updateQuery, updateValues);
 
-    console.log(`Passport registered: ${passportNumber} with voucher ${voucherCode}`);
+    console.log(`Passport registered: ${upperPassportNumber} (ID: ${passportId}) with voucher ${voucherCode}`);
 
     res.json({
       success: true,
       message: 'Passport registered successfully',
       data: {
         voucherCode: voucherCode,
-        passportNumber: passportNumber,
-        customerName: customerName
+        passportNumber: upperPassportNumber,
+        customerName: customerName,
+        passportId: passportId
       }
     });
 
