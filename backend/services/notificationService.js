@@ -76,8 +76,10 @@ async function sendEmail(to, subject, htmlBody, textBody, attachments = []) {
       console.log('✅ SMTP connection verified');
 
       // Send email
+      const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+      const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
       const info = await transporter.sendMail({
-        from: process.env.SMTP_FROM || '"PNG Green Fees" <noreply@greenpay.gov.pg>',
+        from: `"${fromName}" <${fromEmail}>`,
         to: to,
         subject: subject,
         text: textBody,
@@ -435,8 +437,10 @@ This is an automated email. Please do not reply to this message.
   `;
 
   // Prepare mail options
+  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+  const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
   const mailOptions = {
-    from: process.env.SMTP_FROM || '"PNG Green Fees" <noreply@greenpay.gov.pg>',
+    from: `"${fromName}" <${fromEmail}>`,
     to: recipientEmail,
     subject: emailSubject,
     text: emailText,
@@ -509,8 +513,10 @@ const sendInvoiceEmail = async (options) => {
 
   const publicUrl = PUBLIC_URL;
 
+  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+  const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
   const mailOptions = {
-    from: process.env.SMTP_FROM || '"PNG Green Fees" <noreply@greenpay.gov.pg>',
+    from: `"${fromName}" <${fromEmail}>`,
     to,
     subject: `Invoice ${invoiceNumber} - PNG Green Fees`,
     html: `
@@ -633,8 +639,10 @@ async function sendEmailWithAttachments(options) {
     console.log('✅ SMTP connection verified');
 
     // Send email with attachments
+    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+    const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
     const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || '"PNG Green Fees" <noreply@greenpay.gov.pg>',
+      from: `"${fromName}" <${fromEmail}>`,
       to,
       subject,
       html,

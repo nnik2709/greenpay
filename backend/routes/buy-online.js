@@ -830,8 +830,10 @@ This is an automated email. Please do not reply to this message.
     `;
 
     try {
+      const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+      const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
       await transporter.sendMail({
-        from: process.env.SMTP_FROM || '"PNG Green Fees" <noreply@greenpay.gov.pg>',
+        from: `"${fromName}" <${fromEmail}>`,
         to: recipientEmail,
         subject: 'Your PNG Green Fees Voucher - Ready to Use',
         text: emailText,

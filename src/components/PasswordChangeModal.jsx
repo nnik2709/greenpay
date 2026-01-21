@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { Eye, EyeOff, Lock, CheckCircle } from 'lucide-react';
+import api from '@/lib/api/client';
 
 const PasswordChangeModal = ({ isOpen, onClose }) => {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -57,45 +58,45 @@ const PasswordChangeModal = ({ isOpen, onClose }) => {
     setErrors({});
 
     try {
-      // First, verify the current password by attempting to sign in
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Update the password
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
+      // Call backend API to change password
+      const response = await api.post('/auth/change-password', {
+        currentPassword,
+        newPassword
       });
 
-      if (error) {
-        throw error;
+      console.log('Password change response:', response);
+
+      // Backend returns { message: 'Password changed successfully' }
+      // Check for message property or any truthy response (empty object is also success)
+      if (response && (response.message || response.success || Object.keys(response).length > 0)) {
+        toast({
+          title: "Password Updated",
+          description: "Your password has been successfully changed.",
+          variant: "default",
+        });
+
+        // Reset form
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        onClose();
+      } else {
+        throw new Error(response?.error || 'Failed to change password');
       }
-
-      toast({
-        title: "Password Updated",
-        description: "Your password has been successfully changed.",
-        variant: "default",
-      });
-
-      // Reset form
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      onClose();
 
     } catch (error) {
       console.error('Password change error:', error);
-      
+
       let errorMessage = 'Failed to change password. Please try again.';
-      
-      if (error.message.includes('Password should be at least')) {
-        errorMessage = 'Password must be at least 6 characters long.';
-      } else if (error.message.includes('Invalid login credentials')) {
+
+      if (error.message.includes('Current password is incorrect') || error.message.includes('Invalid credentials')) {
         errorMessage = 'Current password is incorrect.';
-      } else if (error.message.includes('same as the old password')) {
+      } else if (error.message.includes('same as') || error.message.includes('different')) {
         errorMessage = 'New password must be different from current password.';
+      } else if (error.message.includes('at least 6')) {
+        errorMessage = 'Password must be at least 6 characters long.';
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
       }
 
       toast({

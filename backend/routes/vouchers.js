@@ -808,8 +808,10 @@ router.post('/email-vouchers', auth, checkRole('Flex_Admin', 'Finance_Manager', 
 </html>
     `;
 
+    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+    const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
     const mailOptions = {
-      from: process.env.SMTP_FROM || '"PNG Green Fees" <noreply@greenpay.eywademo.cloud>',
+      from: `"${fromName}" <${fromEmail}>`,
       to: recipient_email,
       subject: `${companyName} - Airport Exit Vouchers (${vouchers.length} voucher${vouchers.length > 1 ? 's' : ''})`,
       html: htmlContent,
@@ -919,8 +921,10 @@ router.post('/email-single/:id', async (req, res) => {
     }
 
     // Send email with PDF attachment
+    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+    const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
     const mailOptions = {
-      from: process.env.SMTP_FROM || 'noreply@greenpay.pg',
+      from: `"${fromName}" <${fromEmail}>`,
       to: recipient_email,
       subject: `Your GREEN CARD Voucher - ${voucher.voucher_code}`,
       html: `
@@ -1142,8 +1146,10 @@ router.post('/email-batch', auth, checkRole('Flex_Admin', 'Finance_Manager', 'Co
 </html>
     `;
 
+    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+    const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
     const mailOptions = {
-      from: process.env.SMTP_FROM || '"PNG Green Fees" <noreply@greenpay.eywademo.cloud>',
+      from: `"${fromName}" <${fromEmail}>`,
       to: recipient_email,
       subject: `${companyName} - Batch ${batch_id} Airport Exit Vouchers (${vouchers.length} vouchers)`,
       html: htmlContent,
@@ -1228,8 +1234,10 @@ router.post('/bulk-email',
     }
 
     // Send email with all voucher PDFs
+    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+    const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'noreply@greenpay.gov.pg',
+      from: `"${fromName}" <${fromEmail}>`,
       to: email,
       subject: `PNG Green Fee Vouchers (${vouchers.length} vouchers)`,
       html: `
@@ -1379,8 +1387,10 @@ router.post('/:voucherCode/email',
     const pdfBuffer = await generateVoucherPDFBuffer([voucher], voucher.customer_name || 'Individual');
 
     // Send email with voucher PDF
+    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+    const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'noreply@greenpay.gov.pg',
+      from: `"${fromName}" <${fromEmail}>`,
       to: recipient_email,
       subject: `PNG Green Fee Voucher - ${voucherCode}`,
       html: `

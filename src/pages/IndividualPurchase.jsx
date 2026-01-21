@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api/client';
 import { useWebSerial } from '@/hooks/useWebSerial';
+import { ScannerStatusFull } from '@/components/ScannerStatus';
 
 const VOUCHER_AMOUNT = 50;
 
@@ -175,11 +176,13 @@ export default function IndividualPurchase() {
       if (response.success) {
         setBatchId(response.batchId);
         setVouchers(response.vouchers);
-        setStep('list');
+
+        // Auto-start wizard for passport registration
+        setStep('wizard');
 
         toast({
           title: 'Vouchers Created!',
-          description: `${quantity} voucher(s) created successfully.`
+          description: `${quantity} voucher(s) created. Starting passport registration...`
         });
       }
 
@@ -814,111 +817,8 @@ export default function IndividualPurchase() {
     );
   }
 
-  if (step === 'list') {
-    return (
-      <div className="container mx-auto p-6 max-w-4xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Vouchers Created - Batch: {batchId}</CardTitle>
-            <CardDescription>
-              Payment: PGK {totalAmount.toFixed(2)} ({paymentMethod})
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Show wizard button only if quantity > 1 */}
-              {vouchers.length > 1 && (
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 mb-2">Register Multiple Vouchers</h4>
-                  <p className="text-sm text-blue-800 mb-4">
-                    Use the registration wizard to register all {vouchers.length} vouchers sequentially with MRZ scanner support and status tracking.
-                  </p>
-                  <Button
-                    onClick={() => setStep('wizard')}
-                    className="bg-blue-600 hover:bg-blue-700"
-                    size="lg"
-                  >
-                    Start Registration Wizard →
-                  </Button>
-                </div>
-              )}
-
-              {/* Individual voucher cards */}
-              {vouchers.map((voucher, idx) => (
-                <Card key={voucher.id} className="p-4 border-2">
-                  <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                    <div>
-                      <h3 className="font-bold text-lg">{voucher.voucherCode}</h3>
-                      <p className="text-sm text-gray-600">
-                        Status: <span className="text-yellow-600 font-semibold">Unregistered</span>
-                        {' '} | Valid until: {new Date(voucher.validUntil).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      {vouchers.length === 1 ? (
-                        // Single voucher - allow direct navigation
-                        <Button
-                          onClick={() => navigate(`/app/voucher-registration?code=${voucher.voucherCode}`)}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          Register Passport →
-                        </Button>
-                      ) : (
-                        // Multiple vouchers - use wizard
-                        <Button
-                          onClick={() => {
-                            setWizardProgress({ ...wizardProgress, currentIndex: idx });
-                            setStep('wizard');
-                          }}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          Register in Wizard
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          toast({
-                            title: 'Print Feature',
-                            description: 'Print blank voucher functionality coming soon'
-                          });
-                        }}
-                      >
-                        Print Blank
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setStep('create');
-                  setVouchers([]);
-                  setBatchId(null);
-                  setQuantity(1);
-                  setCollectedAmount(50);
-                  setCustomerEmail('');
-                }}
-              >
-                Create More Vouchers
-              </Button>
-              <Button onClick={() => navigate('/app/vouchers-list')}>
-                View All Vouchers →
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // NOTE: 'list' step removed - wizard now auto-starts after payment for better UX
+  // Users can skip vouchers in wizard if they want to register later
 
   return (
     <div className="container mx-auto p-6 max-w-2xl">
@@ -930,6 +830,17 @@ export default function IndividualPurchase() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Scanner Status Indicator */}
+          <ScannerStatusFull
+            connectionState={scanner.connectionState}
+            scanCount={scanner.scanCount}
+            error={scanner.error}
+            onConnect={scanner.connect}
+            onDisconnect={scanner.disconnect}
+            onReconnect={scanner.reconnect}
+            isSupported={scanner.isSupported}
+            reconnectAttempt={scanner.reconnectAttempt}
+          />
           {/* Quantity Selector */}
           <div>
             <Label className="text-base font-semibold">Number of Vouchers</Label>

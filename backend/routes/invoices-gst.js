@@ -758,7 +758,7 @@ router.post('/:id/email', auth, checkRole('Flex_Admin', 'Finance_Manager'), asyn
       country: 'Papua New Guinea',
       tin: 'TIN123456789',
       phone: '+675 XXX XXXX',
-      email: process.env.SMTP_USER || 'noreply@greenpay.gov.pg'
+      email: 'png.greenfees@ccda.gov.pg'
     };
 
     // Generate PDF
@@ -1027,7 +1027,7 @@ router.get('/:id/pdf', auth, checkRole('Flex_Admin', 'Finance_Manager', 'IT_Supp
       country: 'Papua New Guinea',
       tin: 'TIN123456789',
       phone: '+675 XXX XXXX',
-      email: process.env.SMTP_USER || 'noreply@greenpay.gov.pg'
+      email: 'png.greenfees@ccda.gov.pg'
     };
 
     // Generate PDF
