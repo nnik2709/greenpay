@@ -195,7 +195,7 @@ const AppRoutes = () => {
             </PrivateRoute>
           } />
           <Route path="voucher-print" element={
-            <PrivateRoute roles={['Flex_Admin', 'Counter_Agent', 'Finance_Manager']}>
+            <PrivateRoute roles={['Flex_Admin', 'Counter_Agent']}>
               <VoucherPrintPage />
             </PrivateRoute>
           } />

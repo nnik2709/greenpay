@@ -248,17 +248,22 @@ export default function IndividualPurchase() {
                   >
                     Email All ({registeredVouchers.length})
                   </Button>
-                  <Button
-                    onClick={() => {
-                      const voucherCodes = registeredVouchers.map(v => v.voucherCode).join(',');
-                      // Navigate to VoucherPrint page with multiple voucher codes
-                      navigate(`/app/voucher-print?codes=${voucherCodes}`);
-                    }}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    size="lg"
-                  >
-                    🖨️ Print All to Thermal Printer ({registeredVouchers.length})
-                  </Button>
+
+                  {/* Thermal Printer - Only for Counter_Agent and Flex_Admin at airport kiosk */}
+                  {(user?.role === 'Flex_Admin' || user?.role === 'Counter_Agent') && (
+                    <Button
+                      onClick={() => {
+                        const voucherCodes = registeredVouchers.map(v => v.voucherCode).join(',');
+                        // Navigate to VoucherPrint page with multiple voucher codes
+                        navigate(`/app/voucher-print?codes=${voucherCodes}`);
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      size="lg"
+                    >
+                      🖨️ Print All to Thermal Printer ({registeredVouchers.length})
+                    </Button>
+                  )}
+
                   <Button
                     onClick={async () => {
                       try {
