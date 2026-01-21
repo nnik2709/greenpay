@@ -330,7 +330,7 @@ const BuyOnline = () => {
                   )}
                   {formData.emailConfirm && formData.email === formData.emailConfirm && (
                     <p className="text-xs text-emerald-600 font-medium">
-                      ✓ Emails match
+                      Emails match
                     </p>
                   )}
                 </div>
@@ -346,12 +346,12 @@ const BuyOnline = () => {
                       After payment, you'll receive {formData.quantity} voucher code{formData.quantity > 1 ? 's' : ''}.
                       Each voucher must be registered with a passport at <strong>/voucher-registration</strong> before use.
                     </p>
-                    <p className="text-xs text-blue-700">
-                      ✓ Pay once for multiple vouchers<br />
-                      ✓ Register passports at your convenience<br />
-                      ✓ Use camera scanner for fast registration<br />
-                      ✓ Each voucher linked to one passport
-                    </p>
+                    <ul className="text-xs text-blue-700 list-disc list-inside space-y-1">
+                      <li>Pay once for multiple vouchers</li>
+                      <li>Register passports at your convenience</li>
+                      <li>Use camera scanner for fast registration</li>
+                      <li>Each voucher linked to one passport</li>
+                    </ul>
                   </div>
                 </div>
               </div>

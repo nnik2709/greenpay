@@ -125,7 +125,7 @@ const PublicRegistration = () => {
         const result = await individualResponse.json();
         if (result.success && result.data) {
           // Found as individual voucher
-          console.log('✅ Found as individual voucher');
+          console.log('Found as individual voucher');
           setVoucher(result.data);
           checkVoucherStatus(result.data);
           return;
@@ -141,7 +141,7 @@ const PublicRegistration = () => {
         const result = await corporateResponse.json();
         if (result.voucher) {
           // Found as corporate voucher - redirect to corporate registration
-          console.log('✅ Found as corporate voucher, redirecting...');
+          console.log('Found as corporate voucher, redirecting...');
           toast({
             title: "Corporate Voucher Detected",
             description: "Redirecting to corporate voucher registration..."
@@ -154,7 +154,7 @@ const PublicRegistration = () => {
       }
 
       // Not found in either table
-      console.log('❌ Voucher not found in any table');
+      console.log('Voucher not found in any table');
       setError('Invalid voucher code. Please check and try again.');
 
     } catch (err) {
@@ -170,11 +170,11 @@ const PublicRegistration = () => {
 
     // Check if already used
     if (voucherData.used_at) {
-      console.log('❌ Voucher already used');
+      console.log('Voucher already used');
       setError(`This voucher was already used on ${new Date(voucherData.used_at).toLocaleDateString()}`);
       return;
     }
-    console.log('✅ Voucher not used');
+    console.log('Voucher not used');
 
     // Check if expired
     const today = new Date().toISOString().split('T')[0];
@@ -186,29 +186,29 @@ const PublicRegistration = () => {
     console.log('📅 Valid from:', validFrom);
 
     if (today > validUntil) {
-      console.log('❌ Voucher expired');
+      console.log('Voucher expired');
       setError(`This voucher expired on ${new Date(voucherData.valid_until).toLocaleDateString()}`);
       return;
     }
-    console.log('✅ Voucher not expired');
+    console.log('Voucher not expired');
 
     // Check if not yet valid
     if (today < validFrom) {
-      console.log('❌ Voucher not yet valid');
+      console.log('Voucher not yet valid');
       setError(`This voucher is not valid until ${new Date(voucherData.valid_from).toLocaleDateString()}`);
       return;
     }
-    console.log('✅ Voucher is valid now');
+    console.log('Voucher is valid now');
 
     // Check if already has passport registered
     console.log('🛂 Passport number:', voucherData.passport_number);
     if (voucherData.passport_number && voucherData.passport_number !== 'PENDING') {
-      console.log('❌ Passport already registered');
+      console.log('Passport already registered');
       setError('This voucher has already been registered with a passport.');
       return;
     }
-    console.log('✅ Passport not registered yet');
-    console.log('✅✅✅ All validations passed!');
+    console.log('Passport not registered yet');
+    console.log('All validations passed!');
   };
 
   /**
@@ -526,7 +526,7 @@ const PublicRegistration = () => {
                     onClick={() => setShowCameraScanner(true)}
                     className="w-full mt-2"
                   >
-                    📱 Scan Passport with Camera
+                    Scan Passport with Camera
                   </Button>
                 )}
 
@@ -563,7 +563,7 @@ const PublicRegistration = () => {
                 {passportLookupResult && !passportLookupResult.notFound && !passportLookupResult.error && (
                   <Alert className="mt-3 bg-green-50 border-green-200">
                     <AlertDescription className="text-green-800">
-                      ✅ Passport found in database. Surname field auto-filled. Please verify and complete remaining fields.
+                      Passport found in database. Surname field auto-filled. Please verify and complete remaining fields.
                     </AlertDescription>
                   </Alert>
                 )}

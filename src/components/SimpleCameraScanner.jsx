@@ -1066,7 +1066,7 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
           throw new Error('No valid MRZ detected by server OCR');
         }
 
-        console.log('✅ Server OCR SUCCESS:', result.data);
+        console.log('Server OCR SUCCESS:', result.data);
         console.log('Confidence:', (result.data.confidence * 100).toFixed(1) + '%');
         console.log('Processing time:', result.processingTime + 'ms');
 
@@ -1128,14 +1128,14 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
         ocrSource = 'server-paddleocr';
 
         toast({
-          title: "✅ Advanced AI Scan Complete",
+          title: "Advanced AI Scan Complete",
           description: `${(passportData.confidence * 100).toFixed(0)}% confidence • ${passportData.givenName} ${passportData.surname}`,
           className: "bg-green-50 border-green-200",
           duration: 3000,
         });
 
       } catch (serverError) {
-        console.warn('⚠️ Server OCR failed, falling back to Tesseract.js:', serverError.message);
+        console.warn('Server OCR failed, falling back to Tesseract.js:', serverError.message);
         console.error('Server error details:', serverError.message);
 
         // Strategy 2: Fallback to Client-Side OCR (Tesseract.js)
@@ -1170,7 +1170,7 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
         }
 
         toast({
-          title: "✅ Passport Scanned",
+          title: "Passport Scanned",
           description: `${passportData.givenName} ${passportData.surname} (Standard mode)`,
           className: "bg-blue-50 border-blue-200",
           duration: 3000,
@@ -1195,7 +1195,7 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
     } catch (error) {
       console.error('OCR/Parse ERROR (both methods failed):', error);
       toast({
-        title: "❌ Scan Failed",
+        title: "Scan Failed",
         description: error.message || "Could not read MRZ. Please try again with better lighting.",
         variant: "destructive",
         duration: 5000,
@@ -1469,7 +1469,7 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
                   <p className={`text-white text-sm font-bold px-4 py-2 rounded-lg inline-block transition-all shadow-lg ${
                     mrzDetected ? 'bg-green-500 animate-pulse scale-110' : 'bg-slate-700'
                   }`}>
-                    {mrzDetected ? '✅ READY - TAP CAPTURE NOW!' : '📏 Hold 15-20cm away • Fit FULL MRZ width'}
+                    {mrzDetected ? 'READY - TAP CAPTURE NOW!' : 'Hold 15-20cm away • Fit FULL MRZ width'}
                   </p>
                 </div>
 

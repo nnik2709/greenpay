@@ -113,7 +113,7 @@ export default function VoucherPrintPage() {
             <div className="space-y-4">
               <div className="bg-blue-50 border border-blue-200 rounded p-4">
                 <p className="text-sm text-blue-900">
-                  ✓ {vouchers.length} voucher{vouchers.length > 1 ? 's' : ''} loaded and ready to print
+                  {vouchers.length} voucher{vouchers.length > 1 ? 's' : ''} loaded and ready to print
                 </p>
                 <p className="text-sm text-blue-700 mt-2">
                   Optimized for 80mm thermal POS printers

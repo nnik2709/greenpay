@@ -155,8 +155,7 @@ const PaymentSuccess = () => {
         >
           <Card className="border-emerald-200 shadow-xl">
             <CardHeader className="bg-emerald-50">
-              <CardTitle className="text-emerald-800 flex items-center gap-2">
-                <span className="text-3xl">✅</span>
+              <CardTitle className="text-emerald-800">
                 Payment Successful
               </CardTitle>
             </CardHeader>

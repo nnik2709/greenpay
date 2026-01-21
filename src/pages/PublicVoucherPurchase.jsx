@@ -366,7 +366,7 @@ const PublicVoucherPurchase = () => {
                   )}
                   {formData.emailConfirm && formData.email === formData.emailConfirm && (
                     <p className="text-xs text-emerald-600 font-medium">
-                      ✓ Emails match
+                      Emails match
                     </p>
                   )}
                 </div>

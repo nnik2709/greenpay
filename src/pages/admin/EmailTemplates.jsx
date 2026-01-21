@@ -549,7 +549,7 @@ const EmailTemplates = () => {
             
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <div className="flex items-center gap-2 text-yellow-800">
-                <span className="font-medium">⚠️ Test Email</span>
+                <span className="font-medium">Test Email</span>
               </div>
               <p className="text-sm text-yellow-700 mt-1">
                 A test email will be sent with sample data to verify the template works correctly.

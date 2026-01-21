@@ -260,7 +260,7 @@ export default function IndividualPurchase() {
                       className="bg-green-600 hover:bg-green-700 text-white"
                       size="lg"
                     >
-                      🖨️ Print All to Thermal Printer ({registeredVouchers.length})
+                      Print All ({registeredVouchers.length})
                     </Button>
                   )}
 
@@ -300,7 +300,7 @@ export default function IndividualPurchase() {
             {/* Registered Vouchers */}
             {registeredVouchers.length > 0 && (
               <div className="mb-8">
-                <h3 className="font-semibold text-lg mb-4 text-green-900">✅ Registered Vouchers</h3>
+                <h3 className="font-semibold text-lg mb-4 text-green-900">Registered Vouchers</h3>
                 <div className="space-y-3">
                   {registeredVouchers.map(v => {
                     const data = wizardProgress.registeredData[v.id];
@@ -511,7 +511,7 @@ export default function IndividualPurchase() {
                             Voucher {index + 1} of {vouchers.length}
                           </span>
                           {vIsRegistered && (
-                            <span className="text-green-600 text-lg">✓</span>
+                            <span className="text-green-600 text-xs font-semibold">Registered</span>
                           )}
                         </div>
 
@@ -584,8 +584,7 @@ export default function IndividualPurchase() {
                 {isRegistered ? (
                   /* Already Registered - Show Summary */
                   <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="text-4xl">✅</span>
+                    <div className="mb-4">
                       <div>
                         <h3 className="text-lg font-semibold text-green-900">Already Registered</h3>
                         <p className="text-sm text-green-700">
@@ -679,7 +678,7 @@ export default function IndividualPurchase() {
                       )}
                       {scanner.isReady && scanner.scanCount > 0 && (
                         <p className="text-xs text-green-700 mt-2">
-                          ✅ {scanner.scanCount} passport{scanner.scanCount > 1 ? 's' : ''} scanned this session
+                          {scanner.scanCount} passport{scanner.scanCount > 1 ? 's' : ''} scanned this session
                         </p>
                       )}
                     </div>
@@ -903,8 +902,8 @@ export default function IndividualPurchase() {
             {Math.abs(collectedAmount - totalAmount) > 0.01 && (
               <p className="text-sm text-amber-600 mt-1">
                 {collectedAmount > totalAmount
-                  ? `⚠️ Overpayment: PGK \${(collectedAmount - totalAmount).toFixed(2)}`
-                  : `⚠️ Underpayment: PGK \${(totalAmount - collectedAmount).toFixed(2)}`
+                  ? `Overpayment: PGK ${(collectedAmount - totalAmount).toFixed(2)}`
+                  : `Underpayment: PGK ${(totalAmount - collectedAmount).toFixed(2)}`
                 }
               </p>
             )}
