@@ -70,7 +70,10 @@ export default function IndividualPurchase() {
               voucherCode: currentVoucher.voucherCode,
               passportNumber: scannedData.passport_no.toUpperCase(),
               surname: scannedData.surname.toUpperCase(),
-              givenName: scannedData.given_name.toUpperCase()
+              givenName: scannedData.given_name.toUpperCase(),
+              nationality: scannedData.nationalityCode || scannedData.nationality, // Prefer 3-letter code
+              dateOfBirth: scannedData.dob,
+              sex: scannedData.sex
             });
 
             setWizardProgress(prev => {
@@ -732,6 +735,7 @@ export default function IndividualPurchase() {
                               passportNumber: passportNumber.toUpperCase(),
                               surname: surname.toUpperCase(),
                               givenName: givenName.toUpperCase()
+                              // nationality not available in manual entry (no scanner data)
                             });
 
                             // Add to registered set

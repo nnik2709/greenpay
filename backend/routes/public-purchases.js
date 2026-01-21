@@ -533,7 +533,6 @@ router.post('/register-passport', async (req, res) => {
     }
 
     // Create/update passport record in passports table
-    // Use smart nationality matching to handle both "DNK" and "Denmark" formats
     let passportId = null;
     const upperPassportNumber = passportNumber.toUpperCase();
     const customerName = surname && givenName
@@ -541,23 +540,18 @@ router.post('/register-passport', async (req, res) => {
       : upperPassportNumber;
 
     // Normalize nationality to 3-letter code for consistent storage
+    // Frontend should send nationalityCode (DNK, PNG, AUS, etc.)
     const normalizedNationality = nationality ? normalizeToCode(nationality) : null;
 
-    // Check if passport already exists (match on passport_number + nationality)
-    // Use smart nationality matching (handles "DNK" vs "Denmark")
-    const nationalityClause = buildNationalityWhereClause(nationality, 2);
-
+    // Check if passport already exists (match on passport_number only for now)
+    // Future: Add nationality to match for composite key (passport_number, nationality)
     const existingPassportQuery = `
       SELECT id, full_name, date_of_birth, expiry_date, sex, nationality
       FROM passports
       WHERE passport_number = $1
-        AND ${nationalityClause.whereClause}
       LIMIT 1
     `;
-    const existingPassport = await pool.query(
-      existingPassportQuery,
-      [upperPassportNumber, ...nationalityClause.params]
-    );
+    const existingPassport = await pool.query(existingPassportQuery, [upperPassportNumber]);
 
     if (existingPassport.rows.length > 0) {
       // Passport exists - use existing record, no error
@@ -592,7 +586,7 @@ router.post('/register-passport', async (req, res) => {
       ]);
       passportId = newPassport.rows[0].id;
 
-      console.log(`New passport created: ${upperPassportNumber} (ID: ${passportId}) for voucher ${voucherCode}`);
+      console.log(`New passport created: ${upperPassportNumber} (ID: ${passportId}, Nationality: ${normalizedNationality || 'NULL'}) for voucher ${voucherCode}`);
     }
 
     // Update voucher with passport information
