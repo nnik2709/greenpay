@@ -40,6 +40,7 @@ const Tickets = lazy(() => import('@/pages/Tickets'));
 const Quotations = lazy(() => import('@/pages/Quotations'));
 const ViewQuotation = lazy(() => import('@/pages/ViewQuotation'));
 const IndividualPurchase = lazy(() => import('@/pages/IndividualPurchase'));
+const VoucherPrintPage = lazy(() => import('@/pages/VoucherPrintPage'));
 const PaymentCallback = lazy(() => import('@/pages/PaymentCallback'));
 const BulkPassportUpload = lazy(() => import('@/pages/BulkPassportUpload'));
 const CorporateExitPass = lazy(() => import('@/pages/CorporateExitPass'));
@@ -191,6 +192,11 @@ const AppRoutes = () => {
           <Route path="passports/create" element={
             <PrivateRoute roles={['Flex_Admin', 'Counter_Agent', 'Finance_Manager']}>
               <IndividualPurchase />
+            </PrivateRoute>
+          } />
+          <Route path="voucher-print" element={
+            <PrivateRoute roles={['Flex_Admin', 'Counter_Agent', 'Finance_Manager']}>
+              <VoucherPrintPage />
             </PrivateRoute>
           } />
           <Route path="passports/bulk-upload" element={

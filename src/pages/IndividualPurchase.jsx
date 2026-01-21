@@ -58,6 +58,12 @@ export default function IndividualPurchase() {
           const currentVoucher = vouchers[wizardProgress.currentIndex];
           if (!currentVoucher) return;
 
+          // Check if already registered - prevent duplicate registration
+          if (wizardProgress.registeredVouchers.has(currentVoucher.id)) {
+            console.log('[Auto-scan] Voucher already registered, skipping:', currentVoucher.voucherCode);
+            return;
+          }
+
           try {
             // Call API to register passport with voucher
             await api.post('/public-purchases/register-passport', {
@@ -243,24 +249,15 @@ export default function IndividualPurchase() {
                     Email All ({registeredVouchers.length})
                   </Button>
                   <Button
-                    onClick={async () => {
-                      try {
-                        const voucherCodes = registeredVouchers.map(v => v.voucherCode).join(',');
-                        window.open(`/api/vouchers/bulk-print?codes=${voucherCodes}`, '_blank');
-                        toast({
-                          title: 'Opening Print View',
-                          description: `Preparing ${registeredVouchers.length} vouchers for printing`
-                        });
-                      } catch (error) {
-                        toast({
-                          variant: 'destructive',
-                          title: 'Error',
-                          description: 'Failed to generate bulk print'
-                        });
-                      }
+                    onClick={() => {
+                      const voucherCodes = registeredVouchers.map(v => v.voucherCode).join(',');
+                      // Navigate to VoucherPrint page with multiple voucher codes
+                      navigate(`/app/voucher-print?codes=${voucherCodes}`);
                     }}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    size="lg"
                   >
-                    Print All ({registeredVouchers.length})
+                    🖨️ Print All to Thermal Printer ({registeredVouchers.length})
                   </Button>
                   <Button
                     onClick={async () => {
