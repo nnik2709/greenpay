@@ -60,10 +60,10 @@ export default function VoucherPrintPage() {
           const canvas = document.createElement('canvas');
           JsBarcode(canvas, voucher.voucher_code, {
             format: 'CODE128',
-            width: 4,
-            height: 80,
+            width: 3,
+            height: 60,
             displayValue: false,
-            margin: 5,
+            margin: 2,
             background: '#ffffff',
             lineColor: '#000000'
           });
@@ -185,128 +185,139 @@ export default function VoucherPrintPage() {
             className={`${idx < vouchers.length - 1 ? 'page-break' : ''}`}
             style={{
               width: '80mm',
-              padding: '8mm 5mm',
-              fontFamily: 'Arial, sans-serif'
+              padding: '5mm',
+              fontFamily: 'Arial, sans-serif',
+              fontSize: '11px'
             }}
           >
-            {/* Header */}
-            <div style={{ textAlign: 'center', marginBottom: '6mm' }}>
-              <h1 style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
-                margin: '0 0 2mm 0',
-                color: '#000'
-              }}>
-                PNG GREEN FEES SYSTEM
-              </h1>
-              <div style={{
-                borderBottom: '2px solid #000',
-                width: '100%',
-                margin: '3mm 0'
-              }}></div>
-              <h2 style={{
-                fontSize: '16px',
-                fontWeight: 'bold',
-                margin: '2mm 0',
-                color: '#000'
-              }}>
-                AIRPORT EXIT VOUCHER
-              </h2>
-            </div>
-
-            {/* Voucher Code - Large */}
+            {/* Logos - Two side by side */}
             <div style={{
-              textAlign: 'center',
-              margin: '6mm 0',
-              padding: '4mm',
-              border: '2px solid #000',
-              backgroundColor: '#f5f5f5'
+              display: 'flex',
+              justifyContent: 'space-around',
+              alignItems: 'center',
+              marginBottom: '3mm'
             }}>
               <div style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-                letterSpacing: '2px',
-                fontFamily: 'Courier New, monospace',
-                color: '#000'
+                width: '25mm',
+                height: '15mm',
+                border: '1px solid #000',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '8px'
               }}>
-                {voucher.voucher_code}
+                [CCDA]
+              </div>
+              <div style={{
+                width: '25mm',
+                height: '15mm',
+                border: '1px solid #000',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '8px'
+              }}>
+                [PNG Emblem]
               </div>
             </div>
 
-            {/* Barcode */}
+            {/* GREEN CARD Header */}
+            <div style={{
+              backgroundColor: '#000',
+              color: '#fff',
+              textAlign: 'center',
+              padding: '3mm',
+              fontWeight: 'bold',
+              fontSize: '18px',
+              letterSpacing: '3px',
+              marginBottom: '2mm'
+            }}>
+              GREEN CARD
+            </div>
+
+            {/* Subtitle */}
+            <div style={{
+              textAlign: 'center',
+              fontSize: '13px',
+              marginBottom: '5mm',
+              fontWeight: 'normal'
+            }}>
+              Foreign Passport Holder
+            </div>
+
+            {/* Voucher Details - Left aligned */}
+            <div style={{ marginBottom: '4mm', lineHeight: '1.8' }}>
+              <div style={{ marginBottom: '2mm' }}>
+                <span style={{ display: 'inline-block', width: '45%' }}>Travel Document</span>
+                <span style={{ fontWeight: 'bold' }}>{voucher.passport_number || 'P61820835'}</span>
+              </div>
+              <div style={{ marginBottom: '2mm' }}>
+                <span style={{ display: 'inline-block', width: '45%' }}>Number</span>
+              </div>
+              <div style={{ marginBottom: '2mm' }}>
+                <span style={{ display: 'inline-block', width: '45%' }}>Coupon Number:</span>
+                <span style={{ fontWeight: 'bold' }}>{voucher.voucher_code}</span>
+              </div>
+              <div style={{ marginBottom: '2mm' }}>
+                <span style={{ display: 'inline-block', width: '45%' }}>Bill Amount:</span>
+                <span style={{ fontWeight: 'bold' }}>K50.00</span>
+              </div>
+              <div style={{ marginBottom: '2mm' }}>
+                <span style={{ display: 'inline-block', width: '45%' }}>Payment Mode:</span>
+                <span style={{ fontWeight: 'bold' }}>{voucher.payment_method || 'CARD'}</span>
+              </div>
+            </div>
+
+            {/* Barcode - Large and centered */}
             {barcodes[voucher.voucher_code] && (
               <div style={{
                 textAlign: 'center',
-                margin: '4mm 0'
+                margin: '5mm 0'
               }}>
                 <img
                   src={barcodes[voucher.voucher_code]}
                   alt={voucher.voucher_code}
                   style={{
                     width: '100%',
-                    height: 'auto',
-                    maxWidth: '60mm'
+                    maxWidth: '65mm',
+                    height: 'auto'
                   }}
                 />
               </div>
             )}
 
-            {/* Voucher Details */}
+            {/* Footer - Left aligned */}
             <div style={{
-              fontSize: '11px',
-              margin: '4mm 0',
-              lineHeight: '1.4'
+              marginTop: '5mm',
+              paddingTop: '3mm',
+              borderTop: '1px dashed #999',
+              fontSize: '10px',
+              lineHeight: '1.6'
             }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <tbody>
-                  {voucher.passport_number && (
-                    <tr>
-                      <td style={{ padding: '1mm 0', fontWeight: 'bold' }}>Passport:</td>
-                      <td style={{ padding: '1mm 0', textAlign: 'right' }}>{voucher.passport_number}</td>
-                    </tr>
-                  )}
-                  <tr>
-                    <td style={{ padding: '1mm 0', fontWeight: 'bold' }}>Amount:</td>
-                    <td style={{ padding: '1mm 0', textAlign: 'right' }}>PGK 50.00</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '1mm 0', fontWeight: 'bold' }}>Valid Until:</td>
-                    <td style={{ padding: '1mm 0', textAlign: 'right' }}>
-                      {new Date(voucher.valid_until).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '1mm 0', fontWeight: 'bold' }}>Status:</td>
-                    <td style={{ padding: '1mm 0', textAlign: 'right' }}>
-                      {voucher.status === 'USED' ? 'USED' : 'VALID'}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div>GENERAL</div>
+              <div>COUNTER: <span style={{ marginLeft: '10mm' }}>{voucher.created_by_name || 'Agent'}</span></div>
+              <div>
+                {new Date(voucher.created_at || new Date()).toLocaleDateString('en-GB', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric'
+                }).replace(/\//g, '/')} {new Date(voucher.created_at || new Date()).toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                })}
+              </div>
             </div>
 
-            {/* Footer */}
+            {/* Slogan */}
             <div style={{
-              fontSize: '9px',
               textAlign: 'center',
-              marginTop: '6mm',
-              paddingTop: '3mm',
-              borderTop: '1px dashed #666',
-              color: '#666'
+              marginTop: '4mm',
+              fontSize: '9px',
+              fontStyle: 'italic'
             }}>
-              <p style={{ margin: '1mm 0' }}>
-                Cashier Climate Change Dev. Authority
-              </p>
-              <p style={{ margin: '1mm 0' }}>
-                For inquiries: png.greenfees@ccda.gov.pg
-              </p>
-              <p style={{ margin: '2mm 0 0 0', fontSize: '8px' }}>
-                Printed: {new Date().toLocaleString()}
-              </p>
+              GO GREEN PNG
             </div>
           </div>
         ))}
