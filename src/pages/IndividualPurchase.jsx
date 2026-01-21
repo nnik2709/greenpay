@@ -109,9 +109,9 @@ export default function IndividualPurchase() {
                   registeredData: newData
                 };
               } else {
-                // All done, stay here (will go to completion on render)
+                // All done - move past the last voucher to trigger completion screen
                 return {
-                  ...prev,
+                  currentIndex: vouchers.length, // This will trigger completion on next render
                   registeredVouchers: newRegistered,
                   registeredData: newData
                 };

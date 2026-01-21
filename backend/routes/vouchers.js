@@ -1424,6 +1424,57 @@ router.post('/:voucherCode/email',
 });
 
 /**
+ * GET /api/vouchers/code/:voucherCode
+ * Get voucher details by code (for print page)
+ */
+router.get('/code/:voucherCode', auth, async (req, res) => {
+  try {
+    const { voucherCode } = req.params;
+
+    // Try individual purchases first
+    const individualResult = await db.query(
+      `SELECT * FROM individual_purchases WHERE voucher_code = $1`,
+      [voucherCode]
+    );
+
+    if (individualResult.rows.length > 0) {
+      return res.json({
+        success: true,
+        voucher: individualResult.rows[0],
+        type: 'individual'
+      });
+    }
+
+    // Try corporate vouchers
+    const corporateResult = await db.query(
+      `SELECT * FROM corporate_vouchers WHERE voucher_code = $1`,
+      [voucherCode]
+    );
+
+    if (corporateResult.rows.length > 0) {
+      return res.json({
+        success: true,
+        voucher: corporateResult.rows[0],
+        type: 'corporate'
+      });
+    }
+
+    // Not found
+    return res.status(404).json({
+      success: false,
+      error: 'Voucher not found'
+    });
+
+  } catch (error) {
+    console.error('Error fetching voucher by code:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch voucher'
+    });
+  }
+});
+
+/**
  * GET /api/vouchers/:voucherCode/thermal-receipt
  * Generate thermal receipt PDF for POS printers (80mm width)
  * Optimized for Epson TM-T82II and similar thermal printers
