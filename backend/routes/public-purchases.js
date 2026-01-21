@@ -4,6 +4,7 @@ const { Pool } = require('pg');
 const PaymentGatewayFactory = require('../services/payment-gateways/PaymentGatewayFactory');
 const { sendVoucherNotification } = require('../services/notificationService');
 const voucherConfig = require('../config/voucherConfig');
+const { buildNationalityWhereClause, normalizeToCode } = require('../utils/nationalityNormalizer');
 
 // Database connection
 const pool = new Pool({
@@ -532,23 +533,38 @@ router.post('/register-passport', async (req, res) => {
     }
 
     // Create/update passport record in passports table
+    // Use smart nationality matching to handle both "DNK" and "Denmark" formats
     let passportId = null;
     const upperPassportNumber = passportNumber.toUpperCase();
     const customerName = surname && givenName
       ? `${surname} ${givenName}`.toUpperCase()
       : upperPassportNumber;
 
-    // Check if passport already exists
+    // Normalize nationality to 3-letter code for consistent storage
+    const normalizedNationality = nationality ? normalizeToCode(nationality) : null;
+
+    // Check if passport already exists (match on passport_number + nationality)
+    // Use smart nationality matching (handles "DNK" vs "Denmark")
+    const nationalityClause = buildNationalityWhereClause(nationality, 2);
+
     const existingPassportQuery = `
-      SELECT id FROM passports
+      SELECT id, full_name, date_of_birth, expiry_date, sex, nationality
+      FROM passports
       WHERE passport_number = $1
+        AND ${nationalityClause.whereClause}
       LIMIT 1
     `;
-    const existingPassport = await pool.query(existingPassportQuery, [upperPassportNumber]);
+    const existingPassport = await pool.query(
+      existingPassportQuery,
+      [upperPassportNumber, ...nationalityClause.params]
+    );
 
     if (existingPassport.rows.length > 0) {
-      // Passport exists, use existing ID
+      // Passport exists - use existing record, no error
+      // Silently reuse the passport (pragmatic approach for testing)
       passportId = existingPassport.rows[0].id;
+
+      console.log(`Passport ${upperPassportNumber} already exists (ID: ${passportId}), reusing for voucher ${voucherCode}`);
     } else {
       // Create new passport record
       const newPassportQuery = `
@@ -560,19 +576,23 @@ router.post('/register-passport', async (req, res) => {
           issue_date,
           expiry_date,
           passport_type,
-          sex
+          sex,
+          created_at,
+          updated_at
         )
-        VALUES ($1, $2, $3, $4, NULL, NULL, 'P', $5)
+        VALUES ($1, $2, $3, $4, NULL, NULL, 'P', $5, NOW(), NOW())
         RETURNING id
       `;
       const newPassport = await pool.query(newPassportQuery, [
         upperPassportNumber,
         customerName,
-        nationality || null,
+        normalizedNationality,
         dateOfBirth || null,
         sex || null
       ]);
       passportId = newPassport.rows[0].id;
+
+      console.log(`New passport created: ${upperPassportNumber} (ID: ${passportId}) for voucher ${voucherCode}`);
     }
 
     // Update voucher with passport information
