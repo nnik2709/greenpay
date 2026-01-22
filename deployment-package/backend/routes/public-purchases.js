@@ -546,7 +546,7 @@ router.post('/register-passport', async (req, res) => {
     // Check if passport already exists (match on passport_number only for now)
     // Future: Add nationality to match for composite key (passport_number, nationality)
     const existingPassportQuery = `
-      SELECT id, full_name, date_of_birth, expiry_date, sex, nationality
+      SELECT id, full_name, date_of_birth, expiry_date, nationality
       FROM passports
       WHERE passport_number = $1
       LIMIT 1
