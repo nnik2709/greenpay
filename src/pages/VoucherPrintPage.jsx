@@ -135,11 +135,11 @@ export default function VoucherPrintPage() {
                   Print All Vouchers
                 </Button>
                 <Button
-                  variant="outline"
-                  onClick={() => navigate(-1)}
+                  onClick={() => navigate('/app/individual-purchase')}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  size="lg"
                 >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
+                  New Transaction
                 </Button>
               </div>
 
