@@ -33,11 +33,12 @@ const PublicRegistrationSuccess = () => {
 
   const loadVoucherDetails = async () => {
     try {
-      // Fetch voucher with passport data
-      const response = await api.get(`/vouchers/code/${voucherCode}`);
+      // Fetch voucher with passport data using PUBLIC endpoint (no auth required)
+      const response = await fetch(`/api/public-purchases/voucher/${voucherCode}`);
+      const data = await response.json();
 
-      if (response && response.voucher) {
-        setVoucher(response.voucher);
+      if (response.ok && data.voucher) {
+        setVoucher(data.voucher);
 
         // Generate QR code
         const qr = await QRCode.toDataURL(voucherCode, {
@@ -49,6 +50,8 @@ const PublicRegistrationSuccess = () => {
           }
         });
         setQrCodeUrl(qr);
+      } else {
+        console.error('Failed to load voucher:', data.error);
       }
     } catch (err) {
       console.error('Error loading voucher:', err);

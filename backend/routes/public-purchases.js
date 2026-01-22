@@ -1042,6 +1042,73 @@ router.post('/cleanup-expired', async (req, res) => {
 });
 
 /**
+ * GET /api/public-purchases/voucher/:voucherCode
+ * Get voucher details (PUBLIC - no auth required)
+ * Used by PublicRegistrationSuccess page to display voucher
+ */
+router.get('/voucher/:voucherCode', async (req, res) => {
+  try {
+    const { voucherCode } = req.params;
+
+    // Find voucher with passport data
+    const result = await pool.query(`
+      SELECT
+        ip.id,
+        ip.voucher_code,
+        ip.amount,
+        ip.valid_from,
+        ip.valid_until,
+        ip.customer_name,
+        ip.customer_email,
+        ip.passport_number,
+        ip.status,
+        ip.created_at,
+        p.id as passport_id,
+        p.full_name,
+        p.nationality,
+        p.date_of_birth,
+        p.expiry_date,
+        p.gender
+      FROM individual_purchases ip
+      LEFT JOIN passports p ON ip.passport_number = p.passport_number
+      WHERE ip.voucher_code = $1
+    `, [voucherCode]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Voucher not found' });
+    }
+
+    const voucher = result.rows[0];
+
+    // Format response to match frontend expectations
+    res.json({
+      voucher: {
+        id: voucher.id,
+        voucher_code: voucher.voucher_code,
+        amount: voucher.amount,
+        valid_from: voucher.valid_from,
+        valid_until: voucher.valid_until,
+        passport_number: voucher.passport_number,
+        status: voucher.status,
+        created_at: voucher.created_at,
+        passport: voucher.passport_id ? {
+          id: voucher.passport_id,
+          full_name: voucher.full_name,
+          nationality: voucher.nationality,
+          date_of_birth: voucher.date_of_birth,
+          expiry_date: voucher.expiry_date,
+          gender: voucher.gender
+        } : null
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching voucher:', error);
+    res.status(500).json({ error: 'Failed to fetch voucher' });
+  }
+});
+
+/**
  * GET /api/public-purchases/voucher/:voucherCode/pdf
  * Generate PDF for a single voucher (PUBLIC - no auth required)
  * REUSES buy-online.js PDF generation logic for consistency
