@@ -57,31 +57,93 @@ const PublicRegistrationSuccess = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    try {
+      // Fetch PDF from backend and open in new window for printing
+      const response = await fetch(`/api/public-purchases/voucher/${voucherCode}/pdf`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch PDF');
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      // Open PDF in new window for printing
+      const printWindow = window.open(blobUrl, '_blank');
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+          // Clean up blob URL after printing
+          setTimeout(() => {
+            window.URL.revokeObjectURL(blobUrl);
+          }, 1000);
+        };
+      } else {
+        // Popup blocked - fallback to direct print using iframe
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = blobUrl;
+        document.body.appendChild(iframe);
+
+        iframe.onload = () => {
+          iframe.contentWindow.print();
+          // Cleanup
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            window.URL.revokeObjectURL(blobUrl);
+          }, 1000);
+        };
+      }
+    } catch (error) {
+      console.error('Print failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Print Failed',
+        description: 'Unable to print PDF. Please try downloading instead.'
+      });
+    }
   };
 
   const handleDownload = async () => {
     try {
-      // Create voucher image from current page content
-      const voucherContent = document.getElementById('voucher-content');
-      if (!voucherContent) return;
+      // Download PDF from backend
+      const response = await fetch(`/api/public-purchases/voucher/${voucherCode}/pdf`);
 
-      // Use html2canvas if available, otherwise fallback to print
-      if (window.html2canvas) {
-        const canvas = await window.html2canvas(voucherContent);
-        const link = document.createElement('a');
-        link.download = `voucher-${voucherCode}.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-      } else {
-        // Fallback to print dialog
-        handlePrint();
+      if (!response.ok) {
+        throw new Error('Failed to fetch PDF');
       }
+
+      const blob = await response.blob();
+      const filename = `voucher-${voucherCode}.pdf`;
+
+      // Direct download
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      link.style.display = 'none';
+
+      // For iOS: add target="_blank" as fallback
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+        link.target = '_blank';
+      }
+
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      }, 100);
     } catch (error) {
-      console.error('Error downloading voucher:', error);
-      // Fallback to print
-      handlePrint();
+      console.error('Download failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Download Failed',
+        description: 'Unable to download PDF. Please try the email option.'
+      });
     }
   };
 
@@ -99,9 +161,22 @@ const PublicRegistrationSuccess = () => {
     try {
       setSendingEmail(true);
 
-      await api.post(`/vouchers/${voucherCode}/email`, {
-        recipient_email: emailAddress
+      // Use PUBLIC endpoint (no auth required)
+      const response = await fetch(`/api/public-purchases/voucher/${voucherCode}/email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          recipient_email: emailAddress
+        })
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send email');
+      }
 
       toast({
         title: 'Email Sent',
@@ -117,7 +192,7 @@ const PublicRegistrationSuccess = () => {
       toast({
         variant: 'destructive',
         title: 'Email Failed',
-        description: error.response?.data?.error || 'Failed to send email. Please try again.'
+        description: error.message || 'Failed to send email. Please try again.'
       });
     } finally {
       setSendingEmail(false);

@@ -1041,4 +1041,167 @@ router.post('/cleanup-expired', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/public-purchases/voucher/:voucherCode/pdf
+ * Generate PDF for a single voucher (PUBLIC - no auth required)
+ * REUSES buy-online.js PDF generation logic for consistency
+ */
+router.get('/voucher/:voucherCode/pdf', async (req, res) => {
+  try {
+    const { voucherCode } = req.params;
+
+    // Find voucher - SAME query structure as buy-online.js
+    const result = await pool.query(`
+      SELECT
+        ip.id,
+        ip.voucher_code,
+        ip.amount,
+        ip.valid_from,
+        ip.valid_until,
+        ip.customer_name,
+        ip.customer_email,
+        ip.passport_number,
+        p.id as passport_id,
+        p.full_name,
+        p.nationality,
+        p.date_of_birth
+      FROM individual_purchases ip
+      LEFT JOIN passports p ON ip.passport_number = p.passport_number
+      WHERE ip.voucher_code = $1
+    `, [voucherCode]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Voucher not found' });
+    }
+
+    const voucher = result.rows[0];
+
+    // Generate barcode - SAME as buy-online.js
+    const { generateBarcodeDataURL } = require('../utils/barcodeGenerator');
+    const barcodeDataUrl = generateBarcodeDataURL(voucher.voucher_code);
+
+    const voucherWithBarcode = {
+      ...voucher,
+      barcode: barcodeDataUrl,
+      qrCode: barcodeDataUrl // For backward compatibility
+    };
+
+    // Generate PDF using unified GREEN CARD template - SAME as buy-online.js
+    const { generateVoucherPDFBuffer } = require('../utils/pdfGenerator');
+    const pdfBuffer = await generateVoucherPDFBuffer([voucherWithBarcode]);
+
+    // Send PDF as response
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="voucher-${voucherCode}.pdf"`);
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error('Error generating voucher PDF:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+/**
+ * POST /api/public-purchases/voucher/:voucherCode/email
+ * Email a single voucher (PUBLIC - no auth required)
+ * REUSES buy-online.js email logic for consistency
+ */
+router.post('/voucher/:voucherCode/email', async (req, res) => {
+  try {
+    const { voucherCode } = req.params;
+    const { recipient_email } = req.body;
+
+    if (!recipient_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient_email)) {
+      return res.status(400).json({ error: 'Valid email address required' });
+    }
+
+    // Find voucher - SAME query structure as buy-online.js
+    const result = await pool.query(`
+      SELECT
+        ip.id,
+        ip.voucher_code,
+        ip.amount,
+        ip.valid_from,
+        ip.valid_until,
+        ip.customer_name,
+        ip.customer_email,
+        ip.passport_number,
+        p.id as passport_id,
+        p.full_name,
+        p.nationality,
+        p.date_of_birth
+      FROM individual_purchases ip
+      LEFT JOIN passports p ON ip.passport_number = p.passport_number
+      WHERE ip.voucher_code = $1
+    `, [voucherCode]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Voucher not found' });
+    }
+
+    const voucher = result.rows[0];
+
+    // Generate barcode - SAME as buy-online.js
+    const { generateBarcodeDataURL } = require('../utils/barcodeGenerator');
+    const barcodeDataUrl = generateBarcodeDataURL(voucher.voucher_code);
+
+    const voucherWithBarcode = {
+      ...voucher,
+      barcode: barcodeDataUrl,
+      qrCode: barcodeDataUrl
+    };
+
+    // Generate PDF - SAME as buy-online.js
+    const { generateVoucherPDFBuffer } = require('../utils/pdfGenerator');
+    const pdfBuffer = await generateVoucherPDFBuffer([voucherWithBarcode]);
+
+    // Send email - SAME transporter config as buy-online.js
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransporter({
+      host: process.env.SMTP_HOST || 'localhost',
+      port: parseInt(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: process.env.SMTP_USER ? {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      } : undefined
+    });
+
+    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+    const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
+
+    await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to: recipient_email,
+      subject: `PNG Green Fee Voucher - ${voucherCode}`,
+      html: `
+        <h2>PNG Green Fee Voucher</h2>
+        <p>Dear Customer,</p>
+        <p>Please find attached your PNG Green Fee voucher.</p>
+        <p><strong>Voucher Code:</strong> ${voucherCode}</p>
+        ${voucher.passport_number ? `<p><strong>Passport:</strong> ${voucher.passport_number}</p>` : ''}
+        <p><strong>Amount:</strong> PGK ${parseFloat(voucher.amount || 0).toFixed(2)}</p>
+        <p>Please present this voucher at the airport.</p>
+        <p>Thank you,<br>PNG Green Fees Team</p>
+      `,
+      attachments: [{
+        filename: `voucher-${voucherCode}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }]
+    });
+
+    console.log(`Public voucher email sent to ${recipient_email} for ${voucherCode}`);
+
+    res.json({
+      success: true,
+      message: `Voucher emailed successfully to ${recipient_email}`
+    });
+
+  } catch (error) {
+    console.error('Error emailing voucher:', error);
+    res.status(500).json({ error: 'Failed to send email', message: error.message });
+  }
+});
+
 module.exports = router;
