@@ -1266,8 +1266,14 @@ router.post('/voucher/:voucherCode/email', async (req, res) => {
       }
     });
 
-    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+    // IMPORTANT: For Brevo, SMTP_USER (a0282b001@smtp-brevo.com) is NOT a valid sender
+    // Must use SMTP_FROM which should be a verified sender in Brevo
+    const fromEmail = process.env.SMTP_FROM || 'noreply@greenpay.eywademo.cloud';
     const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
+
+    if (!process.env.SMTP_FROM) {
+      console.warn('⚠️ SMTP_FROM not set, using default:', fromEmail);
+    }
 
     try {
       await transporter.sendMail({
