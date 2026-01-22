@@ -129,8 +129,8 @@ export default function VoucherPrintPage() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    // Go back to passports/create page, keeping the success state
-                    // by not navigating - just close the print view
+                    // Set flag so IndividualPurchase knows we're coming from Back button
+                    sessionStorage.setItem('fromPrintPage', 'true');
                     window.history.back();
                   }}
                 >

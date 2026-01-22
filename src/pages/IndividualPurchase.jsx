@@ -63,9 +63,40 @@ export default function IndividualPurchase() {
   const [surname, setSurname] = useState('');
   const [givenName, setGivenName] = useState('');
 
+  // Clear sessionStorage on mount if user navigated directly (not from Back button)
+  useEffect(() => {
+    // Check if we came from the print page (via Back button)
+    const fromPrintPage = sessionStorage.getItem('fromPrintPage');
+
+    if (!fromPrintPage) {
+      // User navigated directly or refreshed - clear all state
+      sessionStorage.removeItem('individualPurchaseStep');
+      sessionStorage.removeItem('individualPurchaseBatchId');
+      sessionStorage.removeItem('individualPurchaseVouchers');
+      sessionStorage.removeItem('individualPurchaseWizardProgress');
+
+      // Reset to initial state if we loaded with saved state
+      if (step !== 'create') {
+        setStep('create');
+        setVouchers([]);
+        setBatchId(null);
+        setWizardProgress({
+          currentIndex: 0,
+          registeredVouchers: new Set(),
+          registeredData: {}
+        });
+      }
+    } else {
+      // Clear the flag after using it
+      sessionStorage.removeItem('fromPrintPage');
+    }
+  }, []); // Run once on mount
+
   // Save state to sessionStorage whenever it changes
   useEffect(() => {
-    sessionStorage.setItem('individualPurchaseStep', step);
+    if (step !== 'create') {
+      sessionStorage.setItem('individualPurchaseStep', step);
+    }
   }, [step]);
 
   useEffect(() => {
@@ -81,11 +112,13 @@ export default function IndividualPurchase() {
   }, [vouchers]);
 
   useEffect(() => {
-    const toSave = {
-      ...wizardProgress,
-      registeredVouchersArray: Array.from(wizardProgress.registeredVouchers)
-    };
-    sessionStorage.setItem('individualPurchaseWizardProgress', JSON.stringify(toSave));
+    if (wizardProgress.registeredVouchers.size > 0) {
+      const toSave = {
+        ...wizardProgress,
+        registeredVouchersArray: Array.from(wizardProgress.registeredVouchers)
+      };
+      sessionStorage.setItem('individualPurchaseWizardProgress', JSON.stringify(toSave));
+    }
   }, [wizardProgress]);
 
   // MRZ Scanner integration - WebSerial (real USB connection)
