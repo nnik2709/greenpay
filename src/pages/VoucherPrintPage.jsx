@@ -195,69 +195,47 @@ export default function VoucherPrintPage() {
               fontSize: '11px'
             }}
           >
-            {/* Logo - CCDA centered */}
+            {/* GREEN CARD Header - matches thermal print exactly */}
             <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
+              textAlign: 'center',
+              fontWeight: 'normal',
+              fontSize: '14px',
+              letterSpacing: '4px',
               marginBottom: '3mm'
             }}>
-              <img
-                src="/assets/logos/ccda-logo.png"
-                alt="CCDA Logo"
-                style={{
-                  width: '30mm',
-                  height: 'auto',
-                  maxHeight: '18mm',
-                  objectFit: 'contain'
-                }}
-              />
-            </div>
-
-            {/* GREEN CARD Header */}
-            <div style={{
-              backgroundColor: '#000',
-              color: '#fff',
-              textAlign: 'center',
-              padding: '3mm',
-              fontWeight: 'bold',
-              fontSize: '18px',
-              letterSpacing: '3px',
-              marginBottom: '2mm'
-            }}>
-              GREEN CARD
+              G R E E N &nbsp; C A R D
             </div>
 
             {/* Subtitle */}
             <div style={{
-              textAlign: 'center',
-              fontSize: '13px',
-              marginBottom: '5mm',
+              textAlign: 'left',
+              fontSize: '11px',
+              marginBottom: '4mm',
               fontWeight: 'normal'
             }}>
               Foreign Passport Holder
             </div>
 
-            {/* Voucher Details - Left aligned */}
-            <div style={{ marginBottom: '4mm', lineHeight: '1.8' }}>
-              <div style={{ marginBottom: '2mm' }}>
-                <span style={{ display: 'inline-block', width: '45%' }}>Travel Document</span>
-                <span style={{ fontWeight: 'bold' }}>{voucher.passport_number || 'P61820835'}</span>
+            {/* Voucher Details - Left aligned, matches thermal print */}
+            <div style={{ marginBottom: '4mm', lineHeight: '1.8', fontSize: '11px' }}>
+              <div style={{ marginBottom: '1mm' }}>
+                <span>Travel Document</span>
+                <span style={{ fontWeight: 'bold', marginLeft: '10mm' }}>{voucher.passport_number || 'N/A'}</span>
               </div>
-              <div style={{ marginBottom: '2mm' }}>
-                <span style={{ display: 'inline-block', width: '45%' }}>Number</span>
+              <div style={{ marginBottom: '1mm' }}>
+                <span>Number</span>
               </div>
-              <div style={{ marginBottom: '2mm' }}>
-                <span style={{ display: 'inline-block', width: '45%' }}>Coupon Number:</span>
-                <span style={{ fontWeight: 'bold' }}>{voucher.voucher_code}</span>
+              <div style={{ marginBottom: '1mm' }}>
+                <span>Coupon Number:</span>
+                <span style={{ fontWeight: 'bold', marginLeft: '3mm' }}>{voucher.voucher_code}</span>
               </div>
-              <div style={{ marginBottom: '2mm' }}>
-                <span style={{ display: 'inline-block', width: '45%' }}>Bill Amount:</span>
-                <span style={{ fontWeight: 'bold' }}>K50.00</span>
+              <div style={{ marginBottom: '1mm' }}>
+                <span>Bill Amount:</span>
+                <span style={{ fontWeight: 'bold', marginLeft: '3mm' }}>K50.00</span>
               </div>
-              <div style={{ marginBottom: '2mm' }}>
-                <span style={{ display: 'inline-block', width: '45%' }}>Payment Mode:</span>
-                <span style={{ fontWeight: 'bold' }}>{voucher.payment_method || 'CARD'}</span>
+              <div style={{ marginBottom: '1mm' }}>
+                <span>Payment Mode:</span>
+                <span style={{ fontWeight: 'bold', marginLeft: '3mm' }}>{voucher.payment_method || 'CASH'}</span>
               </div>
             </div>
 
