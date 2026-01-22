@@ -205,7 +205,10 @@ export default function VoucherPrintPage() {
             {/* CCDA Logo - centered, optimized for thermal printer */}
             <div style={{
               textAlign: 'center',
-              marginBottom: '3mm'
+              marginBottom: '3mm',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
             }}>
               <img
                 src="/ccda-logo.png"
@@ -213,7 +216,9 @@ export default function VoucherPrintPage() {
                 style={{
                   height: '15mm',
                   width: 'auto',
-                  objectFit: 'contain'
+                  objectFit: 'contain',
+                  display: 'block',
+                  margin: '0 auto'
                 }}
               />
             </div>
