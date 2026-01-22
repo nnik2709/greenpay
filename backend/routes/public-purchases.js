@@ -1244,48 +1244,74 @@ router.post('/voucher/:voucherCode/email', async (req, res) => {
     const { generateVoucherPDFBuffer } = require('../utils/pdfGenerator');
     const pdfBuffer = await generateVoucherPDFBuffer([voucherWithBarcode]);
 
-    // Send email - SAME transporter config as buy-online.js
+    // Send email - SAME pattern as buy-online.js
     const nodemailer = require('nodemailer');
+
+    // Check SMTP configuration
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.error('❌ SMTP not configured. Missing SMTP_HOST, SMTP_USER, or SMTP_PASS');
+      return res.status(500).json({
+        error: 'Email service not configured',
+        details: 'SMTP credentials missing on server'
+      });
+    }
+
     const transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST || 'localhost',
-      port: parseInt(process.env.SMTP_PORT) || 587,
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
       secure: process.env.SMTP_SECURE === 'true',
-      auth: process.env.SMTP_USER ? {
+      auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
-      } : undefined
+      }
     });
 
     const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
     const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
 
-    await transporter.sendMail({
-      from: `"${fromName}" <${fromEmail}>`,
-      to: recipient_email,
-      subject: `PNG Green Fee Voucher - ${voucherCode}`,
-      html: `
-        <h2>PNG Green Fee Voucher</h2>
-        <p>Dear Customer,</p>
-        <p>Please find attached your PNG Green Fee voucher.</p>
-        <p><strong>Voucher Code:</strong> ${voucherCode}</p>
-        ${voucher.passport_number ? `<p><strong>Passport:</strong> ${voucher.passport_number}</p>` : ''}
-        <p><strong>Amount:</strong> PGK ${parseFloat(voucher.amount || 0).toFixed(2)}</p>
-        <p>Please present this voucher at the airport.</p>
-        <p>Thank you,<br>PNG Green Fees Team</p>
-      `,
-      attachments: [{
-        filename: `voucher-${voucherCode}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf'
-      }]
-    });
+    try {
+      await transporter.sendMail({
+        from: `"${fromName}" <${fromEmail}>`,
+        to: recipient_email,
+        subject: `PNG Green Fee Voucher - ${voucherCode}`,
+        html: `
+          <h2>PNG Green Fee Voucher</h2>
+          <p>Dear Customer,</p>
+          <p>Please find attached your PNG Green Fee voucher.</p>
+          <p><strong>Voucher Code:</strong> ${voucherCode}</p>
+          ${voucher.passport_number ? `<p><strong>Passport:</strong> ${voucher.passport_number}</p>` : ''}
+          <p><strong>Amount:</strong> PGK ${parseFloat(voucher.amount || 0).toFixed(2)}</p>
+          <p>Please present this voucher at the airport.</p>
+          <p>Thank you,<br>PNG Green Fees Team</p>
+        `,
+        attachments: [{
+          filename: `voucher-${voucherCode}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }]
+      });
 
-    console.log(`Public voucher email sent to ${recipient_email} for ${voucherCode}`);
+      console.log(`✅ Public voucher email sent to ${recipient_email} for ${voucherCode}`);
 
-    res.json({
-      success: true,
-      message: `Voucher emailed successfully to ${recipient_email}`
-    });
+      res.json({
+        success: true,
+        message: `Voucher emailed successfully to ${recipient_email}`
+      });
+
+    } catch (emailError) {
+      console.error(`❌ Email failed: ${emailError.message}`);
+      console.error('SMTP Config:', {
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
+        user: process.env.SMTP_USER ? 'configured' : 'missing',
+        from: fromEmail
+      });
+
+      return res.status(500).json({
+        error: 'Failed to send email',
+        details: emailError.message
+      });
+    }
 
   } catch (error) {
     console.error('Error emailing voucher:', error);
