@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Printer, Download, Mail } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import QRCode from 'qrcode';
+import JsBarcode from 'jsbarcode';
 import api from '@/lib/api/client';
 
 /**
@@ -21,7 +21,7 @@ const PublicRegistrationSuccess = () => {
   const { voucherCode } = useParams();
   const { toast } = useToast();
   const [voucher, setVoucher] = useState(null);
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [barcodeUrl, setBarcodeUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [emailAddress, setEmailAddress] = useState('');
@@ -40,16 +40,18 @@ const PublicRegistrationSuccess = () => {
       if (response.ok && data.voucher) {
         setVoucher(data.voucher);
 
-        // Generate QR code
-        const qr = await QRCode.toDataURL(voucherCode, {
-          width: 300,
-          margin: 2,
-          color: {
-            dark: '#047857',
-            light: '#FFFFFF'
-          }
+        // Generate barcode (like PDF)
+        const canvas = document.createElement('canvas');
+        JsBarcode(canvas, voucherCode, {
+          format: 'CODE128',
+          width: 2,
+          height: 80,
+          displayValue: false,
+          margin: 10,
+          background: '#ffffff',
+          lineColor: '#000000'
         });
-        setQrCodeUrl(qr);
+        setBarcodeUrl(canvas.toDataURL('image/png'));
       } else {
         console.error('Failed to load voucher:', data.error);
       }
@@ -254,14 +256,14 @@ const PublicRegistrationSuccess = () => {
           </CardHeader>
 
           <CardContent className="p-8 space-y-6">
-            {/* QR Code */}
+            {/* Barcode - matches PDF layout */}
             <div className="text-center">
-              {qrCodeUrl && (
-                <img src={qrCodeUrl} alt="Voucher QR Code" className="mx-auto" />
-              )}
-              <p className="mt-4 font-mono text-xl font-bold text-emerald-700">
+              <p className="mb-4 font-mono text-2xl font-bold text-emerald-700">
                 {voucherCode}
               </p>
+              {barcodeUrl && (
+                <img src={barcodeUrl} alt="Voucher Barcode" className="mx-auto max-w-md" />
+              )}
             </div>
 
             {/* Voucher Details */}
