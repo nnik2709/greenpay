@@ -128,7 +128,11 @@ export default function VoucherPrintPage() {
               <div className="grid grid-cols-3 gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => window.history.back()}
+                  onClick={() => {
+                    // Go back to passports/create page, keeping the success state
+                    // by not navigating - just close the print view
+                    window.history.back();
+                  }}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back

@@ -19,7 +19,11 @@ export default function IndividualPurchase() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const [step, setStep] = useState('create'); // 'create' | 'list' | 'wizard' | 'completion'
+  // Restore state from sessionStorage on mount
+  const [step, setStep] = useState(() => {
+    const saved = sessionStorage.getItem('individualPurchaseStep');
+    return saved || 'create';
+  });
   const [quantity, setQuantity] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [collectedAmount, setCollectedAmount] = useState(50);
@@ -28,20 +32,61 @@ export default function IndividualPurchase() {
   const [posApprovalCode, setPosApprovalCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [batchId, setBatchId] = useState(null);
-  const [vouchers, setVouchers] = useState([]);
+  const [batchId, setBatchId] = useState(() => {
+    const saved = sessionStorage.getItem('individualPurchaseBatchId');
+    return saved || null;
+  });
+  const [vouchers, setVouchers] = useState(() => {
+    const saved = sessionStorage.getItem('individualPurchaseVouchers');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   // Registration wizard state
-  const [wizardProgress, setWizardProgress] = useState({
-    currentIndex: 0,
-    registeredVouchers: new Set(), // Set of voucher IDs that have been registered
-    registeredData: {} // Map of voucherId -> { passportNumber, surname, givenName }
+  const [wizardProgress, setWizardProgress] = useState(() => {
+    const saved = sessionStorage.getItem('individualPurchaseWizardProgress');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        ...parsed,
+        registeredVouchers: new Set(parsed.registeredVouchersArray || [])
+      };
+    }
+    return {
+      currentIndex: 0,
+      registeredVouchers: new Set(),
+      registeredData: {}
+    };
   });
 
   // Controlled inputs for passport fields in wizard
   const [passportNumber, setPassportNumber] = useState('');
   const [surname, setSurname] = useState('');
   const [givenName, setGivenName] = useState('');
+
+  // Save state to sessionStorage whenever it changes
+  useEffect(() => {
+    sessionStorage.setItem('individualPurchaseStep', step);
+  }, [step]);
+
+  useEffect(() => {
+    if (batchId) {
+      sessionStorage.setItem('individualPurchaseBatchId', batchId);
+    }
+  }, [batchId]);
+
+  useEffect(() => {
+    if (vouchers.length > 0) {
+      sessionStorage.setItem('individualPurchaseVouchers', JSON.stringify(vouchers));
+    }
+  }, [vouchers]);
+
+  useEffect(() => {
+    const toSave = {
+      ...wizardProgress,
+      registeredVouchersArray: Array.from(wizardProgress.registeredVouchers)
+    };
+    sessionStorage.setItem('individualPurchaseWizardProgress', JSON.stringify(toSave));
+  }, [wizardProgress]);
 
   // MRZ Scanner integration - WebSerial (real USB connection)
   const scanner = useWebSerial({
@@ -378,6 +423,10 @@ export default function IndividualPurchase() {
                 variant="outline"
                 onClick={() => {
                   // Reset everything
+                  sessionStorage.removeItem('individualPurchaseStep');
+                  sessionStorage.removeItem('individualPurchaseBatchId');
+                  sessionStorage.removeItem('individualPurchaseVouchers');
+                  sessionStorage.removeItem('individualPurchaseWizardProgress');
                   setStep('create');
                   setVouchers([]);
                   setBatchId(null);
