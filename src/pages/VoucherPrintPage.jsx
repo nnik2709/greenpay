@@ -125,18 +125,25 @@ export default function VoucherPrintPage() {
                 </p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="grid grid-cols-3 gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(-1)}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
                 <Button
                   onClick={handlePrint}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  className="bg-green-600 hover:bg-green-700"
                   size="lg"
                 >
                   <Printer className="w-5 h-5 mr-2" />
-                  Print All Vouchers
+                  Print All
                 </Button>
                 <Button
                   onClick={() => navigate('/app/passports/create')}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700"
                   size="lg"
                 >
                   New Transaction
@@ -216,26 +223,26 @@ export default function VoucherPrintPage() {
               Foreign Passport Holder
             </div>
 
-            {/* Voucher Details - Left aligned, matches thermal print */}
-            <div style={{ marginBottom: '4mm', lineHeight: '1.8', fontSize: '11px' }}>
+            {/* Voucher Details - Matches PDF exactly */}
+            <div style={{ marginBottom: '4mm', lineHeight: '1.6', fontSize: '11px' }}>
               <div style={{ marginBottom: '1mm' }}>
-                <span>Travel Document</span>
-                <span style={{ fontWeight: 'bold', marginLeft: '10mm' }}>{voucher.passport_number || 'N/A'}</span>
+                <span>Travel Document </span>
+                <span style={{ fontWeight: 'bold' }}>{voucher.passport_number || 'N/A'}</span>
               </div>
-              <div style={{ marginBottom: '1mm' }}>
+              <div style={{ marginBottom: '2mm' }}>
                 <span>Number</span>
               </div>
               <div style={{ marginBottom: '1mm' }}>
-                <span>Coupon Number:</span>
-                <span style={{ fontWeight: 'bold', marginLeft: '3mm' }}>{voucher.voucher_code}</span>
+                <span>Coupon Number: </span>
+                <span style={{ fontWeight: 'bold' }}>{voucher.voucher_code}</span>
               </div>
               <div style={{ marginBottom: '1mm' }}>
-                <span>Bill Amount:</span>
-                <span style={{ fontWeight: 'bold', marginLeft: '3mm' }}>K50.00</span>
+                <span>Bill Amount: </span>
+                <span style={{ fontWeight: 'bold' }}>K50.00</span>
               </div>
               <div style={{ marginBottom: '1mm' }}>
-                <span>Payment Mode:</span>
-                <span style={{ fontWeight: 'bold', marginLeft: '3mm' }}>{voucher.payment_method || 'CASH'}</span>
+                <span>Payment Mode: </span>
+                <span style={{ fontWeight: 'bold' }}>{voucher.payment_method || 'CASH'}</span>
               </div>
             </div>
 
@@ -257,22 +264,22 @@ export default function VoucherPrintPage() {
               </div>
             )}
 
-            {/* Footer - Left aligned */}
+            {/* Footer - Matches PDF exactly */}
             <div style={{
               marginTop: '5mm',
               paddingTop: '3mm',
               borderTop: '1px dashed #999',
               fontSize: '10px',
-              lineHeight: '1.6'
+              lineHeight: '1.5'
             }}>
               <div>GENERAL</div>
-              <div>COUNTER: <span style={{ marginLeft: '10mm' }}>{voucher.created_by_name || 'Agent'}</span></div>
+              <div>COUNTER: {voucher.created_by_name || 'Agent'}</div>
               <div>
                 {new Date(voucher.created_at || new Date()).toLocaleDateString('en-GB', {
                   day: '2-digit',
                   month: '2-digit',
                   year: 'numeric'
-                }).replace(/\//g, '/')} {new Date(voucher.created_at || new Date()).toLocaleTimeString('en-US', {
+                })} {new Date(voucher.created_at || new Date()).toLocaleTimeString('en-GB', {
                   hour: '2-digit',
                   minute: '2-digit',
                   hour12: false
