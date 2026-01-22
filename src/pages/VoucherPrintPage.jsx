@@ -206,7 +206,28 @@ export default function VoucherPrintPage() {
               fontSize: '11px'
             }}
           >
-            {/* GREEN CARD Header - simple text, no logo */}
+            {/* CCDA Logo - centered at top */}
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '3mm',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}>
+              <img
+                src="/ccda-logo.png"
+                alt="CCDA"
+                style={{
+                  height: '15mm',
+                  width: 'auto',
+                  objectFit: 'contain',
+                  display: 'block',
+                  margin: '0 auto'
+                }}
+              />
+            </div>
+
+            {/* GREEN CARD Header */}
             <div style={{
               textAlign: 'center',
               fontWeight: 'normal',
