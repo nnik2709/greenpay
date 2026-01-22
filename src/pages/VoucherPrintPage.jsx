@@ -197,29 +197,26 @@ export default function VoucherPrintPage() {
               alignItems: 'center',
               marginBottom: '3mm'
             }}>
-              <div style={{
-                width: '25mm',
-                height: '15mm',
-                border: '1px solid #000',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '8px'
-              }}>
-                [CCDA]
-              </div>
-              <div style={{
-                width: '25mm',
-                height: '15mm',
-                border: '1px solid #000',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '8px'
-              }}>
-                [PNG Emblem]
-              </div>
+              <img
+                src="/assets/logos/ccda-logo.png"
+                alt="CCDA Logo"
+                style={{
+                  width: '25mm',
+                  height: 'auto',
+                  maxHeight: '15mm',
+                  objectFit: 'contain'
+                }}
+              />
+              <img
+                src="/assets/logos/png-emblem.png"
+                alt="PNG Emblem"
+                style={{
+                  width: '25mm',
+                  height: 'auto',
+                  maxHeight: '15mm',
+                  objectFit: 'contain'
+                }}
+              />
             </div>
 
             {/* GREEN CARD Header */}
