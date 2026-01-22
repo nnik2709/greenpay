@@ -592,16 +592,14 @@ router.post('/register-passport', async (req, res) => {
     const updateQuery = `
       UPDATE individual_purchases
       SET passport_number = $1,
-          customer_name = $2,
-          passport_id = $3
-      WHERE voucher_code = $4
+          customer_name = $2
+      WHERE voucher_code = $3
       RETURNING *
     `;
 
     const updateValues = [
       upperPassportNumber,
       customerName,
-      passportId,
       voucherCode
     ];
 

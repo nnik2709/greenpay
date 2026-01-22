@@ -6,10 +6,11 @@
 
 ## Issues Fixed
 
-1. ✅ **Passport registration 500 error** - column "sex" doesn't exist in database
-2. ✅ **Print All 404 error** - missing `/api/vouchers/code/:voucherCode` endpoint
-3. ✅ **Wizard completion bug** - fixed auto-advance after last scan
-4. 🔍 **Thermal receipt logos** - added diagnostic logging to find root cause
+1. ✅ **Passport registration 500 error** - column "sex" doesn't exist in database (FIXED in SELECT)
+2. ✅ **Passport registration 500 error** - column "passport_id" doesn't exist (FIXED in UPDATE)
+3. ✅ **Print All 404 error** - missing `/api/vouchers/code/:voucherCode` endpoint
+4. ✅ **Wizard completion bug** - fixed auto-advance after last scan
+5. 🔍 **Thermal receipt logos** - added diagnostic logging to find root cause
 
 ## Files to Upload via CloudPanel
 
@@ -94,9 +95,11 @@ You should see the newly scanned passports.
 ## What Each File Does
 
 ### public-purchases.js
-- **CRITICAL FIX**: Removed 'sex' column from passport INSERT
-- Production database table doesn't have this column
-- Was causing all registrations to fail
+- **CRITICAL FIX #1**: Removed 'sex' column from passport SELECT query (line 549)
+- **CRITICAL FIX #2**: Removed 'sex' column from passport INSERT (lines 566-577)
+- **CRITICAL FIX #3**: Removed 'passport_id' column from voucher UPDATE (lines 592-606)
+- Production database tables don't have these columns
+- Was causing all passport registrations to fail with 500 errors
 
 ### vouchers.js
 - Added `/api/vouchers/code/:voucherCode` endpoint
