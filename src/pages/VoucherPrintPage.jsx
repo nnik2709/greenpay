@@ -43,13 +43,18 @@ export default function VoucherPrintPage() {
     try {
       setLoading(true);
 
+      console.log('Loading vouchers:', codes);
+
       // Fetch all vouchers
       const promises = codes.map(code =>
         api.get(`/vouchers/code/${code}`)
       );
 
       const results = await Promise.all(promises);
+      console.log('Voucher results:', results);
+
       const loadedVouchers = results.filter(r => r.voucher).map(r => r.voucher);
+      console.log('Loaded vouchers:', loadedVouchers);
 
       setVouchers(loadedVouchers);
 
