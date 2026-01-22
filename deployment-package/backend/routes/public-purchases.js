@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { Pool } = require('pg');
+const JsBarcode = require('jsbarcode');
+const { createCanvas } = require('canvas');
 const PaymentGatewayFactory = require('../services/payment-gateways/PaymentGatewayFactory');
 const { sendVoucherNotification } = require('../services/notificationService');
 const voucherConfig = require('../config/voucherConfig');
@@ -14,6 +16,30 @@ const pool = new Pool({
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD,
 });
+
+/**
+ * Generate barcode as data URL
+ * Inline function - same as buy-online.js
+ */
+function generateBarcodeDataURL(code) {
+  try {
+    const canvas = createCanvas(400, 120);
+    JsBarcode(canvas, code, {
+      format: 'CODE128',
+      width: 2,
+      height: 60,
+      displayValue: true,
+      fontSize: 16,
+      margin: 10,
+      background: '#ffffff',
+      lineColor: '#000000'
+    });
+    return canvas.toDataURL('image/png');
+  } catch (error) {
+    console.error('Barcode generation error:', error);
+    return null;
+  }
+}
 
 /**
  * PUBLIC PURCHASE ROUTES
@@ -725,8 +751,7 @@ router.get('/voucher/:voucherCode', async (req, res) => {
         p.full_name,
         p.nationality,
         p.date_of_birth,
-        p.expiry_date,
-        p.gender
+        p.expiry_date
       FROM individual_purchases ip
       LEFT JOIN passports p ON ip.passport_number = p.passport_number
       WHERE ip.voucher_code = $1
@@ -754,8 +779,7 @@ router.get('/voucher/:voucherCode', async (req, res) => {
           full_name: voucher.full_name,
           nationality: voucher.nationality,
           date_of_birth: voucher.date_of_birth,
-          expiry_date: voucher.expiry_date,
-          gender: voucher.gender
+          expiry_date: voucher.expiry_date
         } : null
       }
     });
@@ -1143,8 +1167,7 @@ router.get('/voucher/:voucherCode/pdf', async (req, res) => {
 
     const voucher = result.rows[0];
 
-    // Generate barcode - SAME as buy-online.js
-    const { generateBarcodeDataURL } = require('../utils/barcodeGenerator');
+    // Generate barcode using inline function
     const barcodeDataUrl = generateBarcodeDataURL(voucher.voucher_code);
 
     const voucherWithBarcode = {
@@ -1207,8 +1230,7 @@ router.post('/voucher/:voucherCode/email', async (req, res) => {
 
     const voucher = result.rows[0];
 
-    // Generate barcode - SAME as buy-online.js
-    const { generateBarcodeDataURL } = require('../utils/barcodeGenerator');
+    // Generate barcode using inline function
     const barcodeDataUrl = generateBarcodeDataURL(voucher.voucher_code);
 
     const voucherWithBarcode = {
