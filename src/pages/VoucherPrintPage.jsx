@@ -135,7 +135,7 @@ export default function VoucherPrintPage() {
                   Print All Vouchers
                 </Button>
                 <Button
-                  onClick={() => navigate('/app/individual-purchase')}
+                  onClick={() => navigate('/app/passports/create')}
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
                   size="lg"
                 >
