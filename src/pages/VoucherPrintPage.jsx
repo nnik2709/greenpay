@@ -202,44 +202,31 @@ export default function VoucherPrintPage() {
               fontSize: '11px'
             }}
           >
-            {/* Two logos side by side - CCDA and PNG Emblem */}
+            {/* CCDA Logo - centered, optimized for thermal printer */}
             <div style={{
-              display: 'flex',
-              justifyContent: 'space-around',
-              alignItems: 'center',
-              marginBottom: '4mm',
-              padding: '0 10mm'
+              textAlign: 'center',
+              marginBottom: '3mm'
             }}>
               <img
                 src="/ccda-logo.png"
                 alt="CCDA"
                 style={{
-                  height: '18mm',
-                  width: 'auto',
-                  objectFit: 'contain'
-                }}
-              />
-              <img
-                src="/png-emblem.png"
-                alt="PNG"
-                style={{
-                  height: '18mm',
+                  height: '15mm',
                   width: 'auto',
                   objectFit: 'contain'
                 }}
               />
             </div>
 
-            {/* GREEN CARD Header - Gray text, no background */}
+            {/* GREEN CARD Header - matches thermal print exactly */}
             <div style={{
               textAlign: 'center',
               fontWeight: 'normal',
               fontSize: '14px',
-              letterSpacing: '8px',
-              marginBottom: '4mm',
-              color: '#999999'
+              letterSpacing: '4px',
+              marginBottom: '3mm'
             }}>
-              GREEN CARD
+              G R E E N &nbsp; C A R D
             </div>
 
             {/* Subtitle */}
