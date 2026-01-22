@@ -4,7 +4,10 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Printer, Download } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Printer, Download, Mail } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 import QRCode from 'qrcode';
 import api from '@/lib/api/client';
 
@@ -15,9 +18,12 @@ import api from '@/lib/api/client';
 
 const PublicRegistrationSuccess = () => {
   const { voucherCode } = useParams();
+  const { toast } = useToast();
   const [voucher, setVoucher] = useState(null);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [loading, setLoading] = useState(true);
+  const [emailAddress, setEmailAddress] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     loadVoucherDetails();
@@ -74,6 +80,44 @@ const PublicRegistrationSuccess = () => {
       console.error('Error downloading voucher:', error);
       // Fallback to print
       handlePrint();
+    }
+  };
+
+  const handleEmailVoucher = async () => {
+    // Validate email
+    if (!emailAddress || !emailAddress.includes('@')) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Email',
+        description: 'Please enter a valid email address'
+      });
+      return;
+    }
+
+    try {
+      setSendingEmail(true);
+
+      await api.post(`/vouchers/${voucherCode}/email`, {
+        recipient_email: emailAddress
+      });
+
+      toast({
+        title: 'Email Sent',
+        description: `Voucher has been sent to ${emailAddress}`,
+        className: 'bg-green-50 border-green-200'
+      });
+
+      // Clear email field after successful send
+      setEmailAddress('');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Email Failed',
+        description: error.response?.data?.error || 'Failed to send email. Please try again.'
+      });
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -209,8 +253,42 @@ const PublicRegistrationSuccess = () => {
               </AlertDescription>
             </Alert>
 
+            {/* Email Section */}
+            <div className="border-t border-emerald-100 pt-4">
+              <Label htmlFor="email-address" className="text-sm font-semibold text-emerald-800 mb-2 block">
+                Email Voucher
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="email-address"
+                  type="email"
+                  placeholder="Enter email address"
+                  value={emailAddress}
+                  onChange={(e) => setEmailAddress(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !sendingEmail) {
+                      handleEmailVoucher();
+                    }
+                  }}
+                  className="flex-1"
+                  disabled={sendingEmail}
+                />
+                <Button
+                  onClick={handleEmailVoucher}
+                  disabled={sendingEmail || !emailAddress}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  {sendingEmail ? 'Sending...' : 'Send'}
+                </Button>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                The voucher will be sent as a PDF attachment
+              </p>
+            </div>
+
             {/* Action Buttons */}
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-3 pt-4">
               <Button
                 onClick={handlePrint}
                 variant="outline"
@@ -218,11 +296,12 @@ const PublicRegistrationSuccess = () => {
                 data-testid="public-reg-print"
               >
                 <Printer className="w-4 h-4 mr-2" />
-                Print Voucher
+                Print
               </Button>
               <Button
                 onClick={handleDownload}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                variant="outline"
+                className="flex-1"
                 data-testid="public-reg-download"
               >
                 <Download className="w-4 h-4 mr-2" />
