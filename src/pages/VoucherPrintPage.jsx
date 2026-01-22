@@ -202,32 +202,42 @@ export default function VoucherPrintPage() {
               fontSize: '11px'
             }}
           >
-            {/* CCDA Logo - centered at top */}
+            {/* Two logos side by side - CCDA and PNG Emblem */}
             <div style={{
-              textAlign: 'center',
-              marginBottom: '4mm'
+              display: 'flex',
+              justifyContent: 'space-around',
+              alignItems: 'center',
+              marginBottom: '4mm',
+              padding: '0 10mm'
             }}>
               <img
                 src="/ccda-logo.png"
                 alt="CCDA"
                 style={{
-                  height: '20mm',
+                  height: '18mm',
+                  width: 'auto',
+                  objectFit: 'contain'
+                }}
+              />
+              <img
+                src="/png-emblem.png"
+                alt="PNG"
+                style={{
+                  height: '18mm',
                   width: 'auto',
                   objectFit: 'contain'
                 }}
               />
             </div>
 
-            {/* GREEN CARD Header - Black background with white text */}
+            {/* GREEN CARD Header - Gray text, no background */}
             <div style={{
               textAlign: 'center',
-              fontWeight: 'bold',
-              fontSize: '16px',
-              letterSpacing: '3px',
-              marginBottom: '3mm',
-              backgroundColor: '#000000',
-              color: '#ffffff',
-              padding: '2mm 0'
+              fontWeight: 'normal',
+              fontSize: '14px',
+              letterSpacing: '8px',
+              marginBottom: '4mm',
+              color: '#999999'
             }}>
               GREEN CARD
             </div>
