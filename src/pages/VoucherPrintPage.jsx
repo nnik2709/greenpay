@@ -190,10 +190,10 @@ export default function VoucherPrintPage() {
               fontSize: '11px'
             }}
           >
-            {/* Logos - Two side by side */}
+            {/* Logo - CCDA centered */}
             <div style={{
               display: 'flex',
-              justifyContent: 'space-around',
+              justifyContent: 'center',
               alignItems: 'center',
               marginBottom: '3mm'
             }}>
@@ -201,19 +201,9 @@ export default function VoucherPrintPage() {
                 src="/assets/logos/ccda-logo.png"
                 alt="CCDA Logo"
                 style={{
-                  width: '25mm',
+                  width: '30mm',
                   height: 'auto',
-                  maxHeight: '15mm',
-                  objectFit: 'contain'
-                }}
-              />
-              <img
-                src="/assets/logos/png-emblem.png"
-                alt="PNG Emblem"
-                style={{
-                  width: '25mm',
-                  height: 'auto',
-                  maxHeight: '15mm',
+                  maxHeight: '18mm',
                   objectFit: 'contain'
                 }}
               />

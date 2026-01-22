@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Printer, Download, Mail } from 'lucide-react';
@@ -22,6 +23,7 @@ const PublicRegistrationSuccess = () => {
   const [voucher, setVoucher] = useState(null);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [emailAddress, setEmailAddress] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
 
@@ -107,7 +109,8 @@ const PublicRegistrationSuccess = () => {
         className: 'bg-green-50 border-green-200'
       });
 
-      // Clear email field after successful send
+      // Close dialog and clear email field
+      setShowEmailDialog(false);
       setEmailAddress('');
     } catch (error) {
       console.error('Error sending email:', error);
@@ -253,59 +256,39 @@ const PublicRegistrationSuccess = () => {
               </AlertDescription>
             </Alert>
 
-            {/* Email Section */}
-            <div className="border-t border-emerald-100 pt-4">
-              <Label htmlFor="email-address" className="text-sm font-semibold text-emerald-800 mb-2 block">
-                Email Voucher
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="email-address"
-                  type="email"
-                  placeholder="Enter email address"
-                  value={emailAddress}
-                  onChange={(e) => setEmailAddress(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !sendingEmail) {
-                      handleEmailVoucher();
-                    }
-                  }}
-                  className="flex-1"
-                  disabled={sendingEmail}
-                />
-                <Button
-                  onClick={handleEmailVoucher}
-                  disabled={sendingEmail || !emailAddress}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  {sendingEmail ? 'Sending...' : 'Send'}
-                </Button>
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                The voucher will be sent as a PDF attachment
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
+            {/* Action Buttons - 2x2 Grid like PaymentSuccess */}
+            <div className="grid grid-cols-2 gap-3 pt-4">
+              <Button
+                onClick={handleDownload}
+                variant="outline"
+                className="border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                data-testid="public-reg-download"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download PDF
+              </Button>
               <Button
                 onClick={handlePrint}
                 variant="outline"
-                className="flex-1"
+                className="border-emerald-600 text-emerald-700 hover:bg-emerald-50"
                 data-testid="public-reg-print"
               >
                 <Printer className="w-4 h-4 mr-2" />
                 Print
               </Button>
               <Button
-                onClick={handleDownload}
+                onClick={() => setShowEmailDialog(true)}
                 variant="outline"
-                className="flex-1"
-                data-testid="public-reg-download"
+                className="border-blue-600 text-blue-700 hover:bg-blue-50"
               >
-                <Download className="w-4 h-4 mr-2" />
-                Download
+                <Mail className="w-4 h-4 mr-2" />
+                Email Voucher
+              </Button>
+              <Button
+                onClick={() => window.location.href = '/'}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                Return to Home
               </Button>
             </div>
           </CardContent>
@@ -320,6 +303,56 @@ const PublicRegistrationSuccess = () => {
           </p>
         </div>
       </motion.div>
+
+      {/* Email Dialog - Matches PaymentSuccess pattern */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Email Voucher</DialogTitle>
+            <DialogDescription>
+              Send your voucher as a PDF attachment to any email address
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your.email@example.com"
+                value={emailAddress}
+                onChange={(e) => setEmailAddress(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !sendingEmail) {
+                    handleEmailVoucher();
+                  }
+                }}
+                disabled={sendingEmail}
+              />
+              <p className="text-xs text-slate-500">
+                The voucher will be sent as a PDF attachment
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowEmailDialog(false)}
+                variant="outline"
+                className="flex-1"
+                disabled={sendingEmail}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleEmailVoucher}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                disabled={sendingEmail || !emailAddress}
+              >
+                {sendingEmail ? 'Sending...' : 'Send Email'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
