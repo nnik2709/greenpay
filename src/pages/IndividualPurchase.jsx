@@ -442,7 +442,7 @@ export default function IndividualPurchase() {
               >
                 Create More Vouchers
               </Button>
-              <Button onClick={() => navigate('/app/dashboard')}>
+              <Button onClick={() => navigate('/app/agent')}>
                 Return to Dashboard
               </Button>
             </div>
