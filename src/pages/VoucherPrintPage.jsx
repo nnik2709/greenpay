@@ -202,34 +202,14 @@ export default function VoucherPrintPage() {
               fontSize: '11px'
             }}
           >
-            {/* CCDA Logo - centered, optimized for thermal printer */}
-            <div style={{
-              textAlign: 'center',
-              marginBottom: '3mm',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center'
-            }}>
-              <img
-                src="/ccda-logo.png"
-                alt="CCDA"
-                style={{
-                  height: '15mm',
-                  width: 'auto',
-                  objectFit: 'contain',
-                  display: 'block',
-                  margin: '0 auto'
-                }}
-              />
-            </div>
-
-            {/* GREEN CARD Header - matches thermal print exactly */}
+            {/* GREEN CARD Header - simple text, no logo */}
             <div style={{
               textAlign: 'center',
               fontWeight: 'normal',
-              fontSize: '14px',
-              letterSpacing: '4px',
-              marginBottom: '3mm'
+              fontSize: '12px',
+              letterSpacing: '3px',
+              marginBottom: '2mm',
+              color: '#000000'
             }}>
               G R E E N &nbsp; C A R D
             </div>
@@ -245,25 +225,25 @@ export default function VoucherPrintPage() {
             </div>
 
             {/* Voucher Details - Matches PDF exactly */}
-            <div style={{ marginBottom: '4mm', lineHeight: '1.6', fontSize: '11px' }}>
+            <div style={{ marginBottom: '4mm', lineHeight: '1.6', fontSize: '11px', color: '#000000' }}>
               <div style={{ marginBottom: '1mm' }}>
                 <span>Travel Document </span>
-                <span style={{ fontWeight: 'bold' }}>{voucher.passport_number || 'N/A'}</span>
+                <span style={{ fontWeight: 'bold', color: '#000000' }}>{voucher.passport_number || 'N/A'}</span>
               </div>
               <div style={{ marginBottom: '2mm' }}>
                 <span>Number</span>
               </div>
               <div style={{ marginBottom: '1mm' }}>
                 <span>Coupon Number: </span>
-                <span style={{ fontWeight: 'bold' }}>{voucher.voucher_code}</span>
+                <span style={{ fontWeight: 'bold', color: '#000000' }}>{voucher.voucher_code}</span>
               </div>
               <div style={{ marginBottom: '1mm' }}>
                 <span>Bill Amount: </span>
-                <span style={{ fontWeight: 'bold' }}>K50.00</span>
+                <span style={{ fontWeight: 'bold', color: '#000000' }}>K50.00</span>
               </div>
               <div style={{ marginBottom: '1mm' }}>
                 <span>Payment Mode: </span>
-                <span style={{ fontWeight: 'bold' }}>{voucher.payment_method || 'CASH'}</span>
+                <span style={{ fontWeight: 'bold', color: '#000000' }}>{voucher.payment_method || 'CASH'}</span>
               </div>
             </div>
 
@@ -291,7 +271,8 @@ export default function VoucherPrintPage() {
               paddingTop: '3mm',
               borderTop: '1px dashed #999',
               fontSize: '10px',
-              lineHeight: '1.5'
+              lineHeight: '1.5',
+              color: '#000000'
             }}>
               <div>GENERAL</div>
               <div>COUNTER: {voucher.created_by_name || 'Agent'}</div>
@@ -313,7 +294,8 @@ export default function VoucherPrintPage() {
               textAlign: 'center',
               marginTop: '4mm',
               fontSize: '9px',
-              fontStyle: 'italic'
+              fontStyle: 'italic',
+              color: '#000000'
             }}>
               GO GREEN PNG
             </div>
