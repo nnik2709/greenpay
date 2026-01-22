@@ -31,7 +31,7 @@ export default function VoucherPrintPage() {
         title: 'No Vouchers',
         description: 'No voucher codes provided'
       });
-      navigate('/app/individual-purchase');
+      navigate('/app/passports/create');
       return;
     }
 
@@ -128,7 +128,7 @@ export default function VoucherPrintPage() {
               <div className="grid grid-cols-3 gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => navigate(-1)}
+                  onClick={() => window.history.back()}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back
