@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { Printer } from 'lucide-react';
 import api from '@/lib/api/client';
 import { useWebSerial } from '@/hooks/useWebSerial';
 import { ScannerStatusFull } from '@/components/ScannerStatus';
@@ -309,96 +310,36 @@ export default function IndividualPurchase() {
                     const data = wizardProgress.registeredData[v.id];
                     return (
                       <Card key={v.id} className="p-4 border-green-300">
-                        <div className="flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
                           <div>
                             <p className="font-mono font-bold text-lg">{v.voucherCode}</p>
                             <p className="text-sm text-gray-600">
-                              Passport: {data?.passportNumber} | {data?.surname}, {data?.givenName}
+                              {data?.passportNumber} | {data?.surname}, {data?.givenName}
                             </p>
                           </div>
-                          <div className="flex gap-2 flex-wrap">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/app/voucher-registration?code=${v.voucherCode}`)}
-                            >
-                              View Details
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={async () => {
-                                try {
-                                  const response = await api.get(`/vouchers/pdf/${v.voucherCode}`);
-                                  if (response.pdfUrl) {
-                                    window.open(response.pdfUrl, '_blank');
-                                  }
-                                } catch (error) {
-                                  toast({
-                                    variant: 'destructive',
-                                    title: 'Error',
-                                    description: 'Failed to generate PDF'
-                                  });
-                                }
-                              }}
-                            >
-                              Print PDF
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={async () => {
-                                try {
-                                  const email = customerEmail || prompt('Enter email address:');
-                                  if (!email) return;
-
-                                  await api.post(`/vouchers/${v.voucherCode}/email`, { recipient_email: email });
-                                  toast({
-                                    title: 'Email Sent',
-                                    description: `Voucher sent to ${email}`
-                                  });
-                                } catch (error) {
-                                  toast({
-                                    variant: 'destructive',
-                                    title: 'Error',
-                                    description: error.response?.data?.message || 'Failed to send email'
-                                  });
-                                }
-                              }}
-                            >
-                              Email
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={async () => {
-                                try {
-                                  const response = await api.get(`/vouchers/pdf/${v.voucherCode}`, {
-                                    responseType: 'blob'
-                                  });
-                                  const blob = new Blob([response], { type: 'application/pdf' });
-                                  const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = `voucher-${v.voucherCode}.pdf`;
-                                  a.click();
-                                  window.URL.revokeObjectURL(url);
-                                } catch (error) {
-                                  toast({
-                                    variant: 'destructive',
-                                    title: 'Error',
-                                    description: 'Failed to download PDF'
-                                  });
-                                }
-                              }}
-                            >
-                              Download
-                            </Button>
+                          <div className="text-green-600">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
                           </div>
                         </div>
                       </Card>
                     );
                   })}
+                </div>
+
+                {/* Print All Button */}
+                <div className="mt-6">
+                  <Button
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    onClick={() => {
+                      const voucherCodes = registeredVouchers.map(v => v.voucherCode).join(',');
+                      navigate(`/app/voucher-print?codes=${voucherCodes}`);
+                    }}
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Print All ({registeredVouchers.length})
+                  </Button>
                 </div>
               </div>
             )}
