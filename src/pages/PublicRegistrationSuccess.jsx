@@ -4,7 +4,9 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Printer, Download } from 'lucide-react';
 import QRCode from 'qrcode';
+import api from '@/lib/api/client';
 
 /**
  * Public Registration Success Page
@@ -23,31 +25,13 @@ const PublicRegistrationSuccess = () => {
 
   const loadVoucherDetails = async () => {
     try {
-      // Try individual purchases first
-      let { data, error } = await supabase
-        .from('individual_purchases')
-        .select('*, passports(*)')
-        .eq('voucher_code', voucherCode)
-        .maybeSingle();
+      // Fetch voucher with passport data
+      const response = await api.get(`/vouchers/code/${voucherCode}`);
 
-      if (error) throw error;
+      if (response && response.voucher) {
+        setVoucher(response.voucher);
 
-      if (!data) {
-        // Try corporate vouchers
-        const result = await supabase
-          .from('corporate_vouchers')
-          .select('*, passports(*)')
-          .eq('voucher_code', voucherCode)
-          .maybeSingle();
-
-        if (result.error) throw result.error;
-        data = result.data;
-      }
-
-      setVoucher(data);
-
-      // Generate QR code
-      if (data) {
+        // Generate QR code
         const qr = await QRCode.toDataURL(voucherCode, {
           width: 300,
           margin: 2,
@@ -70,17 +54,26 @@ const PublicRegistrationSuccess = () => {
   };
 
   const handleDownload = async () => {
-    // Create a simple voucher document
-    const printContent = document.getElementById('voucher-content');
-    if (printContent) {
-      const printWindow = window.open('', '', 'height=600,width=800');
-      printWindow.document.write('<html><head><title>Voucher</title>');
-      printWindow.document.write('<style>body{font-family:Arial;padding:20px;}</style>');
-      printWindow.document.write('</head><body>');
-      printWindow.document.write(printContent.innerHTML);
-      printWindow.document.write('</body></html>');
-      printWindow.document.close();
-      printWindow.print();
+    try {
+      // Create voucher image from current page content
+      const voucherContent = document.getElementById('voucher-content');
+      if (!voucherContent) return;
+
+      // Use html2canvas if available, otherwise fallback to print
+      if (window.html2canvas) {
+        const canvas = await window.html2canvas(voucherContent);
+        const link = document.createElement('a');
+        link.download = `voucher-${voucherCode}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+      } else {
+        // Fallback to print dialog
+        handlePrint();
+      }
+    } catch (error) {
+      console.error('Error downloading voucher:', error);
+      // Fallback to print
+      handlePrint();
     }
   };
 
@@ -106,10 +99,24 @@ const PublicRegistrationSuccess = () => {
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
           >
-            <div className="text-8xl mb-4">✓</div>
+            <div className="w-24 h-24 bg-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-12 h-12 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
           </motion.div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
-            Registration Successful!
+            Registration Successful
           </h1>
           <p className="text-slate-600 text-lg">
             Your passport has been successfully registered with your exit pass voucher.
@@ -136,7 +143,7 @@ const PublicRegistrationSuccess = () => {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-slate-500">Passport Number:</p>
-                <p className="font-semibold">{voucher?.passport_number}</p>
+                <p className="font-semibold">{voucher?.passport_number || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-slate-500">Value:</p>
@@ -144,38 +151,46 @@ const PublicRegistrationSuccess = () => {
               </div>
               <div>
                 <p className="text-slate-500">Valid From:</p>
-                <p className="font-semibold">{new Date(voucher?.valid_from).toLocaleDateString()}</p>
+                <p className="font-semibold">
+                  {voucher?.valid_from ? new Date(voucher.valid_from).toLocaleDateString() : 'N/A'}
+                </p>
               </div>
               <div>
                 <p className="text-slate-500">Valid Until:</p>
-                <p className="font-semibold">{new Date(voucher?.valid_until).toLocaleDateString()}</p>
+                <p className="font-semibold">
+                  {voucher?.valid_until ? new Date(voucher.valid_until).toLocaleDateString() : 'N/A'}
+                </p>
               </div>
             </div>
 
             {/* Passenger Details */}
-            {voucher?.passports && (
+            {voucher?.passport && (
               <div className="border-t border-emerald-100 pt-4">
                 <h3 className="font-semibold text-emerald-800 mb-3">Passenger Information</h3>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-slate-500">Name:</p>
-                    <p className="font-semibold">
-                      {voucher.passports.given_name} {voucher.passports.surname}
-                    </p>
+                    <p className="font-semibold">{voucher.passport.full_name || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-slate-500">Nationality:</p>
-                    <p className="font-semibold">{voucher.passports.nationality}</p>
+                    <p className="font-semibold">{voucher.passport.nationality || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-slate-500">Date of Birth:</p>
                     <p className="font-semibold">
-                      {new Date(voucher.passports.date_of_birth).toLocaleDateString()}
+                      {voucher.passport.date_of_birth
+                        ? new Date(voucher.passport.date_of_birth).toLocaleDateString()
+                        : 'N/A'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Sex:</p>
-                    <p className="font-semibold">{voucher.passports.sex}</p>
+                    <p className="text-slate-500">Passport Expiry:</p>
+                    <p className="font-semibold">
+                      {voucher.passport.expiry_date
+                        ? new Date(voucher.passport.expiry_date).toLocaleDateString()
+                        : 'N/A'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -189,7 +204,7 @@ const PublicRegistrationSuccess = () => {
                   <li>Keep this voucher safe until your departure</li>
                   <li>Present this voucher (printed or on mobile) at the airport</li>
                   <li>Have your passport ready for verification</li>
-                  <li>This voucher is valid until {new Date(voucher?.valid_until).toLocaleDateString()}</li>
+                  <li>This voucher is valid until {voucher?.valid_until ? new Date(voucher.valid_until).toLocaleDateString() : 'the expiry date'}</li>
                 </ul>
               </AlertDescription>
             </Alert>
@@ -202,14 +217,16 @@ const PublicRegistrationSuccess = () => {
                 className="flex-1"
                 data-testid="public-reg-print"
               >
-                🖨️ Print Voucher
+                <Printer className="w-4 h-4 mr-2" />
+                Print Voucher
               </Button>
               <Button
                 onClick={handleDownload}
                 className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                 data-testid="public-reg-download"
               >
-                📥 Download
+                <Download className="w-4 h-4 mr-2" />
+                Download
               </Button>
             </div>
           </CardContent>
@@ -229,4 +246,3 @@ const PublicRegistrationSuccess = () => {
 };
 
 export default PublicRegistrationSuccess;
-

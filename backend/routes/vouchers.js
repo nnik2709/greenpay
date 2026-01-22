@@ -1426,35 +1426,98 @@ router.post('/:voucherCode/email',
 /**
  * GET /api/vouchers/code/:voucherCode
  * Get voucher details by code (for print page)
+ * Includes passport data if available
  */
 router.get('/code/:voucherCode', auth, async (req, res) => {
   try {
     const { voucherCode } = req.params;
 
-    // Try individual purchases first
+    // Try individual purchases first (with passport JOIN)
     const individualResult = await db.query(
-      `SELECT * FROM individual_purchases WHERE voucher_code = $1`,
+      `SELECT ip.*,
+              p.id as passport_id,
+              p.passport_number as passport_passport_number,
+              p.full_name as passport_full_name,
+              p.nationality as passport_nationality,
+              p.date_of_birth as passport_date_of_birth,
+              p.expiry_date as passport_expiry_date
+       FROM individual_purchases ip
+       LEFT JOIN passports p ON ip.passport_number = p.passport_number
+       WHERE ip.voucher_code = $1`,
       [voucherCode]
     );
 
     if (individualResult.rows.length > 0) {
+      const row = individualResult.rows[0];
+      const voucher = { ...row };
+
+      // Extract passport data if exists
+      if (row.passport_id) {
+        voucher.passport = {
+          id: row.passport_id,
+          passport_number: row.passport_passport_number,
+          full_name: row.passport_full_name,
+          nationality: row.passport_nationality,
+          date_of_birth: row.passport_date_of_birth,
+          expiry_date: row.passport_expiry_date
+        };
+        // Remove passport_ prefixed fields from voucher root
+        delete voucher.passport_id;
+        delete voucher.passport_passport_number;
+        delete voucher.passport_full_name;
+        delete voucher.passport_nationality;
+        delete voucher.passport_date_of_birth;
+        delete voucher.passport_expiry_date;
+      }
+
       return res.json({
         success: true,
-        voucher: individualResult.rows[0],
+        voucher: voucher,
         type: 'individual'
       });
     }
 
-    // Try corporate vouchers
+    // Try corporate vouchers (with passport JOIN)
     const corporateResult = await db.query(
-      `SELECT * FROM corporate_vouchers WHERE voucher_code = $1`,
+      `SELECT cv.*,
+              p.id as passport_id,
+              p.passport_number as passport_passport_number,
+              p.full_name as passport_full_name,
+              p.nationality as passport_nationality,
+              p.date_of_birth as passport_date_of_birth,
+              p.expiry_date as passport_expiry_date
+       FROM corporate_vouchers cv
+       LEFT JOIN passports p ON cv.passport_number = p.passport_number
+       WHERE cv.voucher_code = $1`,
       [voucherCode]
     );
 
     if (corporateResult.rows.length > 0) {
+      const row = corporateResult.rows[0];
+      const voucher = { ...row };
+
+      // Extract passport data if exists
+      if (row.passport_id) {
+        voucher.passport = {
+          id: row.passport_id,
+          passport_number: row.passport_passport_number,
+          full_name: row.passport_full_name,
+          nationality: row.passport_nationality,
+          date_of_birth: row.passport_date_of_birth,
+          expiry_date: row.passport_expiry_date
+        };
+        // Remove passport_ prefixed fields from voucher root
+        delete voucher.passport_id;
+        delete voucher.passport_passport_number;
+        delete voucher.passport_full_name;
+        delete voucher.passport_nationality;
+        delete voucher.passport_date_of_birth;
+        delete voucher.passport_expiry_date;
+      }
+
       return res.json({
         success: true,
-        voucher: corporateResult.rows[0],
+        voucher: voucher,
         type: 'corporate'
       });
     }
