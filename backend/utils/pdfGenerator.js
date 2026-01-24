@@ -149,15 +149,15 @@ const generateVoucherPDFBuffer = async (vouchers, companyName) => {
           yPos = boxY + boxHeight + 30;
         } else {
           // UNREGISTERED - SHOW QR CODE + REGISTRATION LINK
-          yPos += 20;
+          yPos += 15;
 
-          // "Scan to Register" heading
-          doc.fontSize(18)
+          // "Scan to Register" heading (smaller)
+          doc.fontSize(14)
              .fillColor('#4CAF50')
-             .font('Helvetica')
+             .font('Helvetica-Bold')
              .text('Scan to Register Your Passport', margin, yPos, { width: contentWidth, align: 'center' });
 
-          yPos += 35;
+          yPos += 25;
 
           // Generate QR code for registration URL
           const registrationUrl = getRegistrationUrl(voucherCode);
@@ -175,103 +175,37 @@ const generateVoucherPDFBuffer = async (vouchers, companyName) => {
             const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
             const qrBuffer = Buffer.from(qrBase64, 'base64');
 
-            // Center the QR code
-            const qrSize = 150;
+            // Center the QR code (smaller size)
+            const qrSize = 120;
             const qrX = (pageWidth - qrSize) / 2;
 
             doc.image(qrBuffer, qrX, yPos, { width: qrSize, height: qrSize });
-            yPos += qrSize + 15;
+            yPos += qrSize + 10;
           } catch (err) {
             console.error('Error generating QR code:', err);
-            yPos += 15;
+            yPos += 10;
           }
 
-          // Instructions text
-          doc.fontSize(11)
+          // Compact registration instructions (no extra box, just text)
+          doc.fontSize(9)
              .fillColor('#666666')
              .font('Helvetica')
-             .text('Scan this QR code with your mobile device', margin, yPos, { width: contentWidth, align: 'center' });
+             .text('Scan QR code OR visit: ', margin, yPos, { width: contentWidth, align: 'center', continued: true })
+             .fillColor('#2196F3')
+             .text(registrationUrl, { link: registrationUrl, underline: true });
 
           yPos += 20;
-          doc.fontSize(11)
+
+          // Compact 3 options (single line each, no box)
+          doc.fontSize(8)
              .fillColor('#666666')
              .font('Helvetica')
-             .text('or visit:', margin, yPos, { width: contentWidth, align: 'center' });
-
-          yPos += 18;
-
-          // Registration URL as clickable link
-          doc.fontSize(9)
-             .fillColor('#2196F3')
-             .font('Helvetica')
-             .text(registrationUrl, margin, yPos, {
-               width: contentWidth,
-               align: 'center',
-               link: registrationUrl,
-               underline: true
+             .text('📱 Mobile: Scan QR  •  💻 Desktop: Visit URL  •  ✈️ Airport: Show voucher + passport', margin + 10, yPos, {
+               width: contentWidth - 20,
+               align: 'center'
              });
 
-          yPos += 35;
-
-          // Registration options box
-          const instructionsBoxY = yPos;
-          const instructionsBoxHeight = 90;
-
-          // Draw light gray box for instructions
-          doc.rect(margin + 20, instructionsBoxY, contentWidth - 40, instructionsBoxHeight)
-             .lineWidth(1)
-             .strokeColor('#DDDDDD')
-             .fillColor('#F9F9F9')
-             .fillAndStroke();
-
-          yPos = instructionsBoxY + 12;
-
-          // Title for registration options
-          doc.fontSize(12)
-             .fillColor('#4CAF50')
-             .font('Helvetica-Bold')
-             .text('How to Register:', margin, yPos, { width: contentWidth, align: 'center' });
-
-          yPos += 20;
-
-          // Option 1: Mobile
-          doc.fontSize(9)
-             .fillColor('#000000')
-             .font('Helvetica-Bold')
-             .text('1. Mobile:', margin + 35, yPos);
-
-          doc.fontSize(9)
-             .fillColor('#666666')
-             .font('Helvetica')
-             .text('Scan QR code with your phone', margin + 90, yPos);
-
-          yPos += 16;
-
-          // Option 2: Desktop
-          doc.fontSize(9)
-             .fillColor('#000000')
-             .font('Helvetica-Bold')
-             .text('2. Desktop:', margin + 35, yPos);
-
-          doc.fontSize(9)
-             .fillColor('#666666')
-             .font('Helvetica')
-             .text('Visit the URL above', margin + 90, yPos);
-
-          yPos += 16;
-
-          // Option 3: Airport Agent
-          doc.fontSize(9)
-             .fillColor('#000000')
-             .font('Helvetica-Bold')
-             .text('3. Airport:', margin + 35, yPos);
-
-          doc.fontSize(9)
-             .fillColor('#666666')
-             .font('Helvetica')
-             .text('Present this voucher + passport to agent', margin + 90, yPos);
-
-          yPos = instructionsBoxY + instructionsBoxHeight + 20;
+          yPos += 15;
         }
 
         // Footer with company name (if corporate), authorizing officer, and generation date
