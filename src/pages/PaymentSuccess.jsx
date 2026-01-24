@@ -356,14 +356,14 @@ const PaymentSuccess = () => {
                     </p>
                     {isRegistered ? (
                       <div className="mt-3 p-3 bg-emerald-50 border-l-4 border-emerald-500 rounded">
-                        <p className="text-sm font-semibold text-emerald-800 mb-1">✓ Passport Registered</p>
+                        <p className="text-sm font-semibold text-emerald-800 mb-1">Passport Registered</p>
                         <p className="text-xs text-emerald-700">
                           This voucher is ready to use. Present at the airport gate.
                         </p>
                       </div>
                     ) : (
                       <div className="mt-3 p-3 bg-red-50 border-l-4 border-red-500 rounded">
-                        <p className="text-sm font-semibold text-red-800 mb-1">⚠️ Registration Required</p>
+                        <p className="text-sm font-semibold text-red-800 mb-1">Registration Required</p>
                         <p className="text-xs text-red-700">
                           This voucher is NOT valid until you register your passport details.
                         </p>
@@ -416,7 +416,7 @@ const PaymentSuccess = () => {
                 {!isRegistered && vouchers.length === 1 && (
                   <div className="mt-4 pt-4 border-t-2 border-amber-300 bg-gradient-to-b from-amber-50 to-white p-4 rounded-lg">
                     <div className="mb-4 text-center">
-                      <p className="text-sm font-bold text-amber-900 mb-1">🔔 Important: Register Your Passport</p>
+                      <p className="text-sm font-bold text-amber-900 mb-1">Important: Register Your Passport</p>
                       <p className="text-xs text-amber-800">
                         Choose to register now or save voucher for later registration
                       </p>
@@ -434,7 +434,7 @@ const PaymentSuccess = () => {
                         <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        <span className="truncate">Register Passport Now ✓</span>
+                        <span className="truncate">Register Passport Now</span>
                       </Button>
 
                       <p className="text-xs text-center text-slate-600 italic">
@@ -448,7 +448,7 @@ const PaymentSuccess = () => {
                 {!isRegistered && vouchers.length >= 2 && (
                   <div className="mt-4 pt-4 border-t-2 border-blue-300 bg-gradient-to-b from-blue-50 to-white p-4 rounded-lg">
                     <div className="text-center">
-                      <p className="text-sm font-bold text-blue-900 mb-1">📋 Registration Options</p>
+                      <p className="text-sm font-bold text-blue-900 mb-1">Registration Options</p>
                       <p className="text-xs text-blue-800">
                         Use the "Download All", "Print All", or "Email All" buttons above to save your vouchers. Register them later using the QR codes in the PDF.
                       </p>
@@ -460,7 +460,7 @@ const PaymentSuccess = () => {
                 {isRegistered && voucher.passport && (
                   <div className="mt-4 pt-4 border-t-2 border-emerald-300 bg-gradient-to-b from-emerald-50 to-white p-4 rounded-lg">
                     <div className="mb-3 text-center">
-                      <p className="text-sm font-bold text-emerald-900">✓ Passport Registered</p>
+                      <p className="text-sm font-bold text-emerald-900">Passport Registered</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 text-sm">
@@ -492,16 +492,16 @@ const PaymentSuccess = () => {
             {/* Instructions - Only show if ANY voucher is unregistered */}
             {vouchers.some(v => !v.passport || !v.passport.id) ? (
               <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-900 mb-3 text-lg">📋 How to Register Your Voucher:</h3>
+                <h3 className="font-semibold text-blue-900 mb-3 text-lg">How to Register Your Voucher:</h3>
 
                 <div className="bg-white rounded-lg p-4">
                   <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside ml-2">
                     <li>Save or email this voucher for your records</li>
                     <li>Register passport details before your trip using one of these methods:
                       <ul className="ml-6 mt-1 space-y-1 list-disc">
-                        <li className="text-xs">📱 <strong>Mobile:</strong> Scan QR code in PDF</li>
-                        <li className="text-xs">💻 <strong>Desktop:</strong> Visit registration URL below</li>
-                        <li className="text-xs">✈️ <strong>Airport:</strong> Show voucher + passport to agent</li>
+                        <li className="text-xs"><strong>Mobile:</strong> Scan QR code in PDF</li>
+                        <li className="text-xs"><strong>Desktop:</strong> Visit registration URL below</li>
+                        <li className="text-xs"><strong>Airport:</strong> Show voucher + passport to agent</li>
                       </ul>
                     </li>
                     <li>Voucher becomes valid immediately after registration</li>
@@ -521,7 +521,7 @@ const PaymentSuccess = () => {
                 </div>
 
                 <div className="mt-3 pt-3 border-t-2 border-red-300 bg-red-50 rounded p-3">
-                  <p className="text-sm font-bold text-red-900 mb-1">⚠️ Important Warning:</p>
+                  <p className="text-sm font-bold text-red-900 mb-1">Important Warning:</p>
                   <p className="text-xs text-red-800">
                     <strong>Unregistered vouchers are NOT VALID.</strong> You must register your passport details before presenting this voucher at the gate. Registration takes 2-3 minutes.
                   </p>
@@ -529,7 +529,7 @@ const PaymentSuccess = () => {
               </div>
             ) : (
               <div className="bg-emerald-50 border-2 border-emerald-300 rounded-lg p-4">
-                <h3 className="font-semibold text-emerald-900 mb-3 text-lg">✓ Voucher Ready to Use</h3>
+                <h3 className="font-semibold text-emerald-900 mb-3 text-lg">Voucher Ready to Use</h3>
                 <div className="bg-white rounded-lg p-4">
                   <p className="text-sm text-emerald-800 mb-2">
                     Your {vouchers.length === 1 ? 'voucher is' : 'vouchers are'} fully registered and ready to use:

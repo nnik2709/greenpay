@@ -182,7 +182,7 @@ async function sendVoucherNotification(customerData, vouchers, sessionId = null)
 <body>
   <div class="container">
     <div class="header">
-      <h1>🌿 PNG Green Fees System</h1>
+      <h1>PNG Green Fees System</h1>
       <p>Payment Confirmed - Voucher Code${quantity > 1 ? 's' : ''} Issued</p>
     </div>
     <div class="content">
@@ -205,13 +205,13 @@ async function sendVoucherNotification(customerData, vouchers, sessionId = null)
       <h3>How to Register Your Passport:</h3>
       <div style="background: #f0fdf4; border: 1px solid #10b981; border-radius: 8px; padding: 20px; margin: 20px 0;">
         <p style="margin: 10px 0;"><strong>Option 1: Mobile Device (Recommended)</strong></p>
-        <p style="margin: 5px 0; padding-left: 20px;">📱 Scan the QR code on the PDF attachment with your phone</p>
+        <p style="margin: 5px 0; padding-left: 20px;">Scan the QR code on the PDF attachment with your phone</p>
 
         <p style="margin: 10px 0; margin-top: 20px;"><strong>Option 2: Desktop/Laptop</strong></p>
-        <p style="margin: 5px 0; padding-left: 20px;">💻 Click the "Register Passport Now" button above, or visit: <br><code style="background: #dbeafe; padding: 4px 8px; border-radius: 4px; font-family: monospace;">${registrationUrl}/register/[YOUR-CODE]</code></p>
+        <p style="margin: 5px 0; padding-left: 20px;">Click the "Register Passport Now" button above, or visit: <br><code style="background: #dbeafe; padding: 4px 8px; border-radius: 4px; font-family: monospace;">${registrationUrl}/register/[YOUR-CODE]</code></p>
 
         <p style="margin: 10px 0; margin-top: 20px;"><strong>Option 3: At the Airport</strong></p>
-        <p style="margin: 5px 0; padding-left: 20px;">✈️ Present your printed voucher and passport to the airport agent</p>
+        <p style="margin: 5px 0; padding-left: 20px;">Present your printed voucher and passport to the airport agent</p>
       </div>
 
       <p><strong>After registration:</strong></p>
@@ -222,7 +222,7 @@ async function sendVoucherNotification(customerData, vouchers, sessionId = null)
       </ol>
 
       <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
-        <p><strong>⚠️ Important:</strong></p>
+        <p><strong>Important:</strong></p>
         <ul>
           <li>Vouchers are valid for 30 days from purchase date</li>
           <li>Each voucher is for one traveler only</li>
@@ -231,7 +231,7 @@ async function sendVoucherNotification(customerData, vouchers, sessionId = null)
       </div>
 
       <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
-        <p><strong>📧 Lost this email?</strong></p>
+        <p><strong>Lost this email?</strong></p>
         <p>You can retrieve your vouchers anytime using your payment session ID and email address:</p>
         ${sessionId ? `<p style="margin: 10px 0;"><strong>Payment Session ID:</strong> <code style="background: #dbeafe; padding: 4px 8px; border-radius: 4px; font-family: monospace;">${sessionId}</code></p>` : ''}
         <p style="margin: 10px 0;">

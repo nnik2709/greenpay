@@ -200,7 +200,7 @@ const generateVoucherPDFBuffer = async (vouchers, companyName) => {
           doc.fontSize(8)
              .fillColor('#666666')
              .font('Helvetica')
-             .text('📱 Mobile: Scan QR  •  💻 Desktop: Visit URL  •  ✈️ Airport: Show voucher + passport', margin + 10, yPos, {
+             .text('Mobile: Scan QR  •  Desktop: Visit URL  •  Airport: Show voucher + passport', margin + 10, yPos, {
                width: contentWidth - 20,
                align: 'center'
              });
