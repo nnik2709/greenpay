@@ -1128,8 +1128,8 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
         ocrSource = 'server-paddleocr';
 
         toast({
-          title: "Advanced AI Scan Complete",
-          description: `${(passportData.confidence * 100).toFixed(0)}% confidence • ${passportData.givenName} ${passportData.surname}`,
+          title: "✅ Passport Scanned",
+          description: `${passportData.givenName} ${passportData.surname}`,
           className: "bg-green-50 border-green-200",
           duration: 3000,
         });
@@ -1140,8 +1140,8 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
 
         // Strategy 2: Fallback to Client-Side OCR (Tesseract.js)
         toast({
-          title: "⏳ Standard Scan Mode",
-          description: "Using local OCR (Tesseract.js)...",
+          title: "⏳ Processing Passport",
+          description: "Scanning passport data...",
         });
 
         let result;
@@ -1170,8 +1170,8 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
         }
 
         toast({
-          title: "Passport Scanned",
-          description: `${passportData.givenName} ${passportData.surname} (Standard mode)`,
+          title: "✅ Passport Scanned",
+          description: `${passportData.givenName} ${passportData.surname}`,
           className: "bg-blue-50 border-blue-200",
           duration: 3000,
         });
