@@ -492,30 +492,38 @@ const PaymentSuccess = () => {
             {/* Instructions - Only show if ANY voucher is unregistered */}
             {vouchers.some(v => !v.passport || !v.passport.id) ? (
               <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-900 mb-3 text-lg">📋 How to Use Your Voucher:</h3>
-
-                <div className="bg-white rounded-lg p-4 mb-3">
-                  <p className="text-sm font-bold text-blue-900 mb-2">Option 1: Register Passport Now (Recommended)</p>
-                  <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside ml-2">
-                    <li>Click "Register Passport Now" button above</li>
-                    <li>Use camera to scan passport OR enter details manually</li>
-                    <li>Voucher becomes valid immediately after registration</li>
-                  </ol>
-                </div>
+                <h3 className="font-semibold text-blue-900 mb-3 text-lg">📋 How to Register Your Voucher:</h3>
 
                 <div className="bg-white rounded-lg p-4">
-                  <p className="text-sm font-bold text-blue-900 mb-2">Option 2: Register Later</p>
-                  <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside ml-2">
+                  <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside ml-2">
                     <li>Save or email this voucher for your records</li>
-                    <li>Register passport details before your trip</li>
-                    <li>Visit: greenpay.eywademo.cloud/register/YOUR_VOUCHER_CODE</li>
+                    <li>Register passport details before your trip using one of these methods:
+                      <ul className="ml-6 mt-1 space-y-1 list-disc">
+                        <li className="text-xs">📱 <strong>Mobile:</strong> Scan QR code in PDF</li>
+                        <li className="text-xs">💻 <strong>Desktop:</strong> Visit registration URL below</li>
+                        <li className="text-xs">✈️ <strong>Airport:</strong> Show voucher + passport to agent</li>
+                      </ul>
+                    </li>
+                    <li>Voucher becomes valid immediately after registration</li>
                   </ol>
+
+                  <div className="mt-3 pt-3 border-t border-blue-200">
+                    <p className="text-xs font-semibold text-blue-900 mb-1">Registration URL:</p>
+                    <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                      <p className="text-xs text-blue-800 break-all font-mono">
+                        greenpay.eywademo.cloud/register/YOUR_CODE
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1 italic">
+                        (Replace YOUR_CODE with voucher code above)
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mt-3 pt-3 border-t-2 border-red-300 bg-red-50 rounded p-3">
                   <p className="text-sm font-bold text-red-900 mb-1">⚠️ Important Warning:</p>
                   <p className="text-xs text-red-800">
-                    <strong>Unregistered vouchers are NOT VALID.</strong> You must register your passport details before presenting this voucher at the gate. Registration takes 2-3 minutes and can be done now or later.
+                    <strong>Unregistered vouchers are NOT VALID.</strong> You must register your passport details before presenting this voucher at the gate. Registration takes 2-3 minutes.
                   </p>
                 </div>
               </div>
