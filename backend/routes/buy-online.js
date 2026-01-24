@@ -949,10 +949,9 @@ router.post('/voucher/:code/register', async (req, res) => {
           full_name,
           nationality,
           date_of_birth,
-          sex,
-          date_of_expiry,
+          expiry_date,
           created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        ) VALUES ($1, $2, $3, $4, $5, NOW())
         RETURNING id
       `;
 
@@ -961,7 +960,6 @@ router.post('/voucher/:code/register', async (req, res) => {
         fullName,
         nationality,
         dateOfBirth || null,
-        sex || 'Unspecified',
         expiryDate
       ]);
 
@@ -998,8 +996,7 @@ router.post('/voucher/:code/register', async (req, res) => {
         p.full_name,
         p.nationality,
         p.date_of_birth,
-        p.sex,
-        p.date_of_expiry
+        p.expiry_date
       FROM individual_purchases ip
       LEFT JOIN passports p ON ip.passport_number = p.passport_number
       WHERE ip.voucher_code = $1
@@ -1027,8 +1024,7 @@ router.post('/voucher/:code/register', async (req, res) => {
           fullName: registeredVoucher.full_name,
           nationality: registeredVoucher.nationality,
           dateOfBirth: registeredVoucher.date_of_birth,
-          sex: registeredVoucher.sex,
-          dateOfExpiry: registeredVoucher.date_of_expiry
+          dateOfExpiry: registeredVoucher.expiry_date
         }
       }
     });
