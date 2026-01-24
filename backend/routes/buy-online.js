@@ -871,6 +871,191 @@ This is an automated email. Please do not reply to this message.
 });
 
 /**
+ * Register Passport to Voucher (Multi-Voucher Wizard)
+ * POST /api/buy-online/voucher/:code/register
+ *
+ * Allows registering a passport to an existing unregistered voucher
+ * Used by Multi-Voucher Registration Wizard for step-by-step registration
+ */
+router.post('/voucher/:code/register', async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { code } = req.params;
+    const {
+      passportNumber,
+      surname,
+      givenName,
+      nationality,
+      dateOfBirth,
+      sex,
+      expiryDate
+    } = req.body;
+
+    // Validation
+    if (!passportNumber || !surname || !givenName || !nationality || !expiryDate) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: passportNumber, surname, givenName, nationality, expiryDate'
+      });
+    }
+
+    // Validate expiry date is in the future
+    const expiry = new Date(expiryDate);
+    if (expiry < new Date()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Passport has expired'
+      });
+    }
+
+    await client.query('BEGIN');
+
+    // 1. Check if voucher exists and is unregistered
+    const voucherQuery = `
+      SELECT ip.id, ip.voucher_code, ip.passport_number as current_passport
+      FROM individual_purchases ip
+      WHERE ip.voucher_code = $1
+      FOR UPDATE
+    `;
+    const voucherResult = await client.query(voucherQuery, [code]);
+
+    if (voucherResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        error: 'Voucher not found'
+      });
+    }
+
+    const voucher = voucherResult.rows[0];
+
+    // 2. Check if passport already exists in database
+    const passportCheckQuery = 'SELECT id, full_name FROM passports WHERE passport_number = $1';
+    const passportCheck = await client.query(passportCheckQuery, [passportNumber.trim().toUpperCase()]);
+
+    let passportId;
+    let fullName = `${givenName} ${surname}`.trim();
+
+    if (passportCheck.rows.length > 0) {
+      // Passport exists - use existing ID
+      passportId = passportCheck.rows[0].id;
+      console.log(`Using existing passport ID ${passportId} for ${passportNumber}`);
+    } else {
+      // Create new passport
+      const insertPassportQuery = `
+        INSERT INTO passports (
+          passport_number,
+          full_name,
+          nationality,
+          date_of_birth,
+          sex,
+          date_of_expiry,
+          created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        RETURNING id
+      `;
+
+      const passportResult = await client.query(insertPassportQuery, [
+        passportNumber.trim().toUpperCase(),
+        fullName,
+        nationality,
+        dateOfBirth || null,
+        sex || 'Unspecified',
+        expiryDate
+      ]);
+
+      passportId = passportResult.rows[0].id;
+      console.log(`Created new passport ID ${passportId} for ${passportNumber}`);
+    }
+
+    // 3. Update voucher with passport number
+    const updateVoucherQuery = `
+      UPDATE individual_purchases
+      SET passport_number = $1,
+          updated_at = NOW()
+      WHERE voucher_code = $2
+      RETURNING id, voucher_code, passport_number
+    `;
+
+    const updateResult = await client.query(updateVoucherQuery, [
+      passportNumber.trim().toUpperCase(),
+      code
+    ]);
+
+    await client.query('COMMIT');
+
+    // 4. Fetch complete voucher data to return
+    const completeVoucherQuery = `
+      SELECT
+        ip.id,
+        ip.voucher_code as code,
+        ip.amount,
+        ip.valid_from,
+        ip.valid_until,
+        ip.passport_number,
+        ip.customer_email,
+        p.id as passport_id,
+        p.full_name,
+        p.nationality,
+        p.date_of_birth,
+        p.sex,
+        p.date_of_expiry
+      FROM individual_purchases ip
+      LEFT JOIN passports p ON ip.passport_number = p.passport_number
+      WHERE ip.voucher_code = $1
+    `;
+
+    const finalResult = await pool.query(completeVoucherQuery, [code]);
+    const registeredVoucher = finalResult.rows[0];
+
+    console.log(`✅ Passport ${passportNumber} registered to voucher ${code}`);
+
+    res.json({
+      success: true,
+      message: 'Passport registered successfully',
+      voucher: {
+        code: registeredVoucher.code,
+        voucherCode: registeredVoucher.code,
+        amount: registeredVoucher.amount,
+        validFrom: registeredVoucher.valid_from,
+        validUntil: registeredVoucher.valid_until,
+        passportNumber: registeredVoucher.passport_number,
+        customerEmail: registeredVoucher.customer_email,
+        passport: {
+          id: registeredVoucher.passport_id,
+          passportNumber: registeredVoucher.passport_number,
+          fullName: registeredVoucher.full_name,
+          nationality: registeredVoucher.nationality,
+          dateOfBirth: registeredVoucher.date_of_birth,
+          sex: registeredVoucher.sex,
+          dateOfExpiry: registeredVoucher.date_of_expiry
+        }
+      }
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Passport registration error:', error);
+
+    // Check for specific errors
+    if (error.code === '23505') { // Unique constraint violation
+      return res.status(409).json({
+        success: false,
+        error: 'This passport is already registered to another voucher'
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to register passport'
+    });
+  } finally {
+    client.release();
+  }
+});
+
+/**
  * Complete Purchase with Passport Creation
  * Called from webhook handler after payment success
  * ATOMIC: Creates passport + voucher or rolls back both
