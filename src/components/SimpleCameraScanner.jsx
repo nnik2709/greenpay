@@ -160,8 +160,20 @@ const fixAlphaNumeric = (str) => {
     .replace(/[^A-Z0-9<]/g, '<');
 };
 
-const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
+const SimpleCameraScanner = ({
+  onScanSuccess,
+  onPassportData,  // Alias for onScanSuccess
+  onClose,
+  autoStart = false,
+  autoCapture = true,  // Enable auto-capture by default
+  buttonText = "Start Camera Scanner",
+  buttonClassName = ""
+}) => {
   const { toast } = useToast();
+
+  // Use onPassportData if provided, otherwise onScanSuccess
+  const handleSuccess = onPassportData || onScanSuccess;
+
   const [stream, setStream] = useState(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
@@ -178,6 +190,7 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
   const consecutiveDetectionsRef = useRef(0);
   const autoCaptureTriggeredRef = useRef(false);
   const hasAutoStartedRef = useRef(false);
+  const frameCounterRef = useRef(0); // Track frames processed (iOS warmup)
 
   // Auto-start camera on mount if autoStart prop is true
   useEffect(() => {
@@ -272,16 +285,21 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
       }
 
       // Start MRZ detection after video is ready
-      // Wait a bit for video to initialize
+      // Wait longer on iOS for camera to fully initialize (iOS needs more time)
+      const initDelay = isIOS ? 2500 : 1000;
       setTimeout(() => {
-        // #region agent log
-        // #endregion
-        console.log('Video ready check:', {
-          videoWidth: videoRef.current?.videoWidth,
-          videoHeight: videoRef.current?.videoHeight
-        });
-        startMrzDetection();
-      }, 1000);
+        if (videoRef.current?.videoWidth && videoRef.current?.videoHeight) {
+          startMrzDetection();
+        } else {
+          console.warn('Video dimensions not ready, retrying...');
+          // Retry after another second if video not ready
+          setTimeout(() => {
+            if (videoRef.current?.videoWidth && videoRef.current?.videoHeight) {
+              startMrzDetection();
+            }
+          }, 1000);
+        }
+      }, initDelay);
 
       toast({
         title: "Camera Active",
@@ -313,10 +331,11 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
     setIsCameraActive(false);
     setMrzDetected(false);
     setIsFlashOn(false);
-    
+
     // Reset auto-capture state
     consecutiveDetectionsRef.current = 0;
     autoCaptureTriggeredRef.current = false;
+    frameCounterRef.current = 0;
   };
 
   const toggleFlash = async () => {
@@ -340,7 +359,6 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
 
   // Real-time MRZ detection
   const startMrzDetection = () => {
-    console.log('=== STARTING MRZ DETECTION ===');
     if (detectionIntervalRef.current) {
       clearInterval(detectionIntervalRef.current);
     }
@@ -348,42 +366,103 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
     // Reset auto-capture state to ensure fresh start
     consecutiveDetectionsRef.current = 0;
     autoCaptureTriggeredRef.current = false;
-    console.log('Auto-capture state reset for new detection session');
+    frameCounterRef.current = 0; // Reset frame counter
 
     detectionIntervalRef.current = setInterval(() => {
       detectMrzInFrame();
-    }, 400); // Check every 400ms (balanced speed and precision)
+    }, 300); // Check every 300ms (faster response for better UX)
+  };
 
-    console.log('MRZ detection interval started, ID:', detectionIntervalRef.current);
+  /**
+   * Calculate ROI that matches the on-screen guide box
+   * Handles objectFit: cover and different aspect ratios
+   */
+  const calculateAlignedROI = () => {
+    const video = videoRef.current;
+    if (!video) return null;
+
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+    if (!videoWidth || !videoHeight) return null;
+
+    // Get displayed video dimensions
+    const videoRect = video.getBoundingClientRect();
+    const displayedWidth = videoRect.width;
+    const displayedHeight = videoRect.height;
+
+    // Calculate scale factors for objectFit: cover
+    // The video is scaled to cover the entire element, potentially cropping
+    const videoAspect = videoWidth / videoHeight;
+    const displayAspect = displayedWidth / displayedHeight;
+
+    let scaleX, scaleY, offsetX = 0, offsetY = 0;
+
+    if (videoAspect > displayAspect) {
+      // Video is wider - will be cropped horizontally
+      scaleY = videoHeight / displayedHeight;
+      scaleX = scaleY;
+      offsetX = (videoWidth - (displayedWidth * scaleX)) / 2;
+    } else {
+      // Video is taller - will be cropped vertically
+      scaleX = videoWidth / displayedWidth;
+      scaleY = scaleX;
+      offsetY = (videoHeight - (displayedHeight * scaleY)) / 2;
+    }
+
+    // MRZ overlay guide box (same as CSS overlay)
+    // 96% width, 25% height, centered vertically at 37.5%
+    const guideWidthPercent = 0.96;
+    const guideHeightPercent = 0.25;
+    const guideTopPercent = 0.375;
+
+    // Map overlay coordinates to video pixels
+    const guideWidth = displayedWidth * guideWidthPercent;
+    const guideHeight = displayedHeight * guideHeightPercent;
+    const guideLeft = (displayedWidth - guideWidth) / 2;
+    const guideTop = displayedHeight * guideTopPercent;
+
+    // Convert to video pixel space
+    const cropWidth = guideWidth * scaleX;
+    const cropHeight = guideHeight * scaleY;
+    const cropX = offsetX + (guideLeft * scaleX);
+    const cropY = offsetY + (guideTop * scaleY);
+
+    return { cropX, cropY, cropWidth, cropHeight };
   };
 
   const detectMrzInFrame = () => {
     if (!videoRef.current || !canvasRef.current || isProcessing) {
-      console.log('detectMrzInFrame skipped:', { hasVideo: !!videoRef.current, hasCanvas: !!canvasRef.current, isProcessing });
       return;
     }
-    
+
     // Don't detect if auto-capture was already triggered
     if (autoCaptureTriggeredRef.current) {
-      console.log('Auto-capture already triggered, skipping detection');
       return;
     }
 
     const video = videoRef.current;
+
+    // Validate video has valid dimensions (iOS might have 0x0 initially)
+    if (!video.videoWidth || !video.videoHeight || video.videoWidth < 100 || video.videoHeight < 100) {
+      return;
+    }
+
+    // iOS Safari warmup: Skip first 10 frames (3 seconds) to let camera stabilize
+    // iOS camera often starts with white/black frames that can trigger false positives
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isIOS && frameCounterRef.current < 10) {
+      frameCounterRef.current++;
+      return;
+    }
+
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
 
-    // Get video dimensions
-    const videoWidth = video.videoWidth;
-    const videoHeight = video.videoHeight;
+    // Calculate ROI aligned with on-screen overlay
+    const roi = calculateAlignedROI();
+    if (!roi) return;
 
-    if (!videoWidth || !videoHeight) return;
-
-    // Sample the MRZ area - WIDER to capture full MRZ width
-    const cropHeight = videoHeight * 0.25;  // Narrower height (MRZ is 2 lines)
-    const cropWidth = videoWidth * 0.96;    // Much wider (was 0.9, now 0.96)
-    const cropX = (videoWidth - cropWidth) / 2;
-    const cropY = videoHeight * 0.375;      // Centered vertically
+    const { cropX, cropY, cropWidth, cropHeight } = roi;
 
     // Draw small sample to canvas
     canvas.width = 200; // Small sample for quick analysis
@@ -401,33 +480,33 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
 
     setMrzDetected(hasHighContrast);
     
-    // Auto-capture logic: require 3 consecutive detections to prevent false positives
+    // Auto-capture logic: require 2 consecutive detections (600ms total)
+    // This ensures MRZ is stable and fully in frame
     if (hasHighContrast) {
       consecutiveDetectionsRef.current += 1;
-      console.log('>>> MRZ DETECTED! Count:', consecutiveDetectionsRef.current, '/ 3 needed <<<');
 
-      // Trigger after 3 consecutive detections (1200ms) - prevents false positives
-      const shouldTrigger = consecutiveDetectionsRef.current >= 3 && !autoCaptureTriggeredRef.current;
+      // Trigger after 2 consecutive detections - balanced speed and accuracy
+      // Only auto-capture if autoCapture prop is enabled
+      const shouldTrigger = autoCapture && consecutiveDetectionsRef.current >= 2 && !autoCaptureTriggeredRef.current;
 
       if (shouldTrigger) {
-        console.log('=== AUTO-CAPTURE TRIGGERED ===');
         autoCaptureTriggeredRef.current = true;
 
         // Small delay for visual feedback before capture
         setTimeout(() => {
-          console.log('Calling captureImage from auto-capture...');
           captureImage();
         }, 200);
       }
     } else {
-      if (consecutiveDetectionsRef.current > 0) {
-        console.log('MRZ lost, resetting counter from', consecutiveDetectionsRef.current);
-      }
       // Reset counter on negative detection
       consecutiveDetectionsRef.current = 0;
     }
   };
 
+  /**
+   * Analyze image to detect if MRZ is fully inside the frame
+   * Uses horizontal projection to find two text lines spanning full width
+   */
   const analyzeImageForMrz = (imageData) => {
     const data = imageData.data;
     const width = imageData.width;
@@ -436,70 +515,112 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
     let totalBrightness = 0;
     let darkPixels = 0;
     let brightPixels = 0;
-    let edgeCount = 0;
-    let horizontalEdges = 0; // Track horizontal edge transitions (text lines)
 
-    // Analyze pixel brightness and edge detection
+    // Step 1: Basic brightness analysis
     for (let i = 0; i < data.length; i += 4) {
       const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
       totalBrightness += brightness;
 
-      if (brightness < 80) darkPixels++;
-      if (brightness > 220) brightPixels++;
-
-      // Edge detection - check horizontal changes (text has lots of edges)
-      if (i > 4 && i % (width * 4) !== 0) {
-        const prevBrightness = (data[i-4] + data[i-3] + data[i-2]) / 3;
-        if (Math.abs(brightness - prevBrightness) > 60) {
-          edgeCount++;
-        }
-      }
-
-      // Vertical edge detection - MRZ has 2 distinct horizontal text lines
-      if (i >= width * 4) {
-        const aboveBrightness = (data[i - width * 4] + data[i - width * 4 + 1] + data[i - width * 4 + 2]) / 3;
-        if (Math.abs(brightness - aboveBrightness) > 80) {
-          horizontalEdges++;
-        }
-      }
+      if (brightness < 100) darkPixels++;
+      if (brightness > 200) brightPixels++;
     }
 
     const totalPixels = data.length / 4;
     const avgBrightness = totalBrightness / totalPixels;
-    const darkRatio = darkPixels / totalPixels;
-    const brightRatio = brightPixels / totalPixels;
-    const edgeRatio = edgeCount / totalPixels;
-    const horizontalEdgeRatio = horizontalEdges / totalPixels;
+    const contrastRatio = Math.abs(darkPixels - brightPixels) / totalPixels;
 
-    // MRZ detection - STRICT thresholds to prevent false positives
-    // Real MRZ has very specific characteristics - be conservative
-    const hasTextPattern = edgeRatio > 0.055; // STRICT - MRZ has very dense, regular text
-    const hasGoodContrast = darkRatio > 0.08 && darkRatio < 0.22; // NARROW range - specific text density
-    const hasGoodLighting = avgBrightness > 80 && avgBrightness < 220; // STRICT lighting requirements
-    const hasTextLines = horizontalEdgeRatio > 0.020; // STRICT - must have clear 2-line structure
+    // Quick reject if contrast/brightness is wrong
+    const hasBasicContrast = contrastRatio > 0.15 && avgBrightness > 100 && avgBrightness < 220;
 
-    // MRZ text density: VERY specific range for actual passport text
-    const hasReasonableTextDensity = darkRatio > 0.09 && darkRatio < 0.20;
+    if (!hasBasicContrast) {
+      return false;
+    }
 
-    // All conditions must be true for precise detection
-    const detected = hasTextPattern && hasGoodContrast && hasGoodLighting && hasTextLines && hasReasonableTextDensity;
+    // Step 2: Horizontal projection to find two MRZ lines
+    // Sum dark pixels per row to find text lines
+    const rowSums = new Array(height).fill(0);
 
-    // Log only when detection changes or every 5th check to reduce noise
-    if (detected || Math.random() < 0.2) {
-      console.log('MRZ Analysis:', {
-        edgeRatio: edgeRatio.toFixed(3),
-        darkRatio: darkRatio.toFixed(3),
-        brightRatio: brightRatio.toFixed(3),
-        horizontalEdgeRatio: horizontalEdgeRatio.toFixed(3),
-        avgBrightness: avgBrightness.toFixed(1),
-        hasTextPattern,
-        hasGoodContrast,
-        hasGoodLighting,
-        hasTextLines,
-        hasReasonableTextDensity,
-        detected
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+        if (brightness < 128) {
+          rowSums[y]++;
+        }
+      }
+    }
+
+    // Find peaks (text lines) in the projection
+    // MRZ has 2 distinct lines with a gap between them
+    const peaks = [];
+    const threshold = width * 0.2; // RELAXED: At least 20% of width should be dark (was 30%)
+    let inPeak = false;
+    let peakStart = 0;
+    let peakSum = 0;
+
+    for (let y = 0; y < height; y++) {
+      if (rowSums[y] > threshold) {
+        if (!inPeak) {
+          inPeak = true;
+          peakStart = y;
+          peakSum = rowSums[y];
+        } else {
+          peakSum += rowSums[y];
+        }
+      } else {
+        if (inPeak) {
+          // End of peak
+          const peakHeight = y - peakStart;
+          if (peakHeight >= 2) { // RELAXED: Minimum 2 pixels (was 3)
+            peaks.push({
+              start: peakStart,
+              end: y,
+              height: peakHeight,
+              avgDensity: peakSum / peakHeight
+            });
+          }
+          inPeak = false;
+        }
+      }
+    }
+
+    // MRZ should have 2 text lines (but allow 1-3 for flexibility)
+    const hasTwoLines = peaks.length >= 1 && peaks.length <= 3;
+
+    // Lines should be separated by a reasonable gap
+    let hasReasonableGap = true; // Default to true
+    if (peaks.length === 2) {
+      const gap = peaks[1].start - peaks[0].end;
+      hasReasonableGap = gap >= 1 && gap <= height * 0.5; // RELAXED gap requirements
+    }
+
+    // Check if text spans most of the width (MRZ should be full-width)
+    // Calculate horizontal span for each line
+    let linesSpanWidth = true;
+    if (peaks.length >= 1) {
+      linesSpanWidth = peaks.slice(0, 2).every(peak => {
+        let leftmost = width;
+        let rightmost = 0;
+
+        // Check pixels in this peak's rows
+        for (let y = peak.start; y < peak.end; y++) {
+          for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+            if (brightness < 128) {
+              if (x < leftmost) leftmost = x;
+              if (x > rightmost) rightmost = x;
+            }
+          }
+        }
+
+        const span = rightmost - leftmost;
+        const spanRatio = span / width;
+        return spanRatio > 0.70; // RELAXED: Text should span at least 70% of width (was 85%)
       });
     }
+
+    const detected = hasTwoLines && hasReasonableGap && linesSpanWidth;
 
     return detected;
   };
@@ -1020,8 +1141,8 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
         console.log('=== ATTEMPTING SERVER-SIDE OCR (Python/PaddleOCR) ===');
 
         toast({
-          title: "🚀 High-Precision Scan",
-          description: "Using advanced AI OCR (PaddleOCR)...",
+          title: "Processing Passport",
+          description: "Scanning passport data...",
         });
 
         // Convert data URL to Blob
@@ -1128,7 +1249,7 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
         ocrSource = 'server-paddleocr';
 
         toast({
-          title: "✅ Passport Scanned",
+          title: "Passport Scanned",
           description: `${passportData.givenName} ${passportData.surname}`,
           className: "bg-green-50 border-green-200",
           duration: 3000,
@@ -1140,7 +1261,7 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
 
         // Strategy 2: Fallback to Client-Side OCR (Tesseract.js)
         toast({
-          title: "⏳ Processing Passport",
+          title: "Processing Passport",
           description: "Scanning passport data...",
         });
 
@@ -1170,7 +1291,7 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
         }
 
         toast({
-          title: "✅ Passport Scanned",
+          title: "Passport Scanned",
           description: `${passportData.givenName} ${passportData.surname}`,
           className: "bg-blue-50 border-blue-200",
           duration: 3000,
@@ -1187,10 +1308,19 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
 
       // Auto-fill the form
       setTimeout(() => {
-        console.log('About to call onScanSuccess callback...');
-        onScanSuccess(passportData);
-        console.log('onScanSuccess callback called successfully');
+        console.log('About to call success callback...');
+        if (handleSuccess) {
+          handleSuccess(passportData);
+          console.log('Success callback called successfully');
+        }
       }, 800);
+
+      // Reset auto-capture state to allow future auto-captures
+      setTimeout(() => {
+        autoCaptureTriggeredRef.current = false;
+        consecutiveDetectionsRef.current = 0;
+        console.log('Auto-capture state reset after successful scan');
+      }, 1000);
 
     } catch (error) {
       console.error('OCR/Parse ERROR (both methods failed):', error);
@@ -1201,6 +1331,11 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
         duration: 5000,
       });
 
+      // Reset auto-capture state to allow retry
+      autoCaptureTriggeredRef.current = false;
+      consecutiveDetectionsRef.current = 0;
+      console.log('Auto-capture state reset after failed scan');
+
       setIsProcessing(false);
       setOcrProgress(0);
     }
@@ -1210,7 +1345,6 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
   };
 
   const captureImage = () => {
-    console.log('=== CAPTURE IMAGE CALLED ===');
     if (!videoRef.current || !canvasRef.current) {
       console.error('Video or canvas ref not available');
       return;
@@ -1224,15 +1358,14 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
 
-    console.log('Video dimensions:', videoWidth, 'x', videoHeight);
+    // Use ALIGNED ROI that matches the on-screen guide box
+    const roi = calculateAlignedROI();
+    if (!roi) {
+      console.error('Failed to calculate aligned ROI');
+      return;
+    }
 
-    // Calculate MRZ crop area - WIDER to capture full MRZ width
-    const cropHeight = videoHeight * 0.25;  // Narrower height (MRZ is 2 lines, was 0.3)
-    const cropWidth = videoWidth * 0.96;    // Much wider (was 0.9, now 0.96)
-    const cropX = (videoWidth - cropWidth) / 2;
-    const cropY = videoHeight * 0.375;      // Centered vertically (was 0.35)
-
-    console.log('Crop area:', { cropX, cropY, cropWidth, cropHeight });
+    const { cropX, cropY, cropWidth, cropHeight } = roi;
 
     // Set canvas to cropped size
     canvas.width = cropWidth;
@@ -1245,11 +1378,8 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
       0, 0, cropWidth, cropHeight            // Destination rectangle (full canvas)
     );
 
-    console.log('Image drawn to canvas');
-
     // Get RAW image data URL for server OCR (PaddleOCR works better with natural images)
     const rawImageDataUrl = canvas.toDataURL('image/jpeg', 0.98);
-    console.log('Raw image data URL created for server OCR, length:', rawImageDataUrl.length);
 
     // Now apply preprocessing for potential Tesseract.js fallback
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
@@ -1317,15 +1447,11 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
       }
     }
 
-    console.log('Otsu Threshold calculated:', threshold);
-
     // Apply Binarization (Thresholding)
     for (let i = 0; i < data.length; i += 4) {
       const val = data[i] > threshold ? 255 : 0;
       data[i] = data[i + 1] = data[i + 2] = val;
     }
-
-    console.log('Applied Otsu binarization and sharpening for Tesseract fallback');
 
     context.putImageData(imageData, 0, 0);
 
@@ -1398,7 +1524,7 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
             ) : (
               <>
                 <Camera className="w-16 h-16 mb-4 opacity-50" />
-                <p className="text-center">Tap "Start Camera" to scan passport</p>
+                <p className="text-center">Tap button below to scan passport</p>
               </>
             )}
           </div>
@@ -1469,7 +1595,9 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
                   <p className={`text-white text-sm font-bold px-4 py-2 rounded-lg inline-block transition-all shadow-lg ${
                     mrzDetected ? 'bg-green-500 animate-pulse scale-110' : 'bg-slate-700'
                   }`}>
-                    {mrzDetected ? 'READY - TAP CAPTURE NOW!' : 'Hold 15-20cm away • Fit FULL MRZ width'}
+                    {mrzDetected
+                      ? (autoCapture ? 'DETECTED - AUTO-CAPTURING...' : 'READY - TAP CAPTURE NOW!')
+                      : 'Hold 15-20cm away • Fit FULL MRZ width'}
                   </p>
                 </div>
 
@@ -1529,11 +1657,11 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
               hasAutoStartedRef.current = false;
               startCamera();
             }}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 py-6 text-lg"
+            className={buttonClassName || "w-full bg-emerald-600 hover:bg-emerald-700 py-4 sm:py-6 text-sm sm:text-lg px-3 sm:px-4"}
             disabled={isProcessing}
           >
-            <Camera className="w-5 h-5 mr-2" />
-            {cameraError ? 'Retry Camera' : 'Start Camera'}
+            <Camera className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+            <span className="truncate">{cameraError ? 'Retry Camera' : buttonText}</span>
           </Button>
         )}
 
@@ -1541,18 +1669,18 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
           <>
             <Button
               onClick={captureImage}
-              className="w-full bg-blue-600 hover:bg-blue-700 py-6 text-lg"
+              className="w-full bg-blue-600 hover:bg-blue-700 py-4 sm:py-6 text-sm sm:text-lg px-3 sm:px-4"
               disabled={isProcessing}
             >
-              Capture Now
+              <span className="truncate">Capture Now</span>
             </Button>
             <Button
               onClick={stopCamera}
               variant="outline"
-              className="w-full"
+              className="w-full text-sm sm:text-base px-3 sm:px-4"
               disabled={isProcessing}
             >
-              Cancel
+              <span className="truncate">Cancel</span>
             </Button>
           </>
         )}
@@ -1561,9 +1689,9 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
           <>
             <Button
               onClick={handleManualEntry}
-              className="w-full bg-emerald-600 hover:bg-emerald-700"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-sm sm:text-base px-3 sm:px-4"
             >
-              Continue with Manual Entry
+              <span className="truncate">Continue with Manual Entry</span>
             </Button>
             <Button
               onClick={() => {
@@ -1573,9 +1701,9 @@ const SimpleCameraScanner = ({ onScanSuccess, onClose, autoStart = false }) => {
                 startCamera();
               }}
               variant="outline"
-              className="w-full"
+              className="w-full text-sm sm:text-base px-3 sm:px-4"
             >
-              Retake Photo
+              <span className="truncate">Retake Photo</span>
             </Button>
           </>
         )}

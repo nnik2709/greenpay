@@ -1293,6 +1293,189 @@ router.get('/recover', recoveryLimiter, async (req, res) => {
   }
 });
 
+/**
+ * Get Session Details (for payment recovery)
+ * GET /api/buy-online/session/:sessionId
+ *
+ * Returns full session data including passport info for retry scenarios
+ */
+router.get('/session/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    const query = 'SELECT * FROM purchase_sessions WHERE id = $1';
+    const result = await pool.query(query, [sessionId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found'
+      });
+    }
+
+    const session = result.rows[0];
+
+    // Check if expired (but still allow recovery for recent sessions)
+    const expiryTime = new Date(session.expires_at);
+    const now = new Date();
+    const hoursSinceExpiry = (now - expiryTime) / (1000 * 60 * 60);
+
+    // Allow recovery for sessions expired less than 24 hours ago
+    if (hoursSinceExpiry > 24) {
+      return res.json({
+        success: false,
+        error: 'Session expired',
+        message: 'Payment session is too old to recover. Please start a new purchase.'
+      });
+    }
+
+    // Don't allow recovery of completed sessions
+    if (session.payment_status === 'completed') {
+      return res.json({
+        success: false,
+        error: 'Session already completed',
+        message: 'This payment was already processed.'
+      });
+    }
+
+    // Return session data for recovery
+    res.json({
+      success: true,
+      data: {
+        id: session.id,
+        customer_email: session.customer_email,
+        quantity: session.quantity,
+        amount: session.amount,
+        currency: session.currency,
+        payment_status: session.payment_status,
+        passport_data: session.passport_data, // JSONB with passport details
+        expires_at: session.expires_at,
+        created_at: session.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Session recovery error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Unable to retrieve session. Please try again.'
+    });
+  }
+});
+
+/**
+ * Retry Payment with Existing Session
+ * POST /api/buy-online/retry-payment
+ *
+ * Generates new payment URL for existing session without re-entering data
+ */
+router.post('/retry-payment', async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Session ID required'
+      });
+    }
+
+    // Get existing session
+    const query = 'SELECT * FROM purchase_sessions WHERE id = $1';
+    const result = await pool.query(query, [sessionId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found'
+      });
+    }
+
+    const session = result.rows[0];
+
+    // Check if session is too old (24 hours)
+    const expiryTime = new Date(session.expires_at);
+    const now = new Date();
+    const hoursSinceExpiry = (now - expiryTime) / (1000 * 60 * 60);
+
+    if (hoursSinceExpiry > 24) {
+      return res.status(400).json({
+        success: false,
+        error: 'Session expired',
+        message: 'Session is too old to retry. Please start a new purchase.'
+      });
+    }
+
+    // Don't allow retry of completed sessions
+    if (session.payment_status === 'completed') {
+      return res.status(400).json({
+        success: false,
+        error: 'Session already completed',
+        message: 'This payment was already processed.'
+      });
+    }
+
+    // Extend session expiry (give user another 30 minutes)
+    const newExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    await pool.query(
+      'UPDATE purchase_sessions SET expires_at = $1 WHERE id = $2',
+      [newExpiresAt, sessionId]
+    );
+
+    console.log(`[RETRY PAYMENT] Session ${sessionId} extended to ${newExpiresAt}`);
+
+    // Get payment gateway
+    const gateway = PaymentGatewayFactory.getGateway();
+    console.log(`💳 Retry Payment: Using gateway ${gateway.getName()} for session ${sessionId}`);
+
+    // Generate URLs
+    const frontendUrl = process.env.FRONTEND_URL || 'https://greenpay.eywademo.cloud';
+    const returnUrl = `${frontendUrl}/payment/success?payment_session=${sessionId}`;
+    const cancelUrl = `${frontendUrl}/payment/cancelled?payment_session=${sessionId}`;
+
+    // Create new payment session with same data
+    const paymentSession = await gateway.createPaymentSession({
+      sessionId: session.id,
+      customerEmail: session.customer_email,
+      customerPhone: session.customer_phone,
+      quantity: session.quantity,
+      amountPGK: session.amount,
+      currency: session.currency,
+      returnUrl: returnUrl,
+      cancelUrl: cancelUrl,
+      metadata: {
+        deliveryMethod: session.delivery_method,
+        source: 'buy-online-retry',
+        hasPassportData: !!session.passport_data,
+        passportNumber: session.passport_data?.passportNumber || null,
+        voucherQuantity: session.quantity,
+        purchaseType: session.passport_data ? 'single-with-passport' : 'multi-voucher',
+        retryAttempt: true
+      }
+    });
+
+    console.log(`[RETRY PAYMENT] New payment URL generated for session ${sessionId}`);
+
+    res.json({
+      success: true,
+      data: {
+        sessionId: session.id,
+        paymentUrl: paymentSession.url,
+        expiresAt: newExpiresAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Retry payment error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Unable to retry payment. Please try again.'
+    });
+  }
+});
+
 // Export for use by webhook handler
 module.exports = {
   router,

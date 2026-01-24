@@ -64,10 +64,10 @@ export const COUNTRY_CODE_TO_NATIONALITY = {
   'CZE': 'Czech',
 
   // D
-  'DNK': 'Denmark',
-  'DJI': 'Djibouti',
-  'DMA': 'Dominica',
-  'DOM': 'Dominican Republic',
+  'DNK': 'Danish',
+  'DJI': 'Djiboutian',
+  'DMA': 'Dominican',
+  'DOM': 'Dominican',
 
   // E
   'ECU': 'Ecuadorean',

@@ -7,10 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { uploadPassportPhoto, validateImageFile, MAX_FILE_SIZE } from '@/lib/storageService';
 import { useScannerInput } from '@/hooks/useScannerInput';
 import SimpleCameraScanner from '@/components/SimpleCameraScanner';
 import { Loader2, Search } from 'lucide-react';
+import { COUNTRY_CODE_TO_NATIONALITY } from '@/lib/countryCodeMapper';
 
 /**
  * Public Registration Flow
@@ -477,93 +479,116 @@ const PublicRegistration = () => {
                   </AlertDescription>
                 </Alert>
               )}
-              {!isScannerActive && (
-                <Alert className="bg-blue-50 border-blue-300">
-                  <AlertDescription className="text-blue-900">
-                    <strong>Tip:</strong> Use your camera to scan your passport for automatic form filling, or enter details manually below.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
+              {!isScannerActive && !showCameraScanner && (
+                <div className="mb-8">
+                  {/* CAMERA SCANNER - PROMINENT AT TOP */}
+                  <Button
+                    type="button"
+                    onClick={() => setShowCameraScanner(true)}
+                    className="w-full h-14 sm:h-16 text-base sm:text-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg px-3 sm:px-4"
+                  >
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="truncate">Scan Passport with Camera</span>
+                  </Button>
+                  <p className="text-center text-sm text-slate-600 mt-3">
+                    Point camera at passport photo page for automatic data entry
+                  </p>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Passport Number with Lookup Button */}
-              <div className="space-y-2">
-                <Label htmlFor="passportNumber">Passport Number *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="passportNumber"
-                    data-testid="public-reg-passport-number"
-                    value={formData.passportNumber}
-                    onChange={(e) => setFormData({...formData, passportNumber: e.target.value})}
-                    placeholder="e.g., P1234567"
-                    required
-                    className="text-lg"
+                  {/* Divider */}
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-slate-300"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-4 bg-white text-slate-500">or enter details manually</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Camera Scanner Active */}
+              {showCameraScanner && (
+                <div className="mb-8 border-2 border-emerald-500 rounded-lg p-4 bg-emerald-50">
+                  <SimpleCameraScanner
+                    onPassportData={handleCameraScan}
+                    buttonText="Start Camera"
+                    buttonClassName="w-full mb-3"
+                    autoCapture={true}
                   />
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={lookupPassportNumber}
-                    disabled={lookupLoading || formData.passportNumber.length < 5}
-                    className="shrink-0"
+                    onClick={() => setShowCameraScanner(false)}
+                    className="w-full mt-3"
                   >
-                    {lookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                    Cancel Scanner
                   </Button>
                 </div>
-                <p className="text-xs text-slate-500">
-                  Click search to check if this passport is in our database
-                </p>
+              )}
+            </div> {/* Close mb-6 wrapper */}
 
-                {/* Device-Specific Scanner Options */}
-                {deviceType === 'mobile' && !showCameraScanner && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowCameraScanner(true)}
-                    className="w-full mt-2"
-                  >
-                    Scan Passport with Camera
-                  </Button>
+            {/* MANUAL ENTRY FORM */}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className={showCameraScanner ? '' : 'border-t pt-6'}>
+                {!showCameraScanner && (
+                  <h3 className="text-lg font-semibold text-slate-700 mb-4">Passport Information</h3>
                 )}
-
-                {/* Camera Scanner Component */}
-                {showCameraScanner && (
-                  <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-                    <SimpleCameraScanner
-                      onScanSuccess={handleCameraScan}
-                      onClose={() => setShowCameraScanner(false)}
+                {/* Passport Number with Lookup Button */}
+                <div className="space-y-2">
+                  <Label htmlFor="passportNumber">Passport Number *</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="passportNumber"
+                      data-testid="public-reg-passport-number"
+                      value={formData.passportNumber}
+                      onChange={(e) => setFormData({...formData, passportNumber: e.target.value})}
+                      placeholder="e.g., P1234567"
+                      required
+                      className="text-lg font-mono uppercase"
+                      style={{ textTransform: 'uppercase' }}
                     />
-                    <p className="text-sm text-slate-500 mt-2">
-                      Point camera at your passport photo page
-                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={lookupPassportNumber}
+                      disabled={lookupLoading || formData.passportNumber.length < 5}
+                      className="shrink-0"
+                    >
+                      {lookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                    </Button>
                   </div>
-                )}
+                  <p className="text-xs text-slate-500">
+                    Click search to check if this passport is in our database
+                  </p>
 
-                {/* Lookup Status Messages */}
-                {lookupLoading && (
-                  <Alert className="mt-3 bg-blue-50 border-blue-200">
-                    <AlertDescription className="text-blue-900">
-                      🔍 Searching passport database...
-                    </AlertDescription>
-                  </Alert>
-                )}
+                  {/* Lookup Status Messages - NO EMOJIS */}
+                  {lookupLoading && (
+                    <Alert className="mt-3 bg-blue-50 border-blue-200">
+                      <AlertDescription className="text-blue-900">
+                        Searching passport database...
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
-                {passportLookupResult && passportLookupResult.notFound && (
-                  <Alert className="mt-3 bg-gray-50 border-gray-300">
-                    <AlertDescription className="text-gray-700">
-                      ✨ First time registering this passport? No problem! Please enter details below.
-                    </AlertDescription>
-                  </Alert>
-                )}
+                  {passportLookupResult && passportLookupResult.notFound && (
+                    <Alert className="mt-3 bg-gray-50 border-gray-300">
+                      <AlertDescription className="text-gray-700">
+                        First time registering this passport? No problem! Please enter details below.
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
-                {passportLookupResult && !passportLookupResult.notFound && !passportLookupResult.error && (
-                  <Alert className="mt-3 bg-green-50 border-green-200">
-                    <AlertDescription className="text-green-800">
-                      Passport found in database. Surname field auto-filled. Please verify and complete remaining fields.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
+                  {passportLookupResult && !passportLookupResult.notFound && !passportLookupResult.error && (
+                    <Alert className="mt-3 bg-green-50 border-green-200">
+                      <AlertDescription className="text-green-800">
+                        Passport found in database. Surname field auto-filled. Please verify and complete remaining fields.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
 
               {/* Name Fields - Optional */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -606,13 +631,21 @@ const PublicRegistration = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="nationality">Nationality <span className="text-slate-400 text-sm">(Optional)</span></Label>
-                  <Input
-                    id="nationality"
-                    data-testid="public-reg-nationality"
+                  <Select
                     value={formData.nationality}
-                    onChange={(e) => setFormData({...formData, nationality: e.target.value})}
-                    placeholder="e.g., Australian"
-                  />
+                    onValueChange={(value) => setFormData({...formData, nationality: value})}
+                  >
+                    <SelectTrigger id="nationality" data-testid="public-reg-nationality">
+                      <SelectValue placeholder="Select nationality..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {Object.entries(COUNTRY_CODE_TO_NATIONALITY).map(([code, nationality]) => (
+                        <SelectItem key={code} value={nationality}>
+                          {nationality}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -648,6 +681,7 @@ const PublicRegistration = () => {
               <p className="text-xs text-center text-slate-500 mt-4">
                 By submitting, you confirm that all information provided is accurate and matches your passport.
               </p>
+              </div> {/* Close conditional border div */}
             </form>
           </CardContent>
         </Card>

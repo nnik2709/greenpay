@@ -38,10 +38,12 @@ class OCREngine:
 
         try:
             self.ocr = PaddleOCR(
-                use_angle_cls=True,  # Enable text angle classification
+                use_angle_cls=False,  # Disabled - MRZ is always horizontal (saves 10+ seconds)
                 lang=settings.OCR_LANG,
-                use_gpu=settings.OCR_USE_GPU,
-                show_log=False  # Suppress PaddleOCR logs
+                use_gpu=False,  # No GPU available
+                show_log=False,  # Suppress PaddleOCR logs
+                det_db_score_mode='slow',  # Better accuracy for small text
+                rec_batch_num=1  # Process one line at a time (more stable on CPU)
             )
             logger.info("PaddleOCR engine initialized successfully")
         except Exception as e:
@@ -66,7 +68,7 @@ class OCREngine:
         """
         try:
             # Run OCR on entire image
-            result = self.ocr.ocr(image, cls=True)
+            result = self.ocr.ocr(image, cls=False)
 
             if not result or not result[0]:
                 logger.warning("No text detected in image")
