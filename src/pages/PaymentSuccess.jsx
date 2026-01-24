@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import api from '@/lib/api/client';
 import { COUNTRY_CODE_TO_NATIONALITY } from '@/lib/countryCodeMapper';
+import RegistrationDecisionDialog from '@/components/RegistrationDecisionDialog';
 
 /**
  * Payment Success Page - Enhanced Flow
@@ -29,6 +30,10 @@ const PaymentSuccess = () => {
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [emailInput, setEmailInput] = useState('');
   const [emailSending, setEmailSending] = useState(false);
+
+  // Multi-voucher registration decision state
+  const [showDecisionDialog, setShowDecisionDialog] = useState(false);
+  const [registrationChoice, setRegistrationChoice] = useState(null); // 'now' | 'later' | null
 
   const sessionId = searchParams.get('session_id');
   // Try to get payment session ID from URL first, then fallback to sessionStorage
@@ -60,6 +65,19 @@ const PaymentSuccess = () => {
               if (response.vouchers[0].customerEmail) {
                 setEmailInput(response.vouchers[0].customerEmail);
               }
+
+              // MULTI-VOUCHER DECISION POINT
+              // Show decision dialog ONLY if:
+              // 1. Multiple vouchers (2+)
+              // 2. ALL vouchers are unregistered
+              // 3. User hasn't made a choice yet
+              const hasMultipleVouchers = response.vouchers.length >= 2;
+              const allUnregistered = response.vouchers.every(v => !v.passport || !v.passport.id);
+
+              if (hasMultipleVouchers && allUnregistered && !registrationChoice) {
+                setShowDecisionDialog(true);
+              }
+
               setLoading(false);
               // Clear session storage
               sessionStorage.removeItem('paymentSessionId');
@@ -109,6 +127,31 @@ const PaymentSuccess = () => {
       setEmailSending(false);
     }
   };
+
+  // Multi-Voucher Decision Dialog Handlers
+  const handleRegisterNow = () => {
+    setRegistrationChoice('now');
+    setShowDecisionDialog(false);
+    // TODO: Phase 2 - Navigate to Multi-Voucher Registration Wizard
+    alert('Multi-voucher registration wizard will be implemented in Phase 2');
+  };
+
+  const handleRegisterLater = () => {
+    setRegistrationChoice('later');
+    setShowDecisionDialog(false);
+    // Continue to normal success page (shows download/email options)
+  };
+
+  // DECISION DIALOG - Show ONLY for 2+ unregistered vouchers
+  if (showDecisionDialog && vouchers.length >= 2) {
+    return (
+      <RegistrationDecisionDialog
+        voucherCount={vouchers.length}
+        onRegisterNow={handleRegisterNow}
+        onRegisterLater={handleRegisterLater}
+      />
+    );
+  }
 
   if (loading) {
     return (
