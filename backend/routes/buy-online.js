@@ -887,8 +887,6 @@ router.post('/voucher/:code/register', async (req, res) => {
       surname,
       givenName,
       nationality,
-      dateOfBirth,
-      sex,
       expiryDate
     } = req.body;
 
@@ -942,16 +940,15 @@ router.post('/voucher/:code/register', async (req, res) => {
       passportId = passportCheck.rows[0].id;
       console.log(`Using existing passport ID ${passportId} for ${passportNumber}`);
     } else {
-      // Create new passport
+      // Create new passport (only essential fields)
       const insertPassportQuery = `
         INSERT INTO passports (
           passport_number,
           full_name,
           nationality,
-          date_of_birth,
           expiry_date,
           created_at
-        ) VALUES ($1, $2, $3, $4, $5, NOW())
+        ) VALUES ($1, $2, $3, $4, NOW())
         RETURNING id
       `;
 
@@ -959,7 +956,6 @@ router.post('/voucher/:code/register', async (req, res) => {
         passportNumber.trim().toUpperCase(),
         fullName,
         nationality,
-        dateOfBirth || null,
         expiryDate
       ]);
 
@@ -995,7 +991,6 @@ router.post('/voucher/:code/register', async (req, res) => {
         p.id as passport_id,
         p.full_name,
         p.nationality,
-        p.date_of_birth,
         p.expiry_date
       FROM individual_purchases ip
       LEFT JOIN passports p ON ip.passport_number = p.passport_number
@@ -1023,7 +1018,6 @@ router.post('/voucher/:code/register', async (req, res) => {
           passportNumber: registeredVoucher.passport_number,
           fullName: registeredVoucher.full_name,
           nationality: registeredVoucher.nationality,
-          dateOfBirth: registeredVoucher.date_of_birth,
           dateOfExpiry: registeredVoucher.expiry_date
         }
       }
