@@ -66,7 +66,7 @@ const PublicRegistration = () => {
           dateOfBirth: data.dob
         });
         toast({
-          title: "Passport MRZ Scanned",
+          title: "Passport Scanned",
           description: "Passport details have been auto-filled. Please verify and add your photo."
         });
       } else {
@@ -75,7 +75,7 @@ const PublicRegistration = () => {
           // Looks like voucher code - ignore (already have voucher from URL)
           toast({
             title: "Voucher Code Detected",
-            description: "Voucher already loaded. Please scan passport MRZ."
+            description: "Voucher already loaded. Please scan your passport."
           });
         } else {
           // Passport number scan
@@ -457,7 +457,7 @@ const PublicRegistration = () => {
             {/* Scanner Status Indicator with Connect Button */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-slate-700">MRZ Scanner</h3>
+                <h3 className="text-lg font-semibold text-slate-700">Passport Scanner</h3>
                 <Button
                   type="button"
                   variant="outline"
@@ -473,14 +473,14 @@ const PublicRegistration = () => {
               {isScannerActive && (
                 <Alert className="bg-emerald-50 border-emerald-300">
                   <AlertDescription className="text-emerald-900 font-medium">
-                    Scanning passport MRZ... Please scan the 2 lines at the bottom of your passport with the KB scanner.
+                    Scanning passport... Point your camera at the passport photo page.
                   </AlertDescription>
                 </Alert>
               )}
               {!isScannerActive && (
                 <Alert className="bg-blue-50 border-blue-300">
                   <AlertDescription className="text-blue-900">
-                    <strong>Tip:</strong> Use the KB MRZ scanner to scan your passport for automatic form filling, or enter details manually below.
+                    <strong>Tip:</strong> Use your camera to scan your passport for automatic form filling, or enter details manually below.
                   </AlertDescription>
                 </Alert>
               )}
@@ -534,7 +534,7 @@ const PublicRegistration = () => {
                       onClose={() => setShowCameraScanner(false)}
                     />
                     <p className="text-sm text-slate-500 mt-2">
-                      Point camera at the bottom 2 lines of your passport (MRZ zone)
+                      Point camera at your passport photo page
                     </p>
                   </div>
                 )}

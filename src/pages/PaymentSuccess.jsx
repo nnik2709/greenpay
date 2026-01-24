@@ -273,9 +273,12 @@ const PaymentSuccess = () => {
                     <p className="text-3xl font-bold text-emerald-700 tracking-wider font-mono mb-4">
                       {voucher.voucherCode || voucher.code}
                     </p>
-                    <p className="text-xs text-slate-500">
-                      Present this code at the gate for entry
-                    </p>
+                    <div className="mt-3 p-3 bg-red-50 border-l-4 border-red-500 rounded">
+                      <p className="text-sm font-semibold text-red-800 mb-1">⚠️ Registration Required</p>
+                      <p className="text-xs text-red-700">
+                        This voucher is NOT valid until you register your passport details.
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center justify-center">
                     {(voucher.qrCode || voucher.barcode) && (
@@ -286,7 +289,7 @@ const PaymentSuccess = () => {
                           className="w-full max-w-[300px] h-auto"
                         />
                         <p className="text-xs text-center text-slate-500 mt-2">
-                          Scan barcode at gate
+                          Present at gate after registration
                         </p>
                       </div>
                     )}
@@ -319,40 +322,64 @@ const PaymentSuccess = () => {
                   </div>
                 </div>
 
-                {/* Register Passport Button */}
-                <div className="mt-4 pt-4 border-t border-emerald-200">
-                  <Button
-                    onClick={() => {
-                      const registrationUrl = `${window.location.origin}/register/${voucher.voucherCode || voucher.code}`;
-                      window.open(registrationUrl, '_blank');
-                    }}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Register Passport for This Voucher
-                  </Button>
-                  <p className="text-xs text-center text-slate-500 mt-2">
-                    Opens registration form in a new tab
-                  </p>
+                {/* Register Passport Button - PROMINENT */}
+                <div className="mt-4 pt-4 border-t-2 border-amber-300 bg-gradient-to-b from-amber-50 to-white p-4 rounded-lg">
+                  <div className="mb-4 text-center">
+                    <p className="text-sm font-bold text-amber-900 mb-1">🔔 Important: Register Your Passport</p>
+                    <p className="text-xs text-amber-800">
+                      Choose to register now or save voucher for later registration
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Button
+                      onClick={() => {
+                        const registrationUrl = `${window.location.origin}/register/${voucher.voucherCode || voucher.code}`;
+                        window.location.href = registrationUrl; // Navigate to registration (same tab)
+                      }}
+                      className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white h-12 text-base font-semibold"
+                      size="lg"
+                    >
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Register Passport Now ✓
+                    </Button>
+
+                    <p className="text-xs text-center text-slate-600 italic">
+                      Or save/email voucher and register later
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}
 
             {/* Instructions */}
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-              <h3 className="font-semibold text-emerald-900 mb-2">Next Steps:</h3>
-              <ol className="text-sm text-emerald-700 space-y-1 list-decimal list-inside">
-                <li>Save or print this voucher confirmation</li>
-                <li><strong>Register your passport</strong> to this voucher using the registration link</li>
-                <li>Present your voucher code at the entry checkpoint</li>
-                <li>Keep your passport with you for verification</li>
-              </ol>
-              <div className="mt-3 pt-3 border-t border-emerald-200">
-                <p className="text-xs text-emerald-700">
-                  <strong>Note:</strong> You must register your passport details before using the voucher at the checkpoint.
-                  Click the "Register Passport" button on each voucher card below.
+            <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
+              <h3 className="font-semibold text-blue-900 mb-3 text-lg">📋 How to Use Your Voucher:</h3>
+
+              <div className="bg-white rounded-lg p-4 mb-3">
+                <p className="text-sm font-bold text-blue-900 mb-2">Option 1: Register Passport Now (Recommended)</p>
+                <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside ml-2">
+                  <li>Click "Register Passport Now" button above</li>
+                  <li>Use camera to scan passport OR enter details manually</li>
+                  <li>Voucher becomes valid immediately after registration</li>
+                </ol>
+              </div>
+
+              <div className="bg-white rounded-lg p-4">
+                <p className="text-sm font-bold text-blue-900 mb-2">Option 2: Register Later</p>
+                <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside ml-2">
+                  <li>Save or email this voucher for your records</li>
+                  <li>Register passport details before your trip</li>
+                  <li>Visit: greenpay.eywademo.cloud/register/YOUR_VOUCHER_CODE</li>
+                </ol>
+              </div>
+
+              <div className="mt-3 pt-3 border-t-2 border-red-300 bg-red-50 rounded p-3">
+                <p className="text-sm font-bold text-red-900 mb-1">⚠️ Important Warning:</p>
+                <p className="text-xs text-red-800">
+                  <strong>Unregistered vouchers are NOT VALID.</strong> You must register your passport details before presenting this voucher at the gate. Registration takes 2-3 minutes and can be done now or later.
                 </p>
               </div>
             </div>
