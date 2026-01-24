@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import api from '@/lib/api/client';
 import { COUNTRY_CODE_TO_NATIONALITY } from '@/lib/countryCodeMapper';
 import RegistrationDecisionDialog from '@/components/RegistrationDecisionDialog';
+import MultiVoucherRegistrationWizard from '@/components/MultiVoucherRegistrationWizard';
 
 /**
  * Payment Success Page - Enhanced Flow
@@ -34,6 +35,7 @@ const PaymentSuccess = () => {
   // Multi-voucher registration decision state
   const [showDecisionDialog, setShowDecisionDialog] = useState(false);
   const [registrationChoice, setRegistrationChoice] = useState(null); // 'now' | 'later' | null
+  const [showRegistrationWizard, setShowRegistrationWizard] = useState(false);
 
   const sessionId = searchParams.get('session_id');
   // Try to get payment session ID from URL first, then fallback to sessionStorage
@@ -132,8 +134,7 @@ const PaymentSuccess = () => {
   const handleRegisterNow = () => {
     setRegistrationChoice('now');
     setShowDecisionDialog(false);
-    // TODO: Phase 2 - Navigate to Multi-Voucher Registration Wizard
-    alert('Multi-voucher registration wizard will be implemented in Phase 2');
+    setShowRegistrationWizard(true);
   };
 
   const handleRegisterLater = () => {
@@ -141,6 +142,38 @@ const PaymentSuccess = () => {
     setShowDecisionDialog(false);
     // Continue to normal success page (shows download/email options)
   };
+
+  // Multi-Voucher Wizard Handlers
+  const handleWizardComplete = async (results) => {
+    console.log('Wizard completed with results:', results);
+    setShowRegistrationWizard(false);
+
+    // Refresh vouchers to show registered status
+    try {
+      const response = await api.get(`/buy-online/voucher/${paymentSessionId}`);
+      if (response.success && response.vouchers) {
+        setVouchers(response.vouchers);
+      }
+    } catch (err) {
+      console.error('Failed to refresh vouchers:', err);
+    }
+  };
+
+  const handleWizardCancel = () => {
+    setShowRegistrationWizard(false);
+    // Show normal success page
+  };
+
+  // MULTI-VOUCHER REGISTRATION WIZARD - Show when user chooses "Register Now"
+  if (showRegistrationWizard && vouchers.length >= 2) {
+    return (
+      <MultiVoucherRegistrationWizard
+        vouchers={vouchers}
+        onComplete={handleWizardComplete}
+        onCancel={handleWizardCancel}
+      />
+    );
+  }
 
   // DECISION DIALOG - Show ONLY for 2+ unregistered vouchers
   if (showDecisionDialog && vouchers.length >= 2) {
