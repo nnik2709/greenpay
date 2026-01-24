@@ -338,7 +338,7 @@ const PaymentsList = () => {
                       <td className="py-3 px-4 font-semibold">PGK {payment.amount}</td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-1 bg-slate-100 rounded text-sm">
-                          {payment.payment_method}
+                          {payment.payment_method || 'N/A'}
                         </span>
                       </td>
                       {!showOnlyRefunds && (
