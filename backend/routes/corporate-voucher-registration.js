@@ -145,7 +145,6 @@ router.post('/register',
       givenName,
       nationality,
       dateOfBirth,
-      sex,
       dateOfExpiry
     } = req.body;
 
@@ -405,7 +404,7 @@ router.post('/bulk-register', async (req, res) => {
 
     for (const reg of registrations) {
       try {
-        const { voucherCode, passportNumber, surname, givenName, nationality, dateOfBirth, sex, dateOfExpiry } = reg;
+        const { voucherCode, passportNumber, surname, givenName, nationality, dateOfBirth, dateOfExpiry } = reg;
 
         // Validate required fields
         if (!voucherCode || !passportNumber || !surname || !givenName) {

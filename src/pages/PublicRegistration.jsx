@@ -50,8 +50,7 @@ const PublicRegistration = () => {
     surname: '',
     givenName: '',
     dateOfBirth: '',
-    nationality: '',
-    sex: 'Male'
+    nationality: ''
   });
 
   // Hardware scanner support with MRZ parsing
@@ -64,8 +63,7 @@ const PublicRegistration = () => {
           surname: data.surname,
           givenName: data.givenName,
           nationality: data.nationality,
-          dateOfBirth: data.dob,
-          sex: data.sex
+          dateOfBirth: data.dob
         });
         toast({
           title: "Passport MRZ Scanned",
@@ -296,8 +294,7 @@ const PublicRegistration = () => {
         surname: passportData.surname || passportData.fullName || '',  // Use fullName if available
         givenName: passportData.givenName || '',
         dateOfBirth: passportData.dob || '',
-        nationality: passportData.nationality || '',
-        sex: passportData.sex || 'Male'
+        nationality: passportData.nationality || ''
       });
 
       // Also try to lookup in database for additional data
@@ -358,8 +355,7 @@ const PublicRegistration = () => {
           surname: formData.surname ? formData.surname.toUpperCase() : null,
           givenName: formData.givenName ? formData.givenName.toUpperCase() : null,
           dateOfBirth: formData.dateOfBirth || null,
-          nationality: formData.nationality || null,
-          sex: formData.sex || null
+          nationality: formData.nationality || null
         })
       });
 
@@ -618,23 +614,6 @@ const PublicRegistration = () => {
                     placeholder="e.g., Australian"
                   />
                 </div>
-              </div>
-
-              {/* Sex - Optional */}
-              <div className="space-y-2">
-                <Label htmlFor="sex">Sex <span className="text-slate-400 text-sm">(Optional)</span></Label>
-                <select
-                  id="sex"
-                  data-testid="public-reg-sex"
-                  value={formData.sex}
-                  onChange={(e) => setFormData({...formData, sex: e.target.value})}
-                  className="w-full h-10 px-3 rounded-md border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                >
-                  <option value="">Select...</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
               </div>
 
               {/* Voucher Info Display */}

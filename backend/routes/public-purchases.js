@@ -518,8 +518,7 @@ router.post('/register-passport', async (req, res) => {
       surname,
       givenName,
       dateOfBirth,
-      nationality,
-      sex
+      nationality
     } = req.body;
 
     // Validate required fields

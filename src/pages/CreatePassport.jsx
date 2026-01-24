@@ -16,8 +16,7 @@ const CreatePassport = ({ onSave }) => {
     nationality: '',
     surname: '',
     given_name: '',
-    dob: '',
-    sex: ''
+    dob: ''
   });
 
   // Hardware scanner support with MRZ parsing
@@ -30,8 +29,7 @@ const CreatePassport = ({ onSave }) => {
           surname: data.surname,
           given_name: data.givenName,
           nationality: data.nationality,
-          dob: data.dob,
-          sex: data.sex === 'Male' ? 'M' : data.sex === 'Female' ? 'F' : 'X'
+          dob: data.dob
         });
         toast({
           title: "MRZ Scanned Successfully",
@@ -71,9 +69,6 @@ const CreatePassport = ({ onSave }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (value) => {
-    setFormData(prev => ({ ...prev, sex: value }));
-  };
 
   return (
     <motion.div
@@ -164,24 +159,6 @@ const CreatePassport = ({ onSave }) => {
                 onChange={handleInputChange}
                 required
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sex">Sex</Label>
-              <Select
-                name="sex"
-                value={formData.sex}
-                onValueChange={handleSelectChange}
-                required
-              >
-                <SelectTrigger id="sex">
-                  <SelectValue placeholder="Select sex" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="M">Male</SelectItem>
-                  <SelectItem value="F">Female</SelectItem>
-                  <SelectItem value="X">Other</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
