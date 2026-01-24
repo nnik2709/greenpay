@@ -107,9 +107,22 @@ const VouchersList = () => {
   };
 
   const getVoucherStatus = (usedDate, validUntil, passportNumber) => {
-    if (!passportNumber) return 'pending';
+    // Check if passport is NOT registered (null, empty, or string "PENDING")
+    if (!passportNumber ||
+        passportNumber === '' ||
+        String(passportNumber).trim().toUpperCase() === 'PENDING' ||
+        String(passportNumber).trim().toUpperCase() === 'N/A' ||
+        String(passportNumber).trim().toUpperCase() === 'NA') {
+      return 'pending';
+    }
+
+    // Check if already used
     if (usedDate) return 'used';
+
+    // Check if expired
     if (new Date(validUntil) < new Date()) return 'expired';
+
+    // All conditions met: has passport, not used, not expired = active
     return 'active';
   };
 

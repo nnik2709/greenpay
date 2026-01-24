@@ -163,7 +163,7 @@ export const downloadInvoicePdf = async (invoiceId) => {
 };
 
 export const downloadVouchersPdf = async (invoiceId) => {
-  return api.get(`/invoices/${invoiceId}/vouchers/pdf`, { responseType: 'blob' });
+  return api.get(`/invoices/${invoiceId}/vouchers-pdf`, { responseType: 'blob' });
 };
 
 export const emailCorporateVouchers = async (emailData) => {
