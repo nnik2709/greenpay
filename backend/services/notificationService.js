@@ -202,12 +202,23 @@ async function sendVoucherNotification(customerData, vouchers, sessionId = null)
       </div>
       `).join('')}
 
-      <h3>Next Steps:</h3>
+      <h3>How to Register Your Passport:</h3>
+      <div style="background: #f0fdf4; border: 1px solid #10b981; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <p style="margin: 10px 0;"><strong>Option 1: Mobile Device (Recommended)</strong></p>
+        <p style="margin: 5px 0; padding-left: 20px;">📱 Scan the QR code on the PDF attachment with your phone</p>
+
+        <p style="margin: 10px 0; margin-top: 20px;"><strong>Option 2: Desktop/Laptop</strong></p>
+        <p style="margin: 5px 0; padding-left: 20px;">💻 Click the "Register Passport Now" button above, or visit: <br><code style="background: #dbeafe; padding: 4px 8px; border-radius: 4px; font-family: monospace;">${registrationUrl}/register/[YOUR-CODE]</code></p>
+
+        <p style="margin: 10px 0; margin-top: 20px;"><strong>Option 3: At the Airport</strong></p>
+        <p style="margin: 5px 0; padding-left: 20px;">✈️ Present your printed voucher and passport to the airport agent</p>
+      </div>
+
+      <p><strong>After registration:</strong></p>
       <ol>
-        <li>Keep this voucher code safe</li>
-        <li>Click the button above or visit: <strong>${registrationUrl}/register/[YOUR-CODE]</strong></li>
-        <li>Enter your passport details</li>
+        <li>Your passport will be linked to your voucher</li>
         <li>Your exit pass will be processed within 24 hours</li>
+        <li>Keep your voucher code safe for travel</li>
       </ol>
 
       <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">

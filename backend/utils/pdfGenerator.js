@@ -211,7 +211,67 @@ const generateVoucherPDFBuffer = async (vouchers, companyName) => {
                underline: true
              });
 
-          yPos += 30;
+          yPos += 35;
+
+          // Registration options box
+          const instructionsBoxY = yPos;
+          const instructionsBoxHeight = 90;
+
+          // Draw light gray box for instructions
+          doc.rect(margin + 20, instructionsBoxY, contentWidth - 40, instructionsBoxHeight)
+             .lineWidth(1)
+             .strokeColor('#DDDDDD')
+             .fillColor('#F9F9F9')
+             .fillAndStroke();
+
+          yPos = instructionsBoxY + 12;
+
+          // Title for registration options
+          doc.fontSize(12)
+             .fillColor('#4CAF50')
+             .font('Helvetica-Bold')
+             .text('How to Register:', margin, yPos, { width: contentWidth, align: 'center' });
+
+          yPos += 20;
+
+          // Option 1: Mobile
+          doc.fontSize(9)
+             .fillColor('#000000')
+             .font('Helvetica-Bold')
+             .text('1. Mobile:', margin + 35, yPos);
+
+          doc.fontSize(9)
+             .fillColor('#666666')
+             .font('Helvetica')
+             .text('Scan QR code with your phone', margin + 90, yPos);
+
+          yPos += 16;
+
+          // Option 2: Desktop
+          doc.fontSize(9)
+             .fillColor('#000000')
+             .font('Helvetica-Bold')
+             .text('2. Desktop:', margin + 35, yPos);
+
+          doc.fontSize(9)
+             .fillColor('#666666')
+             .font('Helvetica')
+             .text('Visit the URL above', margin + 90, yPos);
+
+          yPos += 16;
+
+          // Option 3: Airport Agent
+          doc.fontSize(9)
+             .fillColor('#000000')
+             .font('Helvetica-Bold')
+             .text('3. Airport:', margin + 35, yPos);
+
+          doc.fontSize(9)
+             .fillColor('#666666')
+             .font('Helvetica')
+             .text('Present this voucher + passport to agent', margin + 90, yPos);
+
+          yPos = instructionsBoxY + instructionsBoxHeight + 20;
         }
 
         // Footer with company name (if corporate), authorizing officer, and generation date
