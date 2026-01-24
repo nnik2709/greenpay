@@ -972,8 +972,7 @@ router.post('/voucher/:code/register', async (req, res) => {
     // 3. Update voucher with passport number
     const updateVoucherQuery = `
       UPDATE individual_purchases
-      SET passport_number = $1,
-          updated_at = NOW()
+      SET passport_number = $1
       WHERE voucher_code = $2
       RETURNING id, voucher_code, passport_number
     `;
