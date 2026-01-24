@@ -275,8 +275,6 @@ const Passports = () => {
                           <th className="pb-3 font-semibold">Name</th>
                           <th className="pb-3 font-semibold">Passport No</th>
                           <th className="pb-3 font-semibold">Nationality</th>
-                          <th className="pb-3 font-semibold">Sex</th>
-                          <th className="pb-3 font-semibold">DOB</th>
                           <th className="pb-3 font-semibold">Expiry</th>
                           <th className="pb-3 font-semibold">Actions</th>
                         </tr>
@@ -301,10 +299,6 @@ const Passports = () => {
                               <span className="font-mono text-sm">{passport.passport_number || passport.passportNo || passport.passportNumber}</span>
                             </td>
                             <td className="py-4">{passport.nationality || '—'}</td>
-                            <td className="py-4">{passport.sex || '—'}</td>
-                            <td className="py-4">
-                              {passport.date_of_birth ? new Date(passport.date_of_birth).toLocaleDateString() : (passport.dob ? new Date(passport.dob).toLocaleDateString() : '—')}
-                            </td>
                             <td className="py-4">
                               {passport.expiry_date ? new Date(passport.expiry_date).toLocaleDateString() : (passport.date_of_expiry ? new Date(passport.date_of_expiry).toLocaleDateString() : (passport.dateOfExpiry ? new Date(passport.dateOfExpiry).toLocaleDateString() : '—'))}
                             </td>
@@ -368,8 +362,6 @@ const Passports = () => {
                         <th className="pb-3 font-semibold">Name</th>
                         <th className="pb-3 font-semibold">Passport No</th>
                         <th className="pb-3 font-semibold">Nationality</th>
-                        <th className="pb-3 font-semibold">Sex</th>
-                        <th className="pb-3 font-semibold">DOB</th>
                         <th className="pb-3 font-semibold">Expiry</th>
                         <th className="pb-3 font-semibold">Actions</th>
                       </tr>
@@ -394,10 +386,6 @@ const Passports = () => {
                             <span className="font-mono text-sm">{passport.passport_number || passport.passportNo || passport.passportNumber}</span>
                           </td>
                           <td className="py-4">{passport.nationality || '—'}</td>
-                          <td className="py-4">{passport.sex || '—'}</td>
-                          <td className="py-4">
-                            {passport.date_of_birth ? new Date(passport.date_of_birth).toLocaleDateString() : (passport.dob ? new Date(passport.dob).toLocaleDateString() : '—')}
-                          </td>
                           <td className="py-4">
                             {passport.expiry_date ? new Date(passport.expiry_date).toLocaleDateString() : (passport.date_of_expiry ? new Date(passport.date_of_expiry).toLocaleDateString() : (passport.dateOfExpiry ? new Date(passport.dateOfExpiry).toLocaleDateString() : '—'))}
                           </td>
