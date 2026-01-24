@@ -234,7 +234,7 @@ const upload = multer({
 
 // Python OCR service URL
 const OCR_SERVICE_URL = process.env.OCR_SERVICE_URL || 'http://127.0.0.1:5000';
-const OCR_TIMEOUT = parseInt(process.env.OCR_TIMEOUT || '10000'); // 10 seconds
+const OCR_TIMEOUT = parseInt(process.env.OCR_TIMEOUT || '30000'); // 30 seconds (increased for mobile devices)
 
 /**
  * Health Check - Verify Python OCR service is available
@@ -408,7 +408,7 @@ router.post('/scan-mrz', upload.single('file'), async (req, res) => {
         success: false,
         error: 'OCR service temporarily unavailable',
         message: fetchError.name === 'AbortError'
-          ? 'OCR processing timeout (>10s)'
+          ? `OCR processing timeout (>${OCR_TIMEOUT/1000}s)`
           : 'Python OCR service not responding',
         fallback: 'client-tesseract',
         suggestion: 'Please use client-side scanner or try again later',
