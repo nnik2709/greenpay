@@ -412,8 +412,8 @@ const PaymentSuccess = () => {
                   </div>
                 </div>
 
-                {/* Register Passport Button - ONLY show if NOT registered */}
-                {!isRegistered && (
+                {/* Register Passport Button - ONLY show for SINGLE voucher if NOT registered */}
+                {!isRegistered && vouchers.length === 1 && (
                   <div className="mt-4 pt-4 border-t-2 border-amber-300 bg-gradient-to-b from-amber-50 to-white p-4 rounded-lg">
                     <div className="mb-4 text-center">
                       <p className="text-sm font-bold text-amber-900 mb-1">🔔 Important: Register Your Passport</p>
@@ -439,6 +439,18 @@ const PaymentSuccess = () => {
 
                       <p className="text-xs text-center text-slate-600 italic">
                         Or save/email voucher and register later
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* For multiple vouchers, show reminder to use top buttons instead */}
+                {!isRegistered && vouchers.length >= 2 && (
+                  <div className="mt-4 pt-4 border-t-2 border-blue-300 bg-gradient-to-b from-blue-50 to-white p-4 rounded-lg">
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-blue-900 mb-1">📋 Registration Options</p>
+                      <p className="text-xs text-blue-800">
+                        Use the "Download All", "Print All", or "Email All" buttons above to save your vouchers. Register them later using the QR codes in the PDF.
                       </p>
                     </div>
                   </div>
