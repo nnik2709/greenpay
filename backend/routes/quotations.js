@@ -116,13 +116,17 @@ router.post('/',
         status,
         valid_until,
         notes,
-        items
+        items,
+        apply_gst,
+        gst_rate: provided_gst_rate,
+        gst_amount: provided_gst_amount
       } = req.body;
 
-      // Calculate GST fields
+      // Calculate GST fields - OPTIONAL (default: no GST)
       const subtotal = amount;
-      const gst_rate = 10.00;
-      const gst_amount = tax_amount || parseFloat((subtotal * (gst_rate / 100)).toFixed(2));
+      const applyGst = apply_gst === true || apply_gst === 'true';
+      const gst_rate = applyGst ? (provided_gst_rate || 10.00) : 0;
+      const gst_amount = applyGst ? (provided_gst_amount || parseFloat((subtotal * (gst_rate / 100)).toFixed(2))) : 0;
       const final_total = total_amount || (subtotal + gst_amount);
 
       const result = await db.query(

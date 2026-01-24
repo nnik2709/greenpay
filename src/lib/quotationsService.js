@@ -27,11 +27,12 @@ export const createQuotation = async (quotationData, userId) => {
     const discountAmount = quotationData.discountAmount || 0;
     const amountAfterDiscount = quotationData.amountAfterDiscount || (totalAmount - discountAmount);
 
-    // Calculate GST (10% for PNG)
+    // GST is now OPTIONAL (default: false)
+    const applyGst = quotationData.applyGst === true;
     const subtotal = amountAfterDiscount;
-    const gstRate = 10.00;
-    const gstAmount = parseFloat((subtotal * (gstRate / 100)).toFixed(2));
-    const totalWithGst = subtotal + gstAmount;
+    const gstRate = applyGst ? (quotationData.gstRate || 10.00) : 0;
+    const gstAmount = applyGst ? (quotationData.gstAmount || parseFloat((subtotal * (gstRate / 100)).toFixed(2))) : 0;
+    const totalWithGst = quotationData.totalAmount || (subtotal + gstAmount);
 
     const insertData = {
       quotation_number: quotationNumber,
@@ -45,6 +46,9 @@ export const createQuotation = async (quotationData, userId) => {
       discount_percentage: discountPercentage,
       discount_amount: discountAmount,
       amount: subtotal,
+      apply_gst: applyGst,
+      gst_rate: gstRate,
+      gst_amount: gstAmount,
       tax_amount: gstAmount,
       total_amount: totalWithGst,
       status: 'draft',
@@ -86,11 +90,12 @@ export const updateQuotation = async (id, quotationData, userId) => {
     const discountAmount = quotationData.discountAmount || 0;
     const amountAfterDiscount = quotationData.amountAfterDiscount || (totalAmount - discountAmount);
 
-    // Calculate GST (10% for PNG)
+    // GST is now OPTIONAL (default: false)
+    const applyGst = quotationData.applyGst === true;
     const subtotal = amountAfterDiscount;
-    const gstRate = 10.00;
-    const gstAmount = parseFloat((subtotal * (gstRate / 100)).toFixed(2));
-    const totalWithGst = subtotal + gstAmount;
+    const gstRate = applyGst ? (quotationData.gstRate || 10.00) : 0;
+    const gstAmount = applyGst ? (quotationData.gstAmount || parseFloat((subtotal * (gstRate / 100)).toFixed(2))) : 0;
+    const totalWithGst = quotationData.totalAmount || (subtotal + gstAmount);
 
     const updateData = {
       company_name: quotationData.companyName,
@@ -103,6 +108,9 @@ export const updateQuotation = async (id, quotationData, userId) => {
       discount_percentage: discountPercentage,
       discount_amount: discountAmount,
       amount: subtotal,
+      apply_gst: applyGst,
+      gst_rate: gstRate,
+      gst_amount: gstAmount,
       tax_amount: gstAmount,
       total_amount: totalWithGst,
       valid_until: quotationData.validUntil,

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createQuotation, updateQuotation } from '@/lib/quotationsService';
@@ -28,6 +29,7 @@ const CreateQuotation = () => {
   const [discount, setDiscount] = useState(0);
   const [validUntil, setValidUntil] = useState('');
   const [notes, setNotes] = useState('');
+  const [applyGst, setApplyGst] = useState(false); // Default: no GST
 
   // Load quotation data in edit mode
   useEffect(() => {
@@ -47,6 +49,7 @@ const CreateQuotation = () => {
       setDiscount(quotation.discount_percentage || 0);
       setValidUntil(quotation.valid_until ? quotation.valid_until.split('T')[0] : '');
       setNotes(quotation.notes || '');
+      setApplyGst(quotation.gst_rate > 0 || quotation.gst_amount > 0); // Set based on existing GST
 
       // Set customer data
       setSelectedCustomer({
@@ -70,10 +73,13 @@ const CreateQuotation = () => {
   };
 
   const voucherValue = 50; // Price per passport/voucher
+  const gstRate = 10.0; // PNG GST rate
 
   const totalAmount = totalVouchers * voucherValue;
   const discountAmount = totalAmount * (discount / 100);
   const amountAfterDiscount = totalAmount - discountAmount;
+  const gstAmount = applyGst ? amountAfterDiscount * (gstRate / 100) : 0;
+  const finalTotal = amountAfterDiscount + gstAmount;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,6 +106,10 @@ const CreateQuotation = () => {
         discount: discount,
         discountAmount: discountAmount,
         amountAfterDiscount: amountAfterDiscount,
+        applyGst: applyGst,
+        gstRate: applyGst ? gstRate : 0,
+        gstAmount: gstAmount,
+        totalAmount: finalTotal,
         validUntil: validUntil,
         notes: notes,
       };
@@ -270,14 +280,63 @@ const CreateQuotation = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="amount_after_discount">Amount After Discount</Label>
+                <Label htmlFor="amount_after_discount">Subtotal (After Discount)</Label>
                 <Input
                   id="amount_after_discount"
                   value={`PGK ${amountAfterDiscount.toFixed(2)}`}
                   readOnly
-                  className="bg-slate-100 font-bold"
+                  className="bg-slate-100"
                 />
               </div>
+            </div>
+
+            <div className="border-t pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="space-y-1">
+                  <Label htmlFor="apply_gst" className="text-base font-semibold">Apply GST (10%)</Label>
+                  <p className="text-sm text-slate-600">Add Goods and Services Tax to the quotation</p>
+                </div>
+                <Switch
+                  id="apply_gst"
+                  checked={applyGst}
+                  onCheckedChange={setApplyGst}
+                />
+              </div>
+
+              {applyGst && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="gst_amount">GST Amount (10%)</Label>
+                    <Input
+                      id="gst_amount"
+                      value={`PGK ${gstAmount.toFixed(2)}`}
+                      readOnly
+                      className="bg-emerald-50 text-emerald-900"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="final_total" className="font-bold">Final Total (Inc. GST)</Label>
+                    <Input
+                      id="final_total"
+                      value={`PGK ${finalTotal.toFixed(2)}`}
+                      readOnly
+                      className="bg-emerald-100 text-emerald-900 font-bold text-lg"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {!applyGst && (
+                <div className="space-y-2">
+                  <Label htmlFor="final_total_no_gst" className="font-bold">Final Total</Label>
+                  <Input
+                    id="final_total_no_gst"
+                    value={`PGK ${finalTotal.toFixed(2)}`}
+                    readOnly
+                    className="bg-slate-100 font-bold text-lg"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -322,7 +381,16 @@ const CreateQuotation = () => {
               <div className="p-3 bg-blue-50 rounded-lg">
                 <p className="font-medium text-blue-900">Current Quote</p>
                 <p className="text-blue-700">{totalVouchers} vouchers</p>
-                <p className="text-blue-700">PGK {amountAfterDiscount.toFixed(2)} total</p>
+                <p className="text-blue-700">Subtotal: PGK {amountAfterDiscount.toFixed(2)}</p>
+                {applyGst && (
+                  <>
+                    <p className="text-blue-700">GST (10%): PGK {gstAmount.toFixed(2)}</p>
+                    <p className="text-blue-900 font-bold">Total: PGK {finalTotal.toFixed(2)}</p>
+                  </>
+                )}
+                {!applyGst && (
+                  <p className="text-blue-900 font-bold">Total: PGK {finalTotal.toFixed(2)}</p>
+                )}
               </div>
               {discount > 0 && (
                 <div className="p-3 bg-amber-50 rounded-lg">
