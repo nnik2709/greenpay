@@ -317,9 +317,10 @@ const MultiVoucherRegistrationWizard = ({ vouchers, onComplete, onCancel }) => {
 
                   <SimpleCameraScanner
                     onPassportData={handleScanSuccess}
-                    autoStart={true}
+                    autoStart={false}
+                    autoCapture={true}
                     showCloseButton={false}
-                    buttonText="Start Scanning"
+                    buttonText="Start Camera Scanner"
                   />
 
                   <div className="mt-6 text-center">
@@ -428,36 +429,6 @@ const MultiVoucherRegistrationWizard = ({ vouchers, onComplete, onCancel }) => {
                         className="mt-1"
                         placeholder="John"
                       />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="dateOfBirth" className="text-slate-700">
-                        Date of Birth
-                      </Label>
-                      <Input
-                        id="dateOfBirth"
-                        type="date"
-                        value={editedData.dateOfBirth || ''}
-                        onChange={(e) => handleFieldChange('dateOfBirth', e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="sex" className="text-slate-700">
-                        Sex
-                      </Label>
-                      <select
-                        id="sex"
-                        value={editedData.sex || ''}
-                        onChange={(e) => handleFieldChange('sex', e.target.value)}
-                        className="mt-1 w-full h-10 px-3 rounded-md border border-slate-300 bg-white"
-                      >
-                        <option value="">Select...</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Unspecified">Unspecified</option>
-                      </select>
                     </div>
 
                     <div className="md:col-span-2">
