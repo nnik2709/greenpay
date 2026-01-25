@@ -22,12 +22,11 @@ const ScanAndValidate = () => {
   const [showCameraScanner, setShowCameraScanner] = useState(false);
   const [showSuccessFlash, setShowSuccessFlash] = useState(false);
   const [showErrorFlash, setShowErrorFlash] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [pendingCode, setPendingCode] = useState(null);
   const lastScannedCode = useRef(null);
   const lastScanTime = useRef(0);
   const audioContext = useRef(null);
   const scannerRef = useRef(null);
+  const isProcessingScan = useRef(false);
 
   // Device detection: Mobile devices should use camera, desktop should use USB scanner
   const [deviceType] = useState(() => {
@@ -338,21 +337,33 @@ const ScanAndValidate = () => {
         const onScanSuccess = (decodedText, decodedResult) => {
           console.log('[Scanner] Scan successful:', decodedText);
 
-          // Stop scanner immediately to prevent multiple scans
-          if (scannerRef.current) {
-            scannerRef.current.stop().then(() => {
-              scannerRef.current = null;
-              setShowCameraScanner(false);
-            }).catch(err => console.error('[Scanner] Stop error:', err));
+          // Prevent processing if already processing a scan
+          if (isProcessingScan.current) {
+            console.log('[Scanner] Already processing a scan, ignoring...');
+            return;
           }
 
-          // Play beep to indicate scan was captured
-          playSuccessBeep();
-          if (navigator.vibrate) navigator.vibrate(200);
+          // Set processing flag
+          isProcessingScan.current = true;
 
-          // Show confirmation dialog before marking as used
-          setPendingCode(decodedText);
-          setShowConfirmDialog(true);
+          // Add 2 second delay before processing to prevent accidental scans
+          setTimeout(() => {
+            // Stop scanner after delay
+            if (scannerRef.current) {
+              scannerRef.current.stop().then(() => {
+                scannerRef.current = null;
+                setShowCameraScanner(false);
+              }).catch(err => console.error('[Scanner] Stop error:', err));
+            }
+
+            // Process the validation
+            handleValidation(decodedText);
+
+            // Reset processing flag after another 2 seconds
+            setTimeout(() => {
+              isProcessingScan.current = false;
+            }, 2000);
+          }, 2000); // 2 second delay before processing
         };
 
         const onScanFailure = (error) => {
@@ -408,23 +419,6 @@ const ScanAndValidate = () => {
       }
     };
   }, [showCameraScanner, handleValidation, toast]);
-
-  const handleConfirmScan = () => {
-    if (pendingCode) {
-      setShowConfirmDialog(false);
-      handleValidation(pendingCode);
-      setPendingCode(null);
-    }
-  };
-
-  const handleCancelScan = () => {
-    setShowConfirmDialog(false);
-    setPendingCode(null);
-    toast({
-      title: "Scan Cancelled",
-      description: "Voucher was not marked as used.",
-    });
-  };
 
   const ResultCard = ({ result }) => {
     if (!result) return null;
@@ -506,55 +500,6 @@ const ScanAndValidate = () => {
           />
         )}
       </AnimatePresence>
-
-      {/* Scan Confirmation Dialog */}
-      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-center">
-              ✅ Voucher Scanned
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4 text-center">
-              <p className="text-lg font-mono font-bold text-blue-900 mb-2">
-                {pendingCode}
-              </p>
-              <p className="text-sm text-blue-700">
-                Scanned voucher code
-              </p>
-            </div>
-
-            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4">
-              <p className="text-sm text-yellow-900 font-semibold mb-2">
-                ⚠️ Important: Confirm to Mark as Used
-              </p>
-              <p className="text-xs text-yellow-800">
-                Clicking "Validate & Mark Used" will permanently mark this voucher as used.
-                Only confirm if the passenger is clearing immigration NOW.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mt-6">
-              <Button
-                variant="outline"
-                onClick={handleCancelScan}
-                className="h-14 text-base font-semibold"
-              >
-                ❌ Cancel<br/>
-                <span className="text-xs font-normal opacity-70">Don't mark used</span>
-              </Button>
-              <Button
-                onClick={handleConfirmScan}
-                className="h-14 text-base font-semibold bg-emerald-600 hover:bg-emerald-700"
-              >
-                ✅ Validate & Mark Used<br/>
-                <span className="text-xs font-normal opacity-90">Confirm exit</span>
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-3">
