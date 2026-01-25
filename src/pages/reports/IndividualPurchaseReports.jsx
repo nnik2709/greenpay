@@ -19,8 +19,8 @@ const customStyles = {
 
 const StatCard = ({ title, value }) => (
   <div className="bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200">
-    <p className="text-sm text-slate-500">{title}</p>
-    <p className="text-2xl font-bold text-slate-800">{value}</p>
+    <p className="text-xs text-slate-500 mb-1">{title}</p>
+    <p className="text-base md:text-lg font-bold text-slate-800 truncate">{value}</p>
   </div>
 );
 
@@ -260,27 +260,23 @@ const IndividualPurchaseReports = () => {
         />
       </div>
 
-      {/* Row 1: General Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Statistics: 3-column grid (responsive) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         <StatCard title="Total Records" value={total} />
         <StatCard title="Current Page" value={data.length} />
         <StatCard title="Total Amount" value={`PGK ${data.reduce((sum, v) => sum + parseFloat(v.amount || 0), 0).toFixed(2)}`} />
         <StatCard title="Active Vouchers" value={data.filter(v => calculateStatus(v) === 'active').length} />
-      </div>
-
-      {/* Row 2: Payment Type Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
           title="Cash Payments"
-          value={`${data.filter(v => v.payment_method === 'CASH').length} (PGK ${data.filter(v => v.payment_method === 'CASH').reduce((sum, v) => sum + parseFloat(v.amount || 0), 0).toFixed(2)})`}
+          value={`${data.filter(v => v.payment_method === 'CASH').length} (K${data.filter(v => v.payment_method === 'CASH').reduce((sum, v) => sum + parseFloat(v.amount || 0), 0).toFixed(0)})`}
         />
         <StatCard
           title="POS Payments"
-          value={`${data.filter(v => v.payment_method === 'POS').length} (PGK ${data.filter(v => v.payment_method === 'POS').reduce((sum, v) => sum + parseFloat(v.amount || 0), 0).toFixed(2)})`}
+          value={`${data.filter(v => v.payment_method === 'POS').length} (K${data.filter(v => v.payment_method === 'POS').reduce((sum, v) => sum + parseFloat(v.amount || 0), 0).toFixed(0)})`}
         />
         <StatCard
           title="Online Payments"
-          value={`${data.filter(v => v.payment_method === 'ONLINE').length} (PGK ${data.filter(v => v.payment_method === 'ONLINE').reduce((sum, v) => sum + parseFloat(v.amount || 0), 0).toFixed(2)})`}
+          value={`${data.filter(v => v.payment_method === 'ONLINE').length} (K${data.filter(v => v.payment_method === 'ONLINE').reduce((sum, v) => sum + parseFloat(v.amount || 0), 0).toFixed(0)})`}
         />
       </div>
 
