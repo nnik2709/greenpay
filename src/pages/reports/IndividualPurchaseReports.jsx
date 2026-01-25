@@ -43,10 +43,11 @@ const IndividualPurchaseReports = () => {
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
 
   useEffect(() => {
     fetchVouchers();
-  }, [page, statusFilter]);
+  }, [page, statusFilter, paymentTypeFilter]);
 
   const fetchVouchers = async (pageNum = page) => {
     try {
@@ -55,7 +56,8 @@ const IndividualPurchaseReports = () => {
         page: pageNum,
         limit,
         search: searchQuery,
-        status: statusFilter !== 'all' ? statusFilter : ''
+        status: statusFilter !== 'all' ? statusFilter : '',
+        payment_method: paymentTypeFilter !== 'all' ? paymentTypeFilter : ''
       };
 
       const response = await api.get('/individual-purchases', { params });
@@ -265,8 +267,24 @@ const IndividualPurchaseReports = () => {
         <StatCard title="Active Vouchers" value={data.filter(v => calculateStatus(v) === 'active').length} />
       </div>
 
+      {/* Payment Type Breakdown */}
+      <div className="grid grid-cols-3 gap-4">
+        <StatCard
+          title="Cash Payments"
+          value={`${data.filter(v => v.payment_method === 'CASH').length} (PGK ${data.filter(v => v.payment_method === 'CASH').reduce((sum, v) => sum + parseFloat(v.amount || 0), 0).toFixed(2)})`}
+        />
+        <StatCard
+          title="POS Payments"
+          value={`${data.filter(v => v.payment_method === 'POS').length} (PGK ${data.filter(v => v.payment_method === 'POS').reduce((sum, v) => sum + parseFloat(v.amount || 0), 0).toFixed(2)})`}
+        />
+        <StatCard
+          title="Online Payments"
+          value={`${data.filter(v => v.payment_method === 'ONLINE').length} (PGK ${data.filter(v => v.payment_method === 'ONLINE').reduce((sum, v) => sum + parseFloat(v.amount || 0), 0).toFixed(2)})`}
+        />
+      </div>
+
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           <div className="md:col-span-2">
             <Input
               placeholder="Search by voucher code, passport number, or customer name..."
@@ -279,20 +297,30 @@ const IndividualPurchaseReports = () => {
               }}
             />
           </div>
-          <div className="flex gap-2">
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="used">Used</option>
-              <option value="expired">Expired</option>
-              <option value="refunded">Refunded</option>
-            </select>
-            <Button onClick={handleSearch}>Search</Button>
-          </div>
+          <select
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="used">Used</option>
+            <option value="expired">Expired</option>
+            <option value="refunded">Refunded</option>
+          </select>
+          <select
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+            value={paymentTypeFilter}
+            onChange={(e) => setPaymentTypeFilter(e.target.value)}
+          >
+            <option value="all">All Payment Types</option>
+            <option value="CASH">Cash</option>
+            <option value="POS">POS/Card</option>
+            <option value="ONLINE">Online</option>
+          </select>
+        </div>
+        <div className="flex justify-end mb-4">
+          <Button onClick={handleSearch}>Search</Button>
         </div>
         <DataTable
           columns={columns}
