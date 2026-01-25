@@ -63,7 +63,6 @@ const LoginHistory = lazy(() => import('@/pages/admin/LoginHistory'));
 const SMSSettings = lazy(() => import('@/pages/admin/SMSSettings'));
 const IndividualPurchaseReports = lazy(() => import('@/pages/reports/IndividualPurchaseReports'));
 const CorporateVoucherReports = lazy(() => import('@/pages/reports/CorporateVoucherReports'));
-const OnlinePurchaseReports = lazy(() => import('@/pages/reports/OnlinePurchaseReports'));
 const RevenueGeneratedReports = lazy(() => import('@/pages/reports/RevenueGeneratedReports'));
 const BulkPassportUploadReports = lazy(() => import('@/pages/reports/BulkPassportUploadReports'));
 const QuotationsReports = lazy(() => import('@/pages/reports/QuotationsReports'));
@@ -327,11 +326,6 @@ const AppRoutes = () => {
           <Route path="reports/corporate-vouchers" element={
             <PrivateRoute roles={['Flex_Admin', 'Finance_Manager', 'IT_Support']}>
               <CorporateVoucherReports />
-            </PrivateRoute>
-          } />
-          <Route path="reports/online-purchase" element={
-            <PrivateRoute roles={['Flex_Admin', 'Finance_Manager', 'IT_Support']}>
-              <OnlinePurchaseReports />
             </PrivateRoute>
           } />
           <Route path="reports/revenue-generated" element={
