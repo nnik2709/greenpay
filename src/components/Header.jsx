@@ -13,8 +13,9 @@ import PasswordChangeModal from '@/components/PasswordChangeModal';
 
 const reportSubItems = [
     { to: '/app/reports/passports', icon: <FileText className="h-4 w-4" />, label: 'Passport Reports' },
-    { to: '/app/reports/individual-purchase', icon: <FilePlus className="h-4 w-4" />, label: 'Individual Purchase' },
-    { to: '/app/reports/corporate-vouchers', icon: <Building className="h-4 w-4" />, label: 'Corporate Vouchers' },
+    { to: '/app/reports/individual-purchase', icon: <FilePlus className="h-4 w-4" />, label: 'Individual Purchase Reports' },
+    { to: '/app/reports/corporate-vouchers', icon: <Building className="h-4 w-4" />, label: 'Corporate Purchase Reports' },
+    { to: '/app/reports/online-purchase', icon: <Package className="h-4 w-4" />, label: 'Online Purchase Reports' },
     { to: '/app/reports/revenue-generated', icon: <CreditCard className="h-4 w-4" />, label: 'Revenue Generated' },
     { to: '/app/reports/quotations', icon: <FileSignature className="h-4 w-4" />, label: 'Quotations' },
     { to: '/app/reports/refunded', icon: <FileText className="h-4 w-4" />, label: 'Refunded' },
@@ -24,8 +25,9 @@ const reportSubItems = [
 // IT_Support has limited report access (no quotations)
 const itSupportReportSubItems = [
     { to: '/app/reports/passports', icon: <FileText className="h-4 w-4" />, label: 'Passport Reports' },
-    { to: '/app/reports/individual-purchase', icon: <FilePlus className="h-4 w-4" />, label: 'Individual Purchase' },
-    { to: '/app/reports/corporate-vouchers', icon: <Building className="h-4 w-4" />, label: 'Corporate Vouchers' },
+    { to: '/app/reports/individual-purchase', icon: <FilePlus className="h-4 w-4" />, label: 'Individual Purchase Reports' },
+    { to: '/app/reports/corporate-vouchers', icon: <Building className="h-4 w-4" />, label: 'Corporate Purchase Reports' },
+    { to: '/app/reports/online-purchase', icon: <Package className="h-4 w-4" />, label: 'Online Purchase Reports' },
     { to: '/app/reports/revenue-generated', icon: <CreditCard className="h-4 w-4" />, label: 'Revenue Generated' },
     { to: '/app/reports/refunded', icon: <FileText className="h-4 w-4" />, label: 'Refunded' },
     { to: '/app/reports/cash-reconciliation', icon: <CreditCard className="h-4 w-4" />, label: 'Cash Reconciliation' },

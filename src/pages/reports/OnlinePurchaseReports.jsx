@@ -24,7 +24,7 @@ const StatCard = ({ title, value }) => (
   </div>
 );
 
-const IndividualPurchaseReports = () => {
+const OnlinePurchaseReports = () => {
   const { toast } = useToast();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,10 +40,10 @@ const IndividualPurchaseReports = () => {
   const [total, setTotal] = useState(0);
   const [limit] = useState(50);
 
-  // Search and filter state
+  // Search and filter state - ONLINE filter pre-selected
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState('ONLINE');
 
   useEffect(() => {
     fetchVouchers();
@@ -250,13 +250,13 @@ const IndividualPurchaseReports = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-          Individual Purchase Reports
+          Online Purchase Reports
         </h1>
         <ExportButton
           data={data}
           columns={columns}
-          filename="Individual_Purchase_Report"
-          title="Individual Purchase Report"
+          filename="Online_Purchase_Report"
+          title="Online Purchase Report"
         />
       </div>
 
@@ -268,7 +268,7 @@ const IndividualPurchaseReports = () => {
         <StatCard title="Active Vouchers" value={data.filter(v => calculateStatus(v) === 'active').length} />
       </div>
 
-      {/* Row 2: Payment Type Breakdown */}
+      {/* Row 2: Payment Type Breakdown - Only showing Online */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
           title="Cash Payments"
@@ -408,4 +408,4 @@ const IndividualPurchaseReports = () => {
   );
 };
 
-export default IndividualPurchaseReports;
+export default OnlinePurchaseReports;

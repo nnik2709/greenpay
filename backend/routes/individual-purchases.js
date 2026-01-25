@@ -20,6 +20,7 @@ function generateVoucherCode(prefix = 'IND') {
  *   - limit: records per page (default: 50, max: 1000)
  *   - search: search term for voucher_code, passport_number, customer_name
  *   - status: filter by status (all, active, used, expired, refunded)
+ *   - payment_method: filter by payment method (all, CASH, POS, ONLINE)
  */
 router.get('/', auth, async (req, res) => {
   try {
@@ -31,6 +32,7 @@ router.get('/', auth, async (req, res) => {
     // Parse search params
     const search = req.query.search ? req.query.search.trim() : '';
     const status = req.query.status || '';
+    const paymentMethod = req.query.payment_method || '';
 
     // Build WHERE clauses
     let whereClause = 'WHERE 1=1';
@@ -61,6 +63,12 @@ router.get('/', auth, async (req, res) => {
           whereClause += ` AND ip.refunded_at IS NOT NULL`;
           break;
       }
+    }
+
+    // Filter by payment method
+    if (paymentMethod && paymentMethod !== 'all') {
+      params.push(paymentMethod.toUpperCase());
+      whereClause += ` AND ip.payment_method = $${params.length}`;
     }
 
     // Get total count for pagination
