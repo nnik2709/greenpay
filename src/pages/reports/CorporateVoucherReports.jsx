@@ -40,7 +40,7 @@ const CorporateVoucherReports = () => {
 
   useEffect(() => {
     fetchVouchers();
-  }, [page, statusFilter]);
+  }, [page]);
 
   const fetchVouchers = async (pageNum = page) => {
     try {

@@ -47,7 +47,7 @@ const IndividualPurchaseReports = () => {
 
   useEffect(() => {
     fetchVouchers();
-  }, [page, statusFilter, paymentTypeFilter]);
+  }, [page]);
 
   const fetchVouchers = async (pageNum = page) => {
     try {
