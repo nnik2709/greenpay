@@ -41,15 +41,29 @@ const processDataForCharts = (data) => {
         name: new Date(0, i).toLocaleString('default', { month: 'short' }),
         Individual: 0,
         Corporate: 0,
+        Online: 0,
         Overall: 0,
     }));
 
     const barChartData = {};
 
+    // Purchase type breakdown for pie/bar chart
+    const purchaseTypeData = {
+        Individual: { count: 0, amount: 0 },
+        Corporate: { count: 0, amount: 0 },
+        Online: { count: 0, amount: 0 }
+    };
+
     data.forEach(item => {
         const month = item.date.getMonth();
         lineChartData[month][item.type] += item.amount;
         lineChartData[month].Overall += item.amount;
+
+        // Count purchase types
+        if (purchaseTypeData[item.type]) {
+            purchaseTypeData[item.type].count += 1;
+            purchaseTypeData[item.type].amount += item.amount;
+        }
 
         if (!barChartData[item.nationality]) {
             barChartData[item.nationality] = 0;
@@ -62,7 +76,14 @@ const processDataForCharts = (data) => {
         .sort((a, b) => b.Kina - a.Kina)
         .slice(0, 7);
 
-    return { lineChartData, barChartData: formattedBarData };
+    // Format purchase type data for bar chart
+    const purchaseTypeChartData = Object.entries(purchaseTypeData).map(([name, data]) => ({
+        name,
+        Count: data.count,
+        Amount: data.amount
+    }));
+
+    return { lineChartData, barChartData: formattedBarData, purchaseTypeChartData };
 };
 
 const Dashboard = () => {
@@ -208,13 +229,28 @@ const Dashboard = () => {
       const data = response.transactions || response.data || response;
 
       // Transform to match expected format
-      const formattedData = (data || []).map(t => ({
-        date: new Date(t.created_at || t.createdAt),
-        amount: parseFloat(t.amount),
-        paymentMethod: t.payment_method || t.paymentMethod || 'Cash',
-        type: (t.transaction_type === 'individual' || t.transaction_type === 'individual_purchase' || t.transactionType === 'individual') ? 'Individual' : 'Corporate',
-        nationality: t.nationality || 'Unknown'
-      }));
+      const formattedData = (data || []).map(t => {
+        const paymentMethod = t.payment_method || t.paymentMethod || 'Cash';
+        const transactionType = t.transaction_type || t.transactionType;
+
+        // Determine purchase type
+        let purchaseType;
+        if (paymentMethod === 'ONLINE') {
+          purchaseType = 'Online';
+        } else if (transactionType === 'individual' || transactionType === 'individual_purchase') {
+          purchaseType = 'Individual';
+        } else {
+          purchaseType = 'Corporate';
+        }
+
+        return {
+          date: new Date(t.created_at || t.createdAt),
+          amount: parseFloat(t.amount),
+          paymentMethod,
+          type: purchaseType,
+          nationality: t.nationality || 'Unknown'
+        };
+      });
 
       setTransactions(formattedData);
     } catch (error) {
@@ -254,20 +290,31 @@ const Dashboard = () => {
     const todaysRevenue = todaysTransactions.reduce((acc, t) => acc + t.amount, 0);
     const cardPayments = filteredData.filter(t => t.paymentMethod === 'Card').reduce((acc, t) => acc + t.amount, 0);
     const cashPayments = filteredData.filter(t => t.paymentMethod === 'Cash').reduce((acc, t) => acc + t.amount, 0);
-    const totalIndividual = filteredData.filter(t => t.type === 'Individual').length;
-    const totalCorporate = filteredData.filter(t => t.type === 'Corporate').length;
+
+    // Individual, Corporate, and Online purchases
+    const individualPurchases = filteredData.filter(t => t.type === 'Individual');
+    const corporatePurchases = filteredData.filter(t => t.type === 'Corporate');
+    const onlinePurchases = filteredData.filter(t => t.type === 'Online');
+
+    const totalIndividual = individualPurchases.length;
+    const totalCorporate = corporatePurchases.length;
+    const totalOnline = onlinePurchases.length;
+
+    const individualRevenue = individualPurchases.reduce((acc, t) => acc + t.amount, 0);
+    const corporateRevenue = corporatePurchases.reduce((acc, t) => acc + t.amount, 0);
+    const onlineRevenue = onlinePurchases.reduce((acc, t) => acc + t.amount, 0);
 
     return [
       { title: "Overall Revenue", value: `K ${overallRevenue.toLocaleString()}` },
       { title: "Today's Revenue", value: `K ${todaysRevenue.toLocaleString()}` },
-      { title: "Card Payments", value: `K ${cardPayments.toLocaleString()}` },
+      { title: "Individual Purchases", value: `${totalIndividual} (K ${individualRevenue.toLocaleString()})` },
+      { title: "Corporate Purchases", value: `${totalCorporate} (K ${corporateRevenue.toLocaleString()})` },
+      { title: "Online Purchases", value: `${totalOnline} (K ${onlineRevenue.toLocaleString()})` },
       { title: "Cash Payments", value: `K ${cashPayments.toLocaleString()}` },
-      { title: "Total Individual Purchases", value: totalIndividual },
-      { title: "Total Corporate Purchases", value: totalCorporate },
     ];
   }, [filteredData]);
 
-  const { lineChartData, barChartData } = useMemo(() => processDataForCharts(filteredData), [filteredData]);
+  const { lineChartData, barChartData, purchaseTypeChartData } = useMemo(() => processDataForCharts(filteredData), [filteredData]);
 
   return (
     <motion.div
@@ -361,7 +408,7 @@ const Dashboard = () => {
         </Card>
         <Card className="lg:col-span-1 glass-effect card-hover border-slate-200">
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold text-slate-800">Overall Revenue</CardTitle>
+            <CardTitle className="text-xl font-semibold text-slate-800">All Purchase Types</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -371,13 +418,41 @@ const Dashboard = () => {
                 <YAxis />
                 <Tooltip formatter={(value) => `K ${value.toLocaleString()}`} />
                 <Legend />
-                <Line type="monotone" dataKey="Overall" stroke="#f97316" strokeWidth={2} />
+                <Line type="monotone" dataKey="Individual" stroke="#10b981" strokeWidth={2} />
+                <Line type="monotone" dataKey="Corporate" stroke="#06b6d4" strokeWidth={2} />
+                <Line type="monotone" dataKey="Online" stroke="#f97316" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
       
+      {/* Purchase Type Breakdown Chart */}
+      <Card className="glass-effect card-hover border-slate-200">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl font-semibold text-slate-800">Purchase Type Breakdown</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={purchaseTypeChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis yAxisId="left" orientation="left" stroke="#10b981" />
+              <YAxis yAxisId="right" orientation="right" stroke="#06b6d4" />
+              <Tooltip
+                formatter={(value, name) => {
+                  if (name === 'Amount') return `K ${value.toLocaleString()}`;
+                  return value;
+                }}
+              />
+              <Legend />
+              <Bar yAxisId="left" dataKey="Count" fill="#10b981" name="Number of Purchases" />
+              <Bar yAxisId="right" dataKey="Amount" fill="#06b6d4" name="Total Amount (Kina)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
       <Card className="glass-effect card-hover border-slate-200">
         <CardHeader className="pb-4">
           <CardTitle className="text-xl font-semibold text-slate-800">Revenue by Nationality (Kina)</CardTitle>
