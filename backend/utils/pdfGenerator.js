@@ -798,7 +798,34 @@ async function generateQuotationPDF(quotation) {
          .text('SUB TOTAL', 400, yPos, { width: 80, align: 'left' })
          .text('PGK ' + subtotal.toFixed(2), 490, yPos, { width: 50, align: 'right' });
 
-      yPos += 30;
+      yPos += 20;
+
+      // GST line (only if GST is applied)
+      const gstRate = parseFloat(quotation.gst_rate || 0);
+      const gstAmount = parseFloat(quotation.gst_amount || 0);
+
+      if (gstAmount > 0) {
+        doc.fontSize(10)
+           .fillColor('#000000')
+           .text(`GST (${gstRate.toFixed(0)}%)`, 400, yPos, { width: 80, align: 'left' })
+           .text('PGK ' + gstAmount.toFixed(2), 490, yPos, { width: 50, align: 'right' });
+
+        yPos += 20;
+
+        // GRAND TOTAL (with GST)
+        const grandTotal = subtotal + gstAmount;
+        doc.fontSize(11)
+           .fillColor('#2c5530')
+           .font('Helvetica-Bold')
+           .text('GRAND TOTAL', 400, yPos, { width: 80, align: 'left' })
+           .text('PGK ' + grandTotal.toFixed(2), 490, yPos, { width: 50, align: 'right' })
+           .font('Helvetica');
+
+        yPos += 30;
+      } else {
+        // No GST - just add spacing
+        yPos += 10;
+      }
 
       // Payment Information and Terms & Conditions (Two columns)
       const bottomSectionY = yPos;
