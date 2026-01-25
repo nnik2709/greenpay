@@ -30,8 +30,8 @@ const StatCard = ({ title, value, index }) => {
       className="bg-gradient-to-br from-emerald-500 via-emerald-400 to-teal-500 text-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-shadow relative overflow-hidden group"
     >
       <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-300" />
-      <h3 className="text-sm font-medium mb-2 opacity-90 relative z-10">{title}</h3>
-      <p className="text-3xl md:text-4xl font-bold relative z-10">{value}</p>
+      <h3 className="text-xs font-medium mb-2 opacity-90 relative z-10">{title}</h3>
+      <p className="text-lg md:text-xl font-bold relative z-10 break-words">{value}</p>
     </motion.div>
   );
 };
@@ -305,12 +305,12 @@ const Dashboard = () => {
     const onlineRevenue = onlinePurchases.reduce((acc, t) => acc + t.amount, 0);
 
     return [
-      { title: "Overall Revenue", value: `K ${overallRevenue.toLocaleString()}` },
-      { title: "Today's Revenue", value: `K ${todaysRevenue.toLocaleString()}` },
-      { title: "Individual Purchases", value: `${totalIndividual} (K ${individualRevenue.toLocaleString()})` },
-      { title: "Corporate Purchases", value: `${totalCorporate} (K ${corporateRevenue.toLocaleString()})` },
-      { title: "Online Purchases", value: `${totalOnline} (K ${onlineRevenue.toLocaleString()})` },
-      { title: "Cash Payments", value: `K ${cashPayments.toLocaleString()}` },
+      { title: "Overall Revenue", value: `K ${Math.round(overallRevenue)}` },
+      { title: "Today's Revenue", value: `K ${Math.round(todaysRevenue)}` },
+      { title: "Individual Purchases", value: `${totalIndividual} (K${Math.round(individualRevenue)})` },
+      { title: "Corporate Purchases", value: `${totalCorporate} (K${Math.round(corporateRevenue)})` },
+      { title: "Online Purchases", value: `${totalOnline} (K${Math.round(onlineRevenue)})` },
+      { title: "Cash Payments", value: `K ${Math.round(cashPayments)}` },
     ];
   }, [filteredData]);
 
@@ -365,7 +365,7 @@ const Dashboard = () => {
         <Button onClick={handleFilter} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white h-11 px-6 shadow-md hover:shadow-lg transition-all mt-6">Filter</Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {stats.map((stat, index) => (
           <StatCard key={stat.title} {...stat} index={index} />
         ))}

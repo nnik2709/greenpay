@@ -3,17 +3,17 @@
  * Auto-generated during build process
  * DO NOT EDIT MANUALLY - This file is overwritten on each build
  *
- * Generated: 2026-01-25T15:32:55.784Z
+ * Generated: 2026-01-25T15:36:01.485Z
  * Check in browser console: window.__BUILD_INFO__
  */
 
 export const BUILD_INFO = {
   version: '0.0.0',
-  buildTime: '2026-01-25T15:32:55.784Z',
-  buildTimestamp: 1769355175784,
-  buildDate: '01/25/2026, 16:32:55',
+  buildTime: '2026-01-25T15:36:01.485Z',
+  buildTimestamp: 1769355361485,
+  buildDate: '01/25/2026, 16:36:01',
   gitBranch: 'main',
-  gitCommit: '9a245d7',
+  gitCommit: '759f81f',
   environment: 'production'
 };
 
