@@ -366,7 +366,7 @@ router.post('/complete', async (req, res) => {
         'PENDING', // Passport to be registered later
         50.00, // PGK 50 per voucher
         'BSP IPG', // payment_mode
-        paymentData?.paymentMethod || 'VISA', // payment_method
+        'ONLINE', // payment_method (BSP is online payment gateway)
         validFrom,
         validUntil,
         'active',
@@ -518,7 +518,8 @@ router.post('/register-passport', async (req, res) => {
       surname,
       givenName,
       dateOfBirth,
-      nationality
+      nationality,
+      passportExpiry
     } = req.body;
 
     // Validate required fields
@@ -599,14 +600,15 @@ router.post('/register-passport', async (req, res) => {
           created_at,
           updated_at
         )
-        VALUES ($1, $2, $3, $4, NULL, NULL, 'P', NOW(), NOW())
+        VALUES ($1, $2, $3, $4, NULL, $5, 'P', NOW(), NOW())
         RETURNING id
       `;
       const newPassport = await pool.query(newPassportQuery, [
         upperPassportNumber,
         customerName,
         normalizedNationality,
-        dateOfBirth || null
+        dateOfBirth || null,
+        passportExpiry || null
       ]);
       passportId = newPassport.rows[0].id;
 
@@ -976,7 +978,7 @@ async function completeVoucherPurchase(sessionId, paymentData) {
         'PENDING',
         50.00,
         paymentData.gateway || 'Online',
-        paymentData.paymentMethod || 'Card',
+        'ONLINE', // payment_method (online payment gateway)
         validFrom,
         validUntil,
         'active',

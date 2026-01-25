@@ -5,6 +5,7 @@ import App from '@/App';
 import '@/index.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { registerServiceWorker } from '@/lib/pwa-installer';
+import '@/buildInfo'; // Import build info to log to console
 
 // Register Service Worker for offline support (PNG network optimization)
 // TEMPORARILY DISABLED FOR TESTING

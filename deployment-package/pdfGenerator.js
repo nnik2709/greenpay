@@ -937,39 +937,41 @@ const generateThermalReceiptPDF = async (voucher) => {
 
       let yPos = margin;
 
-      // Header - Single centered logo (logo file contains both images side by side)
+      // Header - Compact logo (if exists)
       try {
         const ccdaLogoPath = path.join(__dirname, '../assets/logos/ccda-logo.png');
+        console.log('[Thermal Receipt] Logo path:', ccdaLogoPath);
+        console.log('[Thermal Receipt] Logo exists:', fs.existsSync(ccdaLogoPath));
 
         if (fs.existsSync(ccdaLogoPath)) {
-          // Single centered logo - fit vertically to 35pt height, maintain aspect ratio
-          const logoHeight = 35;
-          const logoX = (receiptWidth - contentWidth) / 2 + margin;
-          doc.image(ccdaLogoPath, logoX, yPos, { fit: [contentWidth, logoHeight], align: 'center' });
-          yPos += logoHeight + 8;
+          const logoSize = 30;
+          const logoX = (receiptWidth - logoSize) / 2;
+          doc.image(ccdaLogoPath, logoX, yPos, { width: logoSize });
+          yPos += logoSize + 5;
           console.log('[Thermal Receipt] Logo added successfully');
+        } else {
+          console.error('[Thermal Receipt] Logo file not found at:', ccdaLogoPath);
         }
       } catch (err) {
-        console.error('[Thermal Receipt] Error loading logo:', err.message);
+        console.error('[Thermal Receipt] Error loading logo:', err.message, err.stack);
       }
 
-      // Title - GREEN CARD with white text on dark green background
-      const titleHeight = 22;
+      // Title - GREEN CARD with white text on dark green/gray background
+      const titleHeight = 20;
       doc.rect(margin, yPos, contentWidth, titleHeight)
          .fillAndStroke('#2d5016', '#2d5016'); // Dark green background
 
       doc.fontSize(14)
          .fillColor('#FFFFFF')  // White text
          .font('Helvetica-Bold')
-         .text('GREEN CARD', margin, yPos + 5, { width: contentWidth, align: 'center' });
-      yPos += titleHeight + 5;
+         .text('GREEN CARD', margin, yPos + 4, { width: contentWidth, align: 'center' });
+      yPos += titleHeight + 3;
 
-      // Subtitle
-      doc.fontSize(10)
-         .fillColor('#000000')  // Black text
+      // Subtitle (no separator line needed - background provides separation)
+      doc.fontSize(9)
          .font('Helvetica')
          .text('Foreign Passport Holder', margin, yPos, { width: contentWidth, align: 'center' });
-      yPos += 18;
+      yPos += 15;
 
       // Travel Document Number (passport)
       const passportNumber = voucher.passport_number;
@@ -981,50 +983,43 @@ const generateThermalReceiptPDF = async (voucher) => {
                          String(passportNumber).trim() !== '';
 
       if (hasPassport) {
-        // Label and value on same line - label bold, value normal
-        doc.fontSize(10)
-           .fillColor('#000000')
-           .font('Helvetica-Bold')
-           .text('Travel Document', margin, yPos, { continued: false });
-        yPos += 12;
-
-        doc.fontSize(10)
-           .fillColor('#000000')
+        doc.fontSize(8)
            .font('Helvetica')
-           .text(`Number              ${passportNumber}`, margin, yPos, { width: contentWidth, align: 'left' });
-        yPos += 14;
+           .text('Travel Document', margin + 5, yPos, { width: contentWidth, align: 'left' });
+        yPos += 8;
+
+        doc.fontSize(8)
+           .font('Helvetica')
+           .text(`Number              ${passportNumber}`, margin + 5, yPos, { width: contentWidth, align: 'left' });
+        yPos += 12;
       }
 
-      // Voucher Code (Coupon Number) - label bold, value normal
+      // Voucher Code (Coupon Number)
       const voucherCode = voucher.voucher_code || voucher.code || 'UNKNOWN';
 
-      doc.fontSize(10)
-         .fillColor('#000000')
-         .font('Helvetica-Bold')
-         .text('Coupon Number  ', margin, yPos, { continued: true })
+      doc.fontSize(8)
          .font('Helvetica')
-         .text(voucherCode);
-      yPos += 14;
+         .text('Coupon Number', margin + 5, yPos, { width: contentWidth, align: 'left' });
+      yPos += 8;
 
-      // Bill Amount - label bold, value normal
-      const amount = parseFloat(voucher.amount) || 50.00;
-      doc.fontSize(10)
-         .fillColor('#000000')
+      doc.fontSize(8)
          .font('Helvetica-Bold')
-         .text('Bill Amount              ', margin, yPos, { continued: true })
-         .font('Helvetica')
-         .text(`K${amount.toFixed(2)}`);
+         .text(voucherCode, margin + 5, yPos, { width: contentWidth, align: 'left' });
       yPos += 12;
 
-      // Payment Mode - label bold, value normal
-      const paymentMode = voucher.payment_mode || voucher.payment_method || 'CARD';
-      doc.fontSize(10)
-         .fillColor('#000000')
-         .font('Helvetica-Bold')
-         .text('Payment Mode      ', margin, yPos, { continued: true })
+      // Bill Amount
+      const amount = parseFloat(voucher.amount) || 50.00;
+      doc.fontSize(8)
          .font('Helvetica')
-         .text(paymentMode);
-      yPos += 18;
+         .text(`Bill Amount        K${amount.toFixed(2)}`, margin + 5, yPos, { width: contentWidth, align: 'left' });
+      yPos += 10;
+
+      // Payment Mode
+      const paymentMode = voucher.payment_mode || voucher.payment_method || 'CARD';
+      doc.fontSize(8)
+         .font('Helvetica')
+         .text(`Payment Mode   ${paymentMode}`, margin + 5, yPos, { width: contentWidth, align: 'left' });
+      yPos += 15;
 
       // Barcode (compact version for thermal)
       try {
@@ -1052,87 +1047,77 @@ const generateThermalReceiptPDF = async (voucher) => {
 
       // Additional info section (only if not registered)
       if (!hasPassport) {
-        // Not registered - show registration instructions with bigger text
-        doc.fontSize(10)
-           .fillColor('#000000')
+        // Not registered - show registration instructions
+        doc.fontSize(8)
            .font('Helvetica-Bold')
            .text('REGISTER YOUR PASSPORT', margin, yPos, { width: contentWidth, align: 'center' });
-        yPos += 12;
-
-        doc.fontSize(8)
-           .fillColor('#000000')
-           .font('Helvetica')
-           .text('Scan barcode or visit:', margin, yPos, { width: contentWidth, align: 'center' });
         yPos += 10;
 
-        const registrationUrl = getRegistrationUrl(voucherCode);
         doc.fontSize(7)
-           .fillColor('#000000')
+           .font('Helvetica')
+           .text('Scan barcode or visit:', margin, yPos, { width: contentWidth, align: 'center' });
+        yPos += 8;
+
+        const registrationUrl = getRegistrationUrl(voucherCode);
+        doc.fontSize(6)
            .font('Helvetica')
            .text(registrationUrl, margin, yPos, { width: contentWidth, align: 'center' });
-        yPos += 15;
+        yPos += 12;
+      } else {
+        // Show customer name if available
+        if (voucher.customer_name || voucher.full_name) {
+          const customerName = voucher.customer_name || voucher.full_name;
+          doc.fontSize(8)
+             .font('Helvetica')
+             .text(customerName, margin, yPos, { width: contentWidth, align: 'center' });
+          yPos += 12;
+        }
       }
-      // Removed passport holder name display - not required
 
-      // Separator line before footer
-      yPos += 5;
+      // Separator
       doc.moveTo(margin, yPos)
          .lineTo(receiptWidth - margin, yPos)
-         .lineWidth(0.5)
+         .lineWidth(1)
          .stroke('#000000');
+      yPos += 8;
+
+      // Amount and validity
+      doc.fontSize(8)
+         .font('Helvetica')
+         .text('Amount: PGK 50.00', margin, yPos, { width: contentWidth, align: 'left' });
       yPos += 10;
 
-      // Footer section - Counter info and timestamp
-      const currentDate = new Date();
-      const dateStr = currentDate.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).replace(/\//g, '-');
-      const timeStr = currentDate.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
+      if (voucher.valid_until) {
+        const validDate = new Date(voucher.valid_until).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+        doc.fontSize(8)
+           .text(`Valid Until: ${validDate}`, margin, yPos, { width: contentWidth, align: 'left' });
+        yPos += 10;
+      }
 
-      // Counter and date/time on same line
-      doc.fontSize(7)
-         .fillColor('#000000')
-         .font('Helvetica')
-         .text('GENERAL', margin, yPos, { continued: true, width: contentWidth / 2, align: 'left' })
-         .text(`${dateStr} ${timeStr}`, { align: 'right', width: contentWidth / 2 });
-      yPos += 10;
-
-      doc.fontSize(7)
-         .fillColor('#000000')
-         .font('Helvetica')
-         .text('COUNTER', margin, yPos, { width: contentWidth, align: 'left' });
-      yPos += 12;
-
-      // Agent info
-      const agentName = voucher.created_by_name || 'Agent';
-      doc.fontSize(7)
-         .fillColor('#000000')
-         .font('Helvetica')
-         .text(`Agent:`, margin, yPos, { width: contentWidth, align: 'left' });
-      yPos += 10;
-
-      doc.fontSize(7)
-         .fillColor('#000000')
-         .text(agentName, margin, yPos, { width: contentWidth, align: 'left' });
-      yPos += 15;
-
-      // Climate Change Authority footer
+      // Footer
+      yPos += 5;
       doc.fontSize(6)
-         .fillColor('#000000')
          .font('Helvetica')
          .text('Climate Change & Development Authority', margin, yPos, { width: contentWidth, align: 'center' });
       yPos += 8;
 
       doc.fontSize(6)
-         .fillColor('#000000')
          .text('png.greenfees@ccda.gov.pg', margin, yPos, { width: contentWidth, align: 'center' });
+      yPos += 8;
+
+      doc.fontSize(6)
+         .text(`Printed: ${new Date().toLocaleString()}`, margin, yPos, { width: contentWidth, align: 'center' });
       yPos += 10;
+
+      // Separator at bottom
+      doc.moveTo(margin, yPos)
+         .lineTo(receiptWidth - margin, yPos)
+         .lineWidth(1)
+         .stroke('#000000');
 
       doc.end();
     } catch (err) {

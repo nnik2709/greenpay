@@ -230,6 +230,7 @@ async function createVoucherFromPayment(sessionId, paymentData) {
         passport_number,
         amount,
         payment_mode,
+        payment_method,
         discount,
         collected_amount,
         returned_amount,
@@ -239,7 +240,7 @@ async function createVoucherFromPayment(sessionId, paymentData) {
         customer_email,
         purchase_session_id,
         status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *
     `;
 
@@ -253,6 +254,7 @@ async function createVoucherFromPayment(sessionId, paymentData) {
         passportNumber, // Either passport number or 'PENDING'
         session.amount / quantity, // Split amount evenly across vouchers
         'BSP DOKU Card', // Payment mode
+        'ONLINE', // payment_method (DOKU is online payment gateway)
         0, // discount
         session.amount / quantity, // collected_amount per voucher
         0, // returned_amount

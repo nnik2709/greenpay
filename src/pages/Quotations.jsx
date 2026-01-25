@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { getQuotations, deleteQuotation } from '@/lib/quotationsService';
-import { getQuotationStatistics, markQuotationAsSent } from '@/lib/quotationWorkflowService';
+import { getQuotationStatistics, sendQuotationEmail } from '@/lib/quotationWorkflowService';
 import { convertQuotationToInvoice } from '@/lib/invoiceService';
 import { formatPGK, calculateGST } from '@/lib/gstUtils';
 import QuotationPDF from '@/components/QuotationPDF';
@@ -232,19 +232,28 @@ const Quotations = () => {
     }
 
     try {
-      await markQuotationAsSent(quotation.id);
-      toast({
-        title: 'Quotation Sent',
-        description: `Quotation ${quotation.quotation_number} has been emailed to ${emailTo.trim()}`
-      });
-      setEmailDialogOpen(false);
-      await loadQuotations();
-      await loadStatistics();
+      const result = await sendQuotationEmail(quotation.quotation_number, emailTo.trim());
+
+      if (result.success) {
+        toast({
+          title: 'Quotation Sent',
+          description: `Quotation ${quotation.quotation_number} has been emailed to ${emailTo.trim()}`
+        });
+        setEmailDialogOpen(false);
+        await loadQuotations();
+        await loadStatistics();
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: result.error || 'Failed to send quotation'
+        });
+      }
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to send quotation'
+        description: error.message || 'Failed to send quotation'
       });
     }
   };
@@ -450,7 +459,7 @@ const Quotations = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="view">View Quotation</SelectItem>
-                  <SelectItem value="download_pdf">Download PDF</SelectItem>
+                  <SelectItem value="download_pdf">Download Quotation</SelectItem>
                   <SelectItem value="email">Email Quotation</SelectItem>
                   {canEditOrDelete() && (
                     <>

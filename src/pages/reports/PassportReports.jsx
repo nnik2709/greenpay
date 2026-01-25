@@ -2,7 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+import { Download, FileSpreadsheet } from 'lucide-react';
 import api from '@/lib/api/client';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const columns = [
   { name: 'Type', selector: row => row.type, sortable: true },
@@ -10,8 +16,6 @@ const columns = [
   { name: 'Passport No', selector: row => row.passportNo, sortable: true },
   { name: 'Surname', selector: row => row.surname, sortable: true },
   { name: 'Given Name', selector: row => row.givenName, sortable: true },
-  { name: 'DOB', selector: row => row.dob, sortable: true },
-  { name: 'Sex', selector: row => row.sex, sortable: true },
   { name: 'Date of Expiry', selector: row => row.dateOfExpiry, sortable: true },
 ];
 
@@ -23,6 +27,7 @@ const customStyles = {
 };
 
 const PassportReports = () => {
+  const { toast } = useToast();
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [data, setData] = useState([]);
@@ -129,47 +134,161 @@ const PassportReports = () => {
   };
 
   const handleExportCsv = async () => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData?.session?.access_token;
-    if (!accessToken) {
-      alert('You must be logged in to export');
-      return;
+    try {
+      // Export all data (fetch without pagination)
+      const params = {
+        limit: 10000, // Large number to get all records
+        search: searchQuery
+      };
+      if (fromDate) params.dateFrom = fromDate;
+      if (toDate) params.dateTo = toDate;
+
+      const response = await api.get('/passports', { params });
+      const passports = response.data || [];
+
+      if (passports.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'No Data',
+          description: 'No passports to export'
+        });
+        return;
+      }
+
+      // Transform data for CSV
+      const csvData = passports.map(p => {
+        let surname = p.surname || '';
+        let givenName = p.given_name || p.givenName || '';
+
+        if (!surname && !givenName && p.full_name) {
+          const parts = p.full_name.trim().split(' ');
+          if (parts.length > 1) {
+            surname = parts[parts.length - 1];
+            givenName = parts.slice(0, -1).join(' ');
+          } else {
+            surname = p.full_name;
+          }
+        }
+
+        return {
+          'Type': p.passport_type || 'P',
+          'Nationality': p.nationality || '',
+          'Passport No': p.passport_number || '',
+          'Surname': surname,
+          'Given Name': givenName,
+          'Date of Expiry': p.expiry_date ? formatDate(p.expiry_date) : '',
+        };
+      });
+
+      // Create workbook and worksheet
+      const ws = XLSX.utils.json_to_sheet(csvData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Passports');
+
+      // Generate file
+      const dateStr = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `passports_report_${dateStr}.xlsx`);
+
+      toast({
+        title: 'Export Successful',
+        description: `Exported ${passports.length} passport records`
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Export Failed',
+        description: error.message || 'Failed to export data'
+      });
     }
+  };
 
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/report-export`;
-    const body = {
-      type: 'passports',
-      filters: {
-        ...(fromDate ? { from: fromDate } : {}),
-        ...(toDate ? { to: toDate } : {}),
-      },
-      format: 'csv',
-    };
+  const handleExportPdf = async () => {
+    try {
+      // Export all data (fetch without pagination)
+      const params = {
+        limit: 10000, // Large number to get all records
+        search: searchQuery
+      };
+      if (fromDate) params.dateFrom = fromDate;
+      if (toDate) params.dateTo = toDate;
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
+      const response = await api.get('/passports', { params });
+      const passports = response.data || [];
 
-    if (!res.ok) {
-      const text = await res.text();
-      alert(`Export failed: ${text}`);
-      return;
+      if (passports.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'No Data',
+          description: 'No passports to export'
+        });
+        return;
+      }
+
+      // Create PDF
+      const doc = new jsPDF('l', 'mm', 'a4'); // Landscape for more columns
+
+      // Add title
+      doc.setFontSize(16);
+      doc.text('Passport Report', 14, 15);
+
+      // Add date range if applicable
+      if (fromDate || toDate) {
+        doc.setFontSize(10);
+        const dateRange = `${fromDate || 'Start'} to ${toDate || 'End'}`;
+        doc.text(dateRange, 14, 22);
+      }
+
+      // Prepare table data
+      const tableData = passports.map(p => {
+        let surname = p.surname || '';
+        let givenName = p.given_name || p.givenName || '';
+
+        if (!surname && !givenName && p.full_name) {
+          const parts = p.full_name.trim().split(' ');
+          if (parts.length > 1) {
+            surname = parts[parts.length - 1];
+            givenName = parts.slice(0, -1).join(' ');
+          } else {
+            surname = p.full_name;
+          }
+        }
+
+        return [
+          p.passport_type || 'P',
+          p.nationality || '',
+          p.passport_number || '',
+          surname,
+          givenName,
+          p.expiry_date ? formatDate(p.expiry_date) : '',
+        ];
+      });
+
+      // Add table
+      autoTable(doc, {
+        head: [['Type', 'Nationality', 'Passport No', 'Surname', 'Given Name', 'Expiry Date']],
+        body: tableData,
+        startY: fromDate || toDate ? 28 : 22,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [5, 150, 105] },
+      });
+
+      // Save PDF
+      const dateStr = new Date().toISOString().slice(0, 10);
+      doc.save(`passports_report_${dateStr}.pdf`);
+
+      toast({
+        title: 'PDF Downloaded',
+        description: `Exported ${passports.length} passport records`
+      });
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Export Failed',
+        description: error.message || 'Failed to generate PDF'
+      });
     }
-
-    const blob = await res.blob();
-    const dlUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = dlUrl;
-    a.download = `report_passports_${new Date().toISOString().slice(0,10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(dlUrl);
   };
 
   return (
@@ -178,12 +297,23 @@ const PassportReports = () => {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
           Passports Report
         </h1>
-        <button
-          onClick={handleExportCsv}
-          className="inline-flex items-center rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700"
-        >
-          Export CSV
-        </button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleExportCsv}
+            className="inline-flex items-center gap-2"
+            variant="outline"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Export Excel
+          </Button>
+          <Button
+            onClick={handleExportPdf}
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700"
+          >
+            <Download className="h-4 w-4" />
+            Download PDF
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-100">

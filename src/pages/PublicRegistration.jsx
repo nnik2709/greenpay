@@ -65,7 +65,7 @@ const PublicRegistration = () => {
           surname: data.surname,
           givenName: data.givenName,
           nationality: data.nationality,
-          dateOfBirth: data.dob
+          dateOfBirth: ''
         });
         toast({
           title: "Passport Scanned",
@@ -252,7 +252,6 @@ const PublicRegistration = () => {
           ...prev,
           passportNumber: data.passport.passport_number || prev.passportNumber,
           surname: data.passport.full_name || prev.surname,  // Use full_name as-is
-          dateOfBirth: data.passport.date_of_birth ? data.passport.date_of_birth.split('T')[0] : prev.dateOfBirth,
           nationality: data.passport.nationality || prev.nationality,
         }));
 
@@ -295,7 +294,7 @@ const PublicRegistration = () => {
         passportNumber: passportData.passportNumber || '',
         surname: passportData.surname || passportData.fullName || '',  // Use fullName if available
         givenName: passportData.givenName || '',
-        dateOfBirth: passportData.dob || '',
+        dateOfBirth: '',
         nationality: passportData.nationality || ''
       });
 

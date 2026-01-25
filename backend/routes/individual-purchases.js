@@ -328,7 +328,7 @@ router.post('/batch', auth, async (req, res) => {
             full_name,
             nationality,
             date_of_birth,
-            passport_expiry,
+            expiry_date,
             created_at
           ) VALUES ($1, $2, $3, $4, $5, NOW())
           ON CONFLICT (passport_number)
@@ -336,7 +336,7 @@ router.post('/batch', auth, async (req, res) => {
             full_name = EXCLUDED.full_name,
             nationality = EXCLUDED.nationality,
             date_of_birth = EXCLUDED.date_of_birth,
-            passport_expiry = EXCLUDED.passport_expiry
+            expiry_date = EXCLUDED.expiry_date
           RETURNING *
         `;
 

@@ -98,12 +98,13 @@ function enforceHTTPS(req, res, next) {
 router.use(enforceHTTPS);
 
 // 🔒 SECURITY: Set Strict-Transport-Security header (HSTS) - PCI-DSS 4.1
-router.use((req, res, next) => {
-  if (process.env.NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  }
-  next();
-});
+// ⚠️ TEMPORARILY DISABLED FOR TESTING - May interfere with Cardinal Commerce 3D Secure
+// router.use((req, res, next) => {
+//   if (process.env.NODE_ENV === 'production') {
+//     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+//   }
+//   next();
+// });
 
 // 🔒 SECURITY: Database connection with resource limits (prevent DoS/exhaustion)
 const pool = new Pool({
@@ -508,7 +509,8 @@ router.get('/voucher/:sessionId', async (req, res) => {
       });
     }
 
-    // Get voucher by purchase_session_id (created by webhook)
+    // Get ALL vouchers by purchase_session_id (created by webhook)
+    // Multiple vouchers can exist for a single session (quantity > 1)
     const voucherQuery = `
       SELECT
         ip.id,
@@ -526,7 +528,7 @@ router.get('/voucher/:sessionId', async (req, res) => {
       FROM individual_purchases ip
       LEFT JOIN passports p ON ip.passport_number = p.passport_number
       WHERE ip.purchase_session_id = $1
-      LIMIT 1
+      ORDER BY ip.created_at ASC
     `;
 
     const voucherResult = await pool.query(voucherQuery, [sessionId]);
@@ -538,14 +540,10 @@ router.get('/voucher/:sessionId', async (req, res) => {
       });
     }
 
-    const voucher = voucherResult.rows[0];
-
-    // Generate barcode for voucher (replaces QR code)
-    const barcodeDataUrl = generateBarcodeDataURL(voucher.voucher_code);
-
-    res.json({
-      success: true,
-      voucher: {
+    // Generate barcodes for ALL vouchers
+    const vouchers = voucherResult.rows.map(voucher => {
+      const barcodeDataUrl = generateBarcodeDataURL(voucher.voucher_code);
+      return {
         code: voucher.voucher_code,
         voucherCode: voucher.voucher_code,
         amount: voucher.amount,
@@ -562,7 +560,16 @@ router.get('/voucher/:sessionId', async (req, res) => {
           fullName: voucher.full_name,
           nationality: voucher.nationality
         }
-      },
+      };
+    });
+
+    console.log(`[BUY-ONLINE] ✅ Returning ${vouchers.length} voucher(s) for session ${sessionId}`);
+
+    res.json({
+      success: true,
+      vouchers: vouchers, // Return array of ALL vouchers
+      voucher: vouchers[0], // Keep backward compatibility - first voucher
+      quantity: vouchers.length,
       session: {
         id: session.id,
         email: session.customer_email,
@@ -600,11 +607,11 @@ router.get('/voucher/:sessionId/pdf', async (req, res) => {
         p.id as passport_id,
         p.full_name,
         p.nationality,
-        p.date_of_birth
+        p.expiry_date
       FROM individual_purchases ip
       LEFT JOIN passports p ON ip.passport_number = p.passport_number
       WHERE ip.purchase_session_id = $1
-      LIMIT 1
+      ORDER BY ip.created_at ASC
     `;
 
     const result = await pool.query(voucherQuery, [sessionId]);
@@ -613,21 +620,28 @@ router.get('/voucher/:sessionId/pdf', async (req, res) => {
       return res.status(404).json({ error: 'Voucher not found' });
     }
 
-    const voucher = result.rows[0];
+    const vouchers = result.rows;
 
-    // Generate barcode (replaces QR code)
-    const barcodeDataUrl = generateBarcodeDataURL(voucher.voucher_code);
+    // Generate barcodes for all vouchers
+    const vouchersWithBarcodes = vouchers.map(voucher => {
+      const barcodeDataUrl = generateBarcodeDataURL(voucher.voucher_code);
+      return {
+        ...voucher,
+        barcode: barcodeDataUrl,
+        qrCode: barcodeDataUrl // Keep for backward compatibility with PDF generator
+      };
+    });
 
     // Generate PDF using unified GREEN CARD template
-    const pdfBuffer = await generateVoucherPDFBuffer([{
-      ...voucher,
-      barcode: barcodeDataUrl,
-      qrCode: barcodeDataUrl // Keep for backward compatibility with PDF generator
-    }]);
+    const pdfBuffer = await generateVoucherPDFBuffer(vouchersWithBarcodes);
 
-    // Send PDF
+    // Send PDF with appropriate filename
+    const filename = vouchers.length === 1
+      ? `voucher-${vouchers[0].voucher_code}.pdf`
+      : `vouchers-${sessionId}.pdf`;
+
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="voucher-${voucher.voucher_code}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(pdfBuffer);
 
   } catch (error) {
@@ -663,9 +677,7 @@ router.post('/voucher/:sessionId/email', async (req, res) => {
         p.nationality
       FROM individual_purchases ip
       LEFT JOIN passports p ON ip.passport_number = p.passport_number
-      WHERE ip.passport_number = (
-        SELECT passport_data->>'passportNumber' FROM purchase_sessions WHERE id = $1
-      )
+      WHERE ip.purchase_session_id = $1
       ORDER BY ip.created_at DESC
       LIMIT 1
     `;
@@ -818,8 +830,16 @@ This is an automated email. Please do not reply to this message.
     `;
 
     try {
+      // IMPORTANT: For Brevo, SMTP_USER (a0282b001@smtp-brevo.com) is NOT a valid sender
+      // Must use SMTP_FROM which should be a verified sender in Brevo
+      const fromEmail = process.env.SMTP_FROM || 'noreply@greenpay.eywademo.cloud';
+      const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
+
+      if (!process.env.SMTP_FROM) {
+        console.warn('⚠️ SMTP_FROM not set, using default:', fromEmail);
+      }
       await transporter.sendMail({
-        from: process.env.SMTP_FROM || '"PNG Green Fees" <noreply@greenpay.gov.pg>',
+        from: `"${fromName}" <${fromEmail}>`,
         to: recipientEmail,
         subject: 'Your PNG Green Fees Voucher - Ready to Use',
         text: emailText,
@@ -847,6 +867,180 @@ This is an automated email. Please do not reply to this message.
   } catch (error) {
     // 🔒 SECURITY: Use generic error handler (PCI-DSS 6.5.5)
     return sendGenericError(res, error, 'Email delivery');
+  }
+});
+
+/**
+ * Register Passport to Voucher (Multi-Voucher Wizard)
+ * POST /api/buy-online/voucher/:code/register
+ *
+ * Allows registering a passport to an existing unregistered voucher
+ * Used by Multi-Voucher Registration Wizard for step-by-step registration
+ */
+router.post('/voucher/:code/register', async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { code } = req.params;
+    const {
+      passportNumber,
+      surname,
+      givenName,
+      nationality,
+      expiryDate
+    } = req.body;
+
+    // Validation
+    if (!passportNumber || !surname || !givenName || !nationality || !expiryDate) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: passportNumber, surname, givenName, nationality, expiryDate'
+      });
+    }
+
+    // Validate expiry date is in the future
+    const expiry = new Date(expiryDate);
+    if (expiry < new Date()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Passport has expired'
+      });
+    }
+
+    await client.query('BEGIN');
+
+    // 1. Check if voucher exists and is unregistered
+    const voucherQuery = `
+      SELECT ip.id, ip.voucher_code, ip.passport_number as current_passport
+      FROM individual_purchases ip
+      WHERE ip.voucher_code = $1
+      FOR UPDATE
+    `;
+    const voucherResult = await client.query(voucherQuery, [code]);
+
+    if (voucherResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        error: 'Voucher not found'
+      });
+    }
+
+    const voucher = voucherResult.rows[0];
+
+    // 2. Check if passport already exists in database
+    const passportCheckQuery = 'SELECT id, full_name FROM passports WHERE passport_number = $1';
+    const passportCheck = await client.query(passportCheckQuery, [passportNumber.trim().toUpperCase()]);
+
+    let passportId;
+    let fullName = `${givenName} ${surname}`.trim();
+
+    if (passportCheck.rows.length > 0) {
+      // Passport exists - use existing ID
+      passportId = passportCheck.rows[0].id;
+      console.log(`Using existing passport ID ${passportId} for ${passportNumber}`);
+    } else {
+      // Create new passport (only essential fields)
+      const insertPassportQuery = `
+        INSERT INTO passports (
+          passport_number,
+          full_name,
+          nationality,
+          expiry_date,
+          created_at
+        ) VALUES ($1, $2, $3, $4, NOW())
+        RETURNING id
+      `;
+
+      const passportResult = await client.query(insertPassportQuery, [
+        passportNumber.trim().toUpperCase(),
+        fullName,
+        nationality,
+        expiryDate
+      ]);
+
+      passportId = passportResult.rows[0].id;
+      console.log(`Created new passport ID ${passportId} for ${passportNumber}`);
+    }
+
+    // 3. Update voucher with passport number
+    const updateVoucherQuery = `
+      UPDATE individual_purchases
+      SET passport_number = $1
+      WHERE voucher_code = $2
+      RETURNING id, voucher_code, passport_number
+    `;
+
+    const updateResult = await client.query(updateVoucherQuery, [
+      passportNumber.trim().toUpperCase(),
+      code
+    ]);
+
+    await client.query('COMMIT');
+
+    // 4. Fetch complete voucher data to return
+    const completeVoucherQuery = `
+      SELECT
+        ip.id,
+        ip.voucher_code as code,
+        ip.amount,
+        ip.valid_from,
+        ip.valid_until,
+        ip.passport_number,
+        ip.customer_email,
+        p.id as passport_id,
+        p.full_name,
+        p.nationality,
+        p.expiry_date
+      FROM individual_purchases ip
+      LEFT JOIN passports p ON ip.passport_number = p.passport_number
+      WHERE ip.voucher_code = $1
+    `;
+
+    const finalResult = await pool.query(completeVoucherQuery, [code]);
+    const registeredVoucher = finalResult.rows[0];
+
+    console.log(`✅ Passport ${passportNumber} registered to voucher ${code}`);
+
+    res.json({
+      success: true,
+      message: 'Passport registered successfully',
+      voucher: {
+        code: registeredVoucher.code,
+        voucherCode: registeredVoucher.code,
+        amount: registeredVoucher.amount,
+        validFrom: registeredVoucher.valid_from,
+        validUntil: registeredVoucher.valid_until,
+        passportNumber: registeredVoucher.passport_number,
+        customerEmail: registeredVoucher.customer_email,
+        passport: {
+          id: registeredVoucher.passport_id,
+          passportNumber: registeredVoucher.passport_number,
+          fullName: registeredVoucher.full_name,
+          nationality: registeredVoucher.nationality,
+          dateOfExpiry: registeredVoucher.expiry_date
+        }
+      }
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Passport registration error:', error);
+
+    // Check for specific errors
+    if (error.code === '23505') { // Unique constraint violation
+      return res.status(409).json({
+        success: false,
+        error: 'This passport is already registered to another voucher'
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to register passport'
+    });
+  } finally {
+    client.release();
   }
 });
 
@@ -974,7 +1168,7 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
             customerEmail: session.customer_email,
             customerPhone: session.customer_phone,
             quantity: quantity
-          }, vouchers);
+          }, vouchers, sessionId);
           console.log('✓ Email notification sent with all voucher codes');
         } catch (error) {
           console.error('⚠️ Email notification failed (non-critical):', error);
@@ -1008,12 +1202,11 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
 
       await client.query(
         `UPDATE passports
-         SET full_name = $1, date_of_birth = $2,
-             nationality = $3, updated_at = NOW()
-         WHERE id = $4`,
+         SET full_name = $1,
+             nationality = $2
+         WHERE id = $3`,
         [
           fullName,
-          passportData.dateOfBirth || null,
           passportData.nationality || 'Papua New Guinea',
           passportId
         ]
@@ -1030,14 +1223,13 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
 
       const newPassport = await client.query(
         `INSERT INTO passports (
-          passport_number, full_name, date_of_birth,
-          nationality, expiry_date, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+          passport_number, full_name,
+          nationality, expiry_date, created_at
+        ) VALUES ($1, $2, $3, $4, NOW())
         RETURNING id`,
         [
           passportData.passportNumber,
           fullName,
-          passportData.dateOfBirth || null,
           passportData.nationality || 'Papua New Guinea',
           passportData.dateOfExpiry || defaultExpiry
         ]
@@ -1128,7 +1320,7 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
           customerEmail: session.customer_email,
           customerPhone: session.customer_phone,
           quantity: 1
-        }, [voucher]);
+        }, [voucher], session.id);
         console.log('✓ Email notification sent');
       } catch (error) {
         console.error('⚠️ Email notification failed (non-critical):', error);
@@ -1269,6 +1461,189 @@ router.get('/recover', recoveryLimiter, async (req, res) => {
       success: false,
       error: 'Internal server error',
       message: 'Unable to retrieve vouchers. Please contact support.'
+    });
+  }
+});
+
+/**
+ * Get Session Details (for payment recovery)
+ * GET /api/buy-online/session/:sessionId
+ *
+ * Returns full session data including passport info for retry scenarios
+ */
+router.get('/session/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    const query = 'SELECT * FROM purchase_sessions WHERE id = $1';
+    const result = await pool.query(query, [sessionId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found'
+      });
+    }
+
+    const session = result.rows[0];
+
+    // Check if expired (but still allow recovery for recent sessions)
+    const expiryTime = new Date(session.expires_at);
+    const now = new Date();
+    const hoursSinceExpiry = (now - expiryTime) / (1000 * 60 * 60);
+
+    // Allow recovery for sessions expired less than 24 hours ago
+    if (hoursSinceExpiry > 24) {
+      return res.json({
+        success: false,
+        error: 'Session expired',
+        message: 'Payment session is too old to recover. Please start a new purchase.'
+      });
+    }
+
+    // Don't allow recovery of completed sessions
+    if (session.payment_status === 'completed') {
+      return res.json({
+        success: false,
+        error: 'Session already completed',
+        message: 'This payment was already processed.'
+      });
+    }
+
+    // Return session data for recovery
+    res.json({
+      success: true,
+      data: {
+        id: session.id,
+        customer_email: session.customer_email,
+        quantity: session.quantity,
+        amount: session.amount,
+        currency: session.currency,
+        payment_status: session.payment_status,
+        passport_data: session.passport_data, // JSONB with passport details
+        expires_at: session.expires_at,
+        created_at: session.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Session recovery error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Unable to retrieve session. Please try again.'
+    });
+  }
+});
+
+/**
+ * Retry Payment with Existing Session
+ * POST /api/buy-online/retry-payment
+ *
+ * Generates new payment URL for existing session without re-entering data
+ */
+router.post('/retry-payment', async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Session ID required'
+      });
+    }
+
+    // Get existing session
+    const query = 'SELECT * FROM purchase_sessions WHERE id = $1';
+    const result = await pool.query(query, [sessionId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found'
+      });
+    }
+
+    const session = result.rows[0];
+
+    // Check if session is too old (24 hours)
+    const expiryTime = new Date(session.expires_at);
+    const now = new Date();
+    const hoursSinceExpiry = (now - expiryTime) / (1000 * 60 * 60);
+
+    if (hoursSinceExpiry > 24) {
+      return res.status(400).json({
+        success: false,
+        error: 'Session expired',
+        message: 'Session is too old to retry. Please start a new purchase.'
+      });
+    }
+
+    // Don't allow retry of completed sessions
+    if (session.payment_status === 'completed') {
+      return res.status(400).json({
+        success: false,
+        error: 'Session already completed',
+        message: 'This payment was already processed.'
+      });
+    }
+
+    // Extend session expiry (give user another 30 minutes)
+    const newExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    await pool.query(
+      'UPDATE purchase_sessions SET expires_at = $1 WHERE id = $2',
+      [newExpiresAt, sessionId]
+    );
+
+    console.log(`[RETRY PAYMENT] Session ${sessionId} extended to ${newExpiresAt}`);
+
+    // Get payment gateway
+    const gateway = PaymentGatewayFactory.getGateway();
+    console.log(`💳 Retry Payment: Using gateway ${gateway.getName()} for session ${sessionId}`);
+
+    // Generate URLs
+    const frontendUrl = process.env.FRONTEND_URL || 'https://greenpay.eywademo.cloud';
+    const returnUrl = `${frontendUrl}/payment/success?payment_session=${sessionId}`;
+    const cancelUrl = `${frontendUrl}/payment/cancelled?payment_session=${sessionId}`;
+
+    // Create new payment session with same data
+    const paymentSession = await gateway.createPaymentSession({
+      sessionId: session.id,
+      customerEmail: session.customer_email,
+      customerPhone: session.customer_phone,
+      quantity: session.quantity,
+      amountPGK: session.amount,
+      currency: session.currency,
+      returnUrl: returnUrl,
+      cancelUrl: cancelUrl,
+      metadata: {
+        deliveryMethod: session.delivery_method,
+        source: 'buy-online-retry',
+        hasPassportData: !!session.passport_data,
+        passportNumber: session.passport_data?.passportNumber || null,
+        voucherQuantity: session.quantity,
+        purchaseType: session.passport_data ? 'single-with-passport' : 'multi-voucher',
+        retryAttempt: true
+      }
+    });
+
+    console.log(`[RETRY PAYMENT] New payment URL generated for session ${sessionId}`);
+
+    res.json({
+      success: true,
+      data: {
+        sessionId: session.id,
+        paymentUrl: paymentSession.url,
+        expiresAt: newExpiresAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Retry payment error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Unable to retry payment. Please try again.'
     });
   }
 });

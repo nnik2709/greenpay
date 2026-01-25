@@ -62,6 +62,8 @@ export default function IndividualPurchase() {
   const [passportNumber, setPassportNumber] = useState('');
   const [surname, setSurname] = useState('');
   const [givenName, setGivenName] = useState('');
+  const [nationality, setNationality] = useState('');
+  const [passportExpiry, setPassportExpiry] = useState('');
 
   // Clear sessionStorage on mount if user navigated directly (not from Back button)
   useEffect(() => {
@@ -131,6 +133,8 @@ export default function IndividualPurchase() {
         setPassportNumber(scannedData.passport_no);
         setSurname(scannedData.surname);
         setGivenName(scannedData.given_name);
+        setNationality(scannedData.nationality || ''); // Full nationality name
+        setPassportExpiry(scannedData.date_of_expiry || ''); // YYYY-MM-DD format
 
         // Auto-register and move to next voucher after a short delay
         setTimeout(async () => {
@@ -150,9 +154,10 @@ export default function IndividualPurchase() {
               passportNumber: scannedData.passport_no.toUpperCase(),
               surname: scannedData.surname.toUpperCase(),
               givenName: scannedData.given_name.toUpperCase(),
-              nationality: scannedData.nationalityCode || scannedData.nationality, // Prefer 3-letter code
+              nationality: scannedData.nationality || '', // Full nationality name (not code)
               dateOfBirth: scannedData.dob,
-              sex: scannedData.sex
+              sex: scannedData.sex,
+              passportExpiry: scannedData.date_of_expiry || '' // Add expiry date
             });
 
             setWizardProgress(prev => {
@@ -166,7 +171,9 @@ export default function IndividualPurchase() {
                 [currentVoucher.id]: {
                   passportNumber: scannedData.passport_no,
                   surname: scannedData.surname,
-                  givenName: scannedData.given_name
+                  givenName: scannedData.given_name,
+                  nationality: scannedData.nationality || '',
+                  passportExpiry: scannedData.date_of_expiry || ''
                 }
               };
 
@@ -221,11 +228,15 @@ export default function IndividualPurchase() {
           setPassportNumber(existingData.passportNumber || '');
           setSurname(existingData.surname || '');
           setGivenName(existingData.givenName || '');
+          setNationality(existingData.nationality || '');
+          setPassportExpiry(existingData.passportExpiry || '');
         } else {
           // Clear fields for new voucher
           setPassportNumber('');
           setSurname('');
           setGivenName('');
+          setNationality('');
+          setPassportExpiry('');
         }
       }
     }
@@ -261,7 +272,17 @@ export default function IndividualPurchase() {
         posApprovalCode: (paymentMethod === 'POS' || paymentMethod === 'CARD') ? posApprovalCode : null
       });
 
-      if (response.success) {
+      // Log response for debugging
+      console.log('Individual Purchase API Response:', response);
+
+      // batch-simple endpoint returns data at root level (not in response.data)
+      if (response.status === 'success' || response.type === 'success') {
+        // Verify we have the required data
+        if (!response.batchId || !response.vouchers) {
+          console.error('Missing batchId or vouchers in response:', response);
+          throw new Error('Invalid response from server: missing batchId or vouchers');
+        }
+
         setBatchId(response.batchId);
         setVouchers(response.vouchers);
 
@@ -272,6 +293,10 @@ export default function IndividualPurchase() {
           title: 'Vouchers Created!',
           description: `${quantity} voucher(s) created. Starting passport registration...`
         });
+      } else {
+        // Response didn't have success status
+        console.error('Unexpected response status:', response);
+        throw new Error(response.message || 'Failed to create vouchers');
       }
 
     } catch (error) {
@@ -331,17 +356,17 @@ export default function IndividualPurchase() {
                     Email All ({registeredVouchers.length})
                   </Button>
 
-                  {/* Thermal Printer - Only for Counter_Agent and Flex_Admin at airport kiosk */}
+                  {/* Print Thermal Receipts - Only for Counter_Agent and Flex_Admin at airport kiosk */}
                   {(user?.role === 'Flex_Admin' || user?.role === 'Counter_Agent') && (
                     <Button
                       onClick={() => {
                         const voucherCodes = registeredVouchers.map(v => v.voucherCode).join(',');
-                        // Navigate to VoucherPrint page with multiple voucher codes
-                        navigate(`/app/voucher-print?codes=${voucherCodes}`);
+                        navigate(`/app/thermal-print?codes=${voucherCodes}`);
                       }}
                       className="bg-green-600 hover:bg-green-700 text-white"
                       size="lg"
                     >
+                      <Printer className="w-4 h-4 mr-2" />
                       Print All ({registeredVouchers.length})
                     </Button>
                   )}
@@ -349,11 +374,25 @@ export default function IndividualPurchase() {
                   <Button
                     onClick={async () => {
                       try {
-                        const voucherIds = registeredVouchers.map(v => v.id);
-                        const response = await api.post('/vouchers/bulk-download', { voucherIds }, {
+                        console.log('Bulk download - All vouchers:', vouchers);
+                        console.log('Bulk download - Registered vouchers:', registeredVouchers);
+
+                        // Download ALL vouchers in the batch (registered and unregistered)
+                        const voucherIds = vouchers.map(v => v.id).filter(id => id !== undefined && id !== null);
+                        console.log('Bulk download - Voucher IDs:', voucherIds);
+
+                        if (voucherIds.length === 0) {
+                          toast({
+                            variant: 'destructive',
+                            title: 'Error',
+                            description: 'No voucher IDs available for download'
+                          });
+                          return;
+                        }
+
+                        const blob = await api.post('/vouchers/bulk-download', { voucherIds }, {
                           responseType: 'blob'
                         });
-                        const blob = new Blob([response], { type: 'application/zip' });
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
@@ -362,18 +401,19 @@ export default function IndividualPurchase() {
                         window.URL.revokeObjectURL(url);
                         toast({
                           title: 'Download Started',
-                          description: `Downloading ${registeredVouchers.length} vouchers as ZIP`
+                          description: `Downloading ${voucherIds.length} vouchers as ZIP`
                         });
                       } catch (error) {
+                        console.error('Bulk download error:', error);
                         toast({
                           variant: 'destructive',
                           title: 'Error',
-                          description: 'Failed to download bulk vouchers'
+                          description: error.response?.data?.error || 'Failed to download bulk vouchers'
                         });
                       }
                     }}
                   >
-                    Download All as ZIP ({registeredVouchers.length})
+                    Download All as ZIP ({vouchers.length})
                   </Button>
                 </div>
               </div>
@@ -404,20 +444,6 @@ export default function IndividualPurchase() {
                       </Card>
                     );
                   })}
-                </div>
-
-                {/* Print All Button */}
-                <div className="mt-6">
-                  <Button
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => {
-                      const voucherCodes = registeredVouchers.map(v => v.voucherCode).join(',');
-                      navigate(`/app/voucher-print?codes=${voucherCodes}`);
-                    }}
-                  >
-                    <Printer className="w-4 h-4 mr-2" />
-                    Print All ({registeredVouchers.length})
-                  </Button>
                 </div>
               </div>
             )}
@@ -739,14 +765,36 @@ export default function IndividualPurchase() {
                       />
                     </div>
 
+                    <div>
+                      <Label htmlFor="nationality">Nationality *</Label>
+                      <Input
+                        id="nationality"
+                        placeholder="e.g., Papua New Guinea"
+                        value={nationality}
+                        onChange={(e) => setNationality(e.target.value)}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Full nationality name (auto-filled by MRZ scanner)</p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="passportExpiry">Passport Expiry Date</Label>
+                      <Input
+                        id="passportExpiry"
+                        type="date"
+                        value={passportExpiry}
+                        onChange={(e) => setPassportExpiry(e.target.value)}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Auto-filled by MRZ scanner</p>
+                    </div>
+
                     <div className="flex gap-3 pt-4">
                       <Button
                         onClick={async () => {
-                          if (!passportNumber || !surname || !givenName) {
+                          if (!passportNumber || !surname || !givenName || !nationality) {
                             toast({
                               variant: 'destructive',
                               title: 'Missing Information',
-                              description: 'Please fill in all required fields'
+                              description: 'Please fill in Passport Number, Surname, Given Name, and Nationality'
                             });
                             return;
                           }
@@ -757,8 +805,9 @@ export default function IndividualPurchase() {
                               voucherCode: currentVoucher.voucherCode,
                               passportNumber: passportNumber.toUpperCase(),
                               surname: surname.toUpperCase(),
-                              givenName: givenName.toUpperCase()
-                              // nationality not available in manual entry (no scanner data)
+                              givenName: givenName.toUpperCase(),
+                              nationality: nationality || null,
+                              passportExpiry: passportExpiry || null
                             });
 
                             // Add to registered set
@@ -768,7 +817,13 @@ export default function IndividualPurchase() {
                             // Save registration data
                             const newData = {
                               ...wizardProgress.registeredData,
-                              [currentVoucher.id]: { passportNumber, surname, givenName }
+                              [currentVoucher.id]: {
+                                passportNumber,
+                                surname,
+                                givenName,
+                                nationality,
+                                passportExpiry
+                              }
                             };
 
                             // Find next unregistered voucher

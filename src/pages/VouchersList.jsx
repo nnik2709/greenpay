@@ -7,7 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import { Printer, FileEdit } from 'lucide-react';
+import { Printer, FileEdit, ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import api from '@/lib/api/client';
 import * as XLSX from 'xlsx';
 import VoucherPrint from '@/components/VoucherPrint';
@@ -23,6 +29,16 @@ const VouchersList = () => {
   const [statusFilter, setStatusFilter] = useState('all'); // all, active, used, expired
   const [printVoucher, setPrintVoucher] = useState(null);
   const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
+
+  // Format date as dd/mm/yyyy
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -186,11 +202,11 @@ const VouchersList = () => {
         'Customer/Company': voucher.customer_name,
         'Passport/Employee': voucher.passport_number || 'Pending',
         'Invoice #': voucher.invoice_number || 'NA',
-        'Valid Until': new Date(voucher.valid_until).toLocaleDateString(),
+        'Valid Until': formatDate(voucher.valid_until),
         'Used Date': voucher.used_at || voucher.redeemed_date
-          ? new Date(voucher.used_at || voucher.redeemed_date).toLocaleDateString()
+          ? formatDate(voucher.used_at || voucher.redeemed_date)
           : 'Not Used',
-        'Created Date': new Date(voucher.created_at || voucher.issued_date).toLocaleDateString(),
+        'Created Date': formatDate(voucher.created_at || voucher.issued_date),
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -230,6 +246,11 @@ const VouchersList = () => {
   const handlePrintVoucher = (voucher) => {
     setPrintVoucher(voucher);
     setIsPrintDialogOpen(true);
+  };
+
+  const handleThermalPrint = (voucher) => {
+    // Navigate to thermal print page
+    navigate(`/app/thermal-print?codes=${voucher.voucher_code}`);
   };
 
   const handleClosePrint = () => {
@@ -421,12 +442,12 @@ const VouchersList = () => {
                         <span className="text-sm font-medium text-slate-800">{voucher.invoice_number || 'NA'}</span>
                       </td>
                       <td className="py-3">
-                        <span className="text-sm">{new Date(voucher.valid_until).toLocaleDateString()}</span>
+                        <span className="text-sm">{formatDate(voucher.valid_until)}</span>
                       </td>
                       <td className="py-3">
                         {voucher.used_at || voucher.redeemed_date ? (
                           <span className="text-blue-600 font-medium">
-                            {new Date(voucher.used_at || voucher.redeemed_date).toLocaleDateString()}
+                            {formatDate(voucher.used_at || voucher.redeemed_date)}
                           </span>
                         ) : (
                           <span className="text-slate-400">—</span>
@@ -434,20 +455,34 @@ const VouchersList = () => {
                       </td>
                       <td className="py-3">
                         <span className="text-sm">
-                          {new Date(voucher.created_at || voucher.issued_date).toLocaleDateString()}
+                          {formatDate(voucher.created_at || voucher.issued_date)}
                         </span>
                       </td>
                       <td className="py-3">
                         <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handlePrintVoucher(voucher)}
-                            className="h-8"
-                          >
-                            <Printer className="h-4 w-4 mr-1" />
-                            Print
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8"
+                              >
+                                <Printer className="h-4 w-4 mr-1" />
+                                Print
+                                <ChevronDown className="h-3 w-3 ml-1" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => handlePrintVoucher(voucher)}>
+                                <Printer className="h-4 w-4 mr-2" />
+                                Regular Printer (A4)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleThermalPrint(voucher)}>
+                                <Printer className="h-4 w-4 mr-2" />
+                                Thermal Printer (80mm)
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           {!voucher.passport_number && (
                             <Button
                               size="sm"

@@ -607,7 +607,7 @@ router.get('/voucher/:sessionId/pdf', async (req, res) => {
         p.id as passport_id,
         p.full_name,
         p.nationality,
-        p.date_of_birth
+        p.expiry_date
       FROM individual_purchases ip
       LEFT JOIN passports p ON ip.passport_number = p.passport_number
       WHERE ip.purchase_session_id = $1
@@ -1114,7 +1114,7 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
           voucherCode,
           null, // No passport yet - will be added at registration
           amountPerVoucher,
-          paymentData.paymentMethod || 'Card',
+          paymentData.paymentMethod || 'ONLINE',
           0, // discount
           amountPerVoucher, // collected_amount
           0, // returned_amount
@@ -1202,12 +1202,11 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
 
       await client.query(
         `UPDATE passports
-         SET full_name = $1, date_of_birth = $2,
-             nationality = $3, updated_at = NOW()
-         WHERE id = $4`,
+         SET full_name = $1,
+             nationality = $2
+         WHERE id = $3`,
         [
           fullName,
-          passportData.dateOfBirth || null,
           passportData.nationality || 'Papua New Guinea',
           passportId
         ]
@@ -1224,14 +1223,13 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
 
       const newPassport = await client.query(
         `INSERT INTO passports (
-          passport_number, full_name, date_of_birth,
-          nationality, expiry_date, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+          passport_number, full_name,
+          nationality, expiry_date, created_at
+        ) VALUES ($1, $2, $3, $4, NOW())
         RETURNING id`,
         [
           passportData.passportNumber,
           fullName,
-          passportData.dateOfBirth || null,
           passportData.nationality || 'Papua New Guinea',
           passportData.dateOfExpiry || defaultExpiry
         ]
@@ -1269,7 +1267,7 @@ async function completePurchaseWithPassport(sessionId, paymentData) {
       voucherCode,
       passportData.passportNumber,
       session.amount,
-      paymentData.paymentMethod || 'Card',
+      paymentData.paymentMethod || 'ONLINE',
       0, // discount
       session.amount, // collected_amount (full amount for online payment)
       0, // returned_amount

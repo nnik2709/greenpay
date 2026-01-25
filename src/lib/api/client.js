@@ -31,13 +31,20 @@ const fetchAPI = async (endpoint, options = {}) => {
   // Extract responseType before passing to fetch
   const { responseType, ...fetchOptions } = options;
 
+  // Build headers - don't set Content-Type for blob requests
+  const headers = {
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...fetchOptions.headers,
+  };
+
+  // Only add Content-Type for non-blob requests and when there's a body
+  if (responseType !== 'blob' && fetchOptions.body) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const config = {
     ...fetchOptions,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...fetchOptions.headers,
-    },
+    headers,
   };
 
   try {

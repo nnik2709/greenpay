@@ -279,7 +279,7 @@ const Invoices = () => {
 
       toast({
         title: 'Vouchers Emailed',
-        description: response.message || `Vouchers sent successfully to ${voucherEmailAddress || selectedInvoice.customer_email}`
+        description: response.data?.message || `Vouchers sent successfully to ${voucherEmailAddress || selectedInvoice.customer_email}`
       });
 
       setVoucherEmailModalOpen(false);
@@ -422,6 +422,9 @@ const Invoices = () => {
     switch (selectedAction) {
       case 'view':
         handleViewInvoice(invoice);
+        break;
+      case 'download':
+        handleDownloadPDF(invoice);
         break;
       case 'email':
         openEmailModal(invoice);
@@ -623,6 +626,7 @@ const Invoices = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="view">View Invoice</SelectItem>
+                    <SelectItem value="download">Download Invoice</SelectItem>
                     <SelectItem value="email">Email Invoice</SelectItem>
                     <SelectItem value="register_payment">Register Payment</SelectItem>
                     <SelectItem value="generate">Generate Vouchers</SelectItem>

@@ -210,6 +210,7 @@ const VoucherPrint = ({ voucher, isOpen, onClose, voucherType }) => {
               left: 0;
               top: 0;
               width: 100%;
+              padding-top: 0.5in;
             }
             .no-print {
               display: none !important;

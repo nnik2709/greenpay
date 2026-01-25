@@ -7,7 +7,7 @@ import api from './api/client';
  */
 
 /**
- * Mark quotation as sent
+ * Mark quotation as sent (does NOT send email, just updates status)
  * @param {string} quotationId - Quotation ID
  * @returns {Promise<{success: boolean, error?: string}>}
  */
@@ -17,6 +17,25 @@ export async function markQuotationAsSent(quotationId) {
     return { success: true, data: response.data };
   } catch (error) {
     console.error('Error marking quotation as sent:', error);
+    return { success: false, error: error.response?.data?.error || error.message };
+  }
+}
+
+/**
+ * Send quotation email to recipient
+ * @param {string} quotationId - Quotation number (not ID!)
+ * @param {string} recipientEmail - Email address to send to
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function sendQuotationEmail(quotationId, recipientEmail) {
+  try {
+    const response = await api.post('/quotations/send-email', {
+      quotationId,
+      recipientEmail
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('Error sending quotation email:', error);
     return { success: false, error: error.response?.data?.error || error.message };
   }
 }

@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/MainLayout';
 import RoleBasedRedirect from '@/components/RoleBasedRedirect';
+import BuildVersion from '@/components/BuildVersion';
 
 // Eager load critical pages
 import HomePage from '@/pages/HomePage';
@@ -41,6 +42,8 @@ const Quotations = lazy(() => import('@/pages/Quotations'));
 const ViewQuotation = lazy(() => import('@/pages/ViewQuotation'));
 const IndividualPurchase = lazy(() => import('@/pages/IndividualPurchase'));
 const VoucherPrintPage = lazy(() => import('@/pages/VoucherPrintPage'));
+const ThermalVoucherPrintPage = lazy(() => import('@/pages/ThermalVoucherPrintPage'));
+const ThermalReceiptTest = lazy(() => import('@/pages/ThermalReceiptTest'));
 const PaymentCallback = lazy(() => import('@/pages/PaymentCallback'));
 const BulkPassportUpload = lazy(() => import('@/pages/BulkPassportUpload'));
 const CorporateExitPass = lazy(() => import('@/pages/CorporateExitPass'));
@@ -197,6 +200,16 @@ const AppRoutes = () => {
           <Route path="voucher-print" element={
             <PrivateRoute roles={['Flex_Admin', 'Counter_Agent']}>
               <VoucherPrintPage />
+            </PrivateRoute>
+          } />
+          <Route path="thermal-print" element={
+            <PrivateRoute roles={['Flex_Admin', 'Counter_Agent']}>
+              <ThermalVoucherPrintPage />
+            </PrivateRoute>
+          } />
+          <Route path="thermal-receipt-test" element={
+            <PrivateRoute roles={['Flex_Admin', 'Counter_Agent']}>
+              <ThermalReceiptTest />
             </PrivateRoute>
           } />
           <Route path="passports/bulk-upload" element={
@@ -406,6 +419,7 @@ function App() {
         <meta name="description" content="A comprehensive government application for managing passport-based green fee vouchers and payments in Papua New Guinea." />
       </Helmet>
       <Toaster />
+      <BuildVersion />
       <AppRoutes />
     </>
   );

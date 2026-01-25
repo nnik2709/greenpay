@@ -4,6 +4,7 @@ import { createLogger, defineConfig } from 'vite';
 import inlineEditPlugin from './plugins/visual-editor/vite-plugin-react-inline-editor.js';
 import editModeDevPlugin from './plugins/visual-editor/vite-plugin-edit-mode.js';
 import iframeRouteRestorationPlugin from './plugins/vite-plugin-iframe-route-restoration.js';
+import { buildInfoPlugin } from './vite-plugins/build-info-plugin.js';
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -209,6 +210,7 @@ logger.error = (msg, options) => {
 export default defineConfig({
 	customLogger: logger,
 	plugins: [
+		buildInfoPlugin(), // Generate build info on every build
 		...(isDev ? [inlineEditPlugin(), editModeDevPlugin(), iframeRouteRestorationPlugin()] : []),
 		react(),
 		addTransformIndexHtml

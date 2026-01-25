@@ -12,8 +12,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import api from '@/lib/api/client';
+import countries from '@/lib/countries';
 
 const AddCustomerDialog = ({ open, onOpenChange, onCustomerAdded }) => {
   const { toast } = useToast();
@@ -27,7 +35,6 @@ const AddCustomerDialog = ({ open, onOpenChange, onCustomerAdded }) => {
     address_line1: '',
     address_line2: '',
     city: '',
-    province: '',
     postal_code: '',
     country: 'Papua New Guinea',
     tin: '',
@@ -43,11 +50,21 @@ const AddCustomerDialog = ({ open, onOpenChange, onCustomerAdded }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.address_line1) {
+    // Validate required fields
+    if (!formData.name?.trim()) {
       toast({
         variant: "destructive",
-        title: "Missing Required Fields",
-        description: "Customer name and address are required",
+        title: "Missing Required Field",
+        description: "Customer name is required",
+      });
+      return;
+    }
+
+    if (!formData.address_line1?.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Missing Required Field",
+        description: "Address is required",
       });
       return;
     }
@@ -68,7 +85,6 @@ const AddCustomerDialog = ({ open, onOpenChange, onCustomerAdded }) => {
           address_line1: '',
           address_line2: '',
           city: '',
-          province: '',
           postal_code: '',
           country: 'Papua New Guinea',
           tin: '',
@@ -76,6 +92,8 @@ const AddCustomerDialog = ({ open, onOpenChange, onCustomerAdded }) => {
           contact_person: '',
           notes: '',
         });
+      } else {
+        throw new Error('Invalid response from server');
       }
     } catch (error) {
       console.error('Error creating customer:', error);
@@ -108,7 +126,6 @@ const AddCustomerDialog = ({ open, onOpenChange, onCustomerAdded }) => {
                 value={formData.name}
                 onChange={(e) => handleChange('name', e.target.value)}
                 placeholder="Customer name"
-                required
               />
             </div>
 
@@ -152,7 +169,6 @@ const AddCustomerDialog = ({ open, onOpenChange, onCustomerAdded }) => {
               value={formData.address_line1}
               onChange={(e) => handleChange('address_line1', e.target.value)}
               placeholder="Street address"
-              required
             />
           </div>
 
@@ -178,16 +194,6 @@ const AddCustomerDialog = ({ open, onOpenChange, onCustomerAdded }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="province">Province</Label>
-              <Input
-                id="province"
-                value={formData.province}
-                onChange={(e) => handleChange('province', e.target.value)}
-                placeholder="Province"
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="postal_code">Postal Code</Label>
               <Input
                 id="postal_code"
@@ -195,6 +201,25 @@ const AddCustomerDialog = ({ open, onOpenChange, onCustomerAdded }) => {
                 onChange={(e) => handleChange('postal_code', e.target.value)}
                 placeholder="Postal code"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <Select
+                value={formData.country}
+                onValueChange={(value) => handleChange('country', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {countries.map((country) => (
+                    <SelectItem key={country.value} value={country.value}>
+                      {country.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

@@ -341,9 +341,10 @@ async function sendQuotationEmail(recipientEmail, quotation) {
   let pdfBuffer;
   try {
     pdfBuffer = await generateQuotationPDF(quotation);
-    console.log('✅ Quotation PDF generated successfully');
+    console.log('✅ Quotation PDF generated successfully, size:', pdfBuffer ? pdfBuffer.length : 0, 'bytes');
   } catch (error) {
-    console.error('⚠️ Failed to generate quotation PDF:', error);
+    console.error('❌ Failed to generate quotation PDF:', error.message);
+    console.error('Stack:', error.stack);
     // Continue without PDF if generation fails
     pdfBuffer = null;
   }
@@ -455,8 +456,14 @@ This is an automated email. Please do not reply to this message.
   `;
 
   // Prepare mail options
-  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+  // IMPORTANT: Use SMTP_FROM (verified sender) not SMTP_USER (auth account)
+  const fromEmail = process.env.SMTP_FROM || 'noreply@greenpay.eywademo.cloud';
   const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
+
+  if (!process.env.SMTP_FROM) {
+    console.warn('⚠️ SMTP_FROM not set, using default:', fromEmail);
+  }
+
   const mailOptions = {
     from: `"${fromName}" <${fromEmail}>`,
     to: recipientEmail,
@@ -478,15 +485,28 @@ This is an automated email. Please do not reply to this message.
 
   // Send the email
   try {
+    console.log('📧 Attempting to send quotation email...');
+    console.log('   To:', recipientEmail);
+    console.log('   From:', mailOptions.from);
+    console.log('   Subject:', emailSubject);
+    console.log('   Has PDF:', !!pdfBuffer);
+
     const result = await transporter.sendMail(mailOptions);
-    console.log('✅ Quotation email sent successfully to:', recipientEmail);
+    console.log('✅ Quotation email sent successfully!');
+    console.log('   Recipient:', recipientEmail);
+    console.log('   Message ID:', result.messageId);
+    console.log('   Response:', result.response);
+
     return {
       success: true,
       provider: 'smtp',
       messageId: result.messageId
     };
   } catch (error) {
-    console.error('❌ Failed to send quotation email:', error);
+    console.error('❌ Failed to send quotation email:', error.message);
+    console.error('   Error code:', error.code);
+    console.error('   Error command:', error.command);
+    console.error('   Full error:', error);
     throw error;
   }
 }
@@ -531,8 +551,14 @@ const sendInvoiceEmail = async (options) => {
 
   const publicUrl = PUBLIC_URL;
 
-  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+  // IMPORTANT: Use SMTP_FROM (verified sender) not SMTP_USER (auth account)
+  const fromEmail = process.env.SMTP_FROM || 'noreply@greenpay.eywademo.cloud';
   const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
+
+  if (!process.env.SMTP_FROM) {
+    console.warn('⚠️ SMTP_FROM not set, using default:', fromEmail);
+  }
+
   const mailOptions = {
     from: `"${fromName}" <${fromEmail}>`,
     to,
@@ -657,8 +683,14 @@ async function sendEmailWithAttachments(options) {
     console.log('✅ SMTP connection verified');
 
     // Send email with attachments
-    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+    // IMPORTANT: Use SMTP_FROM (verified sender) not SMTP_USER (auth account)
+    const fromEmail = process.env.SMTP_FROM || 'noreply@greenpay.eywademo.cloud';
     const fromName = process.env.SMTP_FROM_NAME || 'PNG Green Fees System';
+
+    if (!process.env.SMTP_FROM) {
+      console.warn('⚠️ SMTP_FROM not set, using default:', fromEmail);
+    }
+
     const info = await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to,

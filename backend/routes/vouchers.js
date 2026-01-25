@@ -1081,8 +1081,43 @@ router.post('/email-batch', auth, checkRole('Flex_Admin', 'Finance_Manager', 'Co
     const vouchers = result.rows;
     const companyName = vouchers[0].company_name || 'Company';
 
-    // Generate single PDF with all vouchers
-    const pdfBuffer = await generateVouchersPDF(vouchers, companyName);
+    // Generate separate PDF for each voucher
+    const pdfAttachments = [];
+    let totalSize = 0;
+    const MAX_EMAIL_SIZE = 10 * 1024 * 1024; // 10 MB safety limit
+
+    console.log(`Generating ${vouchers.length} individual PDF vouchers for batch ${batch_id}...`);
+
+    for (let i = 0; i < vouchers.length; i++) {
+      const voucher = vouchers[i];
+      const pdfBuffer = await generateVouchersPDF([voucher], companyName);
+
+      totalSize += pdfBuffer.length;
+
+      pdfAttachments.push({
+        filename: `${companyName.replace(/\s+/g, '_')}_Voucher_${voucher.voucher_code}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      });
+
+      // Log progress every 10 vouchers
+      if ((i + 1) % 10 === 0 || i === vouchers.length - 1) {
+        console.log(`Generated ${i + 1}/${vouchers.length} vouchers (${(totalSize / 1024 / 1024).toFixed(2)} MB)`);
+      }
+    }
+
+    // Check total size
+    if (totalSize > MAX_EMAIL_SIZE) {
+      console.warn(`⚠️ Warning: Total attachment size (${(totalSize / 1024 / 1024).toFixed(2)} MB) exceeds 10 MB. Email may fail.`);
+      return res.status(400).json({
+        error: 'Email size too large',
+        message: `Total attachment size (${(totalSize / 1024 / 1024).toFixed(2)} MB) exceeds safe email limit of 10 MB. Please reduce batch size or download vouchers instead.`,
+        totalSize: totalSize,
+        voucherCount: vouchers.length
+      });
+    }
+
+    console.log(`Total email size: ${(totalSize / 1024 / 1024).toFixed(2)} MB for ${vouchers.length} vouchers`);
 
     // Send email
     const transporter = createTransporter();
@@ -1116,7 +1151,7 @@ router.post('/email-batch', auth, checkRole('Flex_Admin', 'Finance_Manager', 'Co
 
     <div class="content">
       <h2>Dear ${companyName},</h2>
-      <p>Your corporate airport exit vouchers batch is ready! Please find all vouchers attached as a single PDF document.</p>
+      <p>Your corporate airport exit vouchers batch is ready! Please find <strong>${vouchers.length} vouchers attached as separate PDF files</strong>.</p>
 
       <div class="voucher-summary">
         <strong>Batch Summary:</strong><br>
@@ -1130,8 +1165,9 @@ router.post('/email-batch', auth, checkRole('Flex_Admin', 'Finance_Manager', 'Co
       <div class="important">
         <strong>⚠️ Important Instructions:</strong>
         <ol>
-          <li><strong>Print the attached PDF</strong> - Each voucher is on a separate page with a large QR code</li>
-          <li><strong>Distribute to employees</strong> - Give each employee their voucher page</li>
+          <li><strong>Download all PDF attachments</strong> - Each employee gets their own voucher PDF file</li>
+          <li><strong>Print individual vouchers</strong> - Each PDF contains one voucher with a large QR code</li>
+          <li><strong>Distribute to employees</strong> - Give each employee their specific voucher file</li>
           <li><strong>Present at airport exit</strong> - Show voucher QR code for scanning</li>
           <li><strong>One-time use only</strong> - Each voucher can only be used ONCE</li>
           <li><strong>Cannot be reused</strong> - Once scanned, the voucher is permanently deactivated</li>
@@ -1171,13 +1207,7 @@ router.post('/email-batch', auth, checkRole('Flex_Admin', 'Finance_Manager', 'Co
       to: recipient_email,
       subject: `${companyName} - Batch ${batch_id} Airport Exit Vouchers (${vouchers.length} vouchers)`,
       html: htmlContent,
-      attachments: [
-        {
-          filename: `${companyName.replace(/\s+/g, '_')}_Batch_${batch_id}_${new Date().toISOString().split('T')[0]}.pdf`,
-          content: pdfBuffer,
-          contentType: 'application/pdf'
-        }
-      ]
+      attachments: pdfAttachments
     };
 
     await transporter.sendMail(mailOptions);
