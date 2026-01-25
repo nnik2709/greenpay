@@ -92,10 +92,11 @@ const ThermalVoucherPrintPage = () => {
     const hasIndividualPurchaseState = sessionStorage.getItem('individualPurchaseStep');
 
     if (hasIndividualPurchaseState === 'completion') {
-      // Set flag so IndividualPurchase knows we're coming from print page
-      sessionStorage.setItem('fromPrintPage', 'true');
-      // Navigate back to Individual Purchase completion page
-      navigate(-1);
+      // Navigate back to Individual Purchase completion page with state
+      navigate('/app/passports/create', {
+        state: { fromPrintPage: true },
+        replace: true
+      });
     } else {
       // Otherwise go to vouchers list or passports create
       navigate('/app/vouchers-list');

@@ -1,21 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Printer } from 'lucide-react';
+import { Printer, FileText } from 'lucide-react';
 import api from '@/lib/api/client';
 import { useWebSerial } from '@/hooks/useWebSerial';
 import { ScannerStatusFull } from '@/components/ScannerStatus';
+import { countries } from '@/lib/countries';
 
 const VOUCHER_AMOUNT = 50;
 
 export default function IndividualPurchase() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -68,7 +71,10 @@ export default function IndividualPurchase() {
   // Clear sessionStorage on mount if user navigated directly (not from Back button)
   useEffect(() => {
     // Check if we came from the print page (via Back button)
-    const fromPrintPage = sessionStorage.getItem('fromPrintPage');
+    // Check both location.state (React Router) and sessionStorage (fallback)
+    const fromPrintPageState = location.state?.fromPrintPage;
+    const fromPrintPageSession = sessionStorage.getItem('fromPrintPage');
+    const fromPrintPage = fromPrintPageState || fromPrintPageSession;
 
     if (!fromPrintPage) {
       // User navigated directly or refreshed - clear all state
@@ -89,8 +95,9 @@ export default function IndividualPurchase() {
         });
       }
     } else {
-      // Clear the flag after using it
+      // Clear the flags after using them
       sessionStorage.removeItem('fromPrintPage');
+      // Note: location.state is automatically cleared on next navigation
     }
   }, []); // Run once on mount
 
@@ -327,33 +334,35 @@ export default function IndividualPurchase() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Bulk Actions for All Registered Vouchers */}
-            {registeredVouchers.length > 1 && (
+            {/* Actions for Registered Vouchers */}
+            {registeredVouchers.length >= 1 && (
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h3 className="font-semibold text-blue-900 mb-3">Bulk Actions ({registeredVouchers.length} vouchers)</h3>
+                <h3 className="font-semibold text-blue-900 mb-3">
+                  {registeredVouchers.length === 1 ? 'Voucher Actions' : `Bulk Actions (${registeredVouchers.length} vouchers)`}
+                </h3>
                 <div className="flex gap-3 flex-wrap">
                   <Button
                     onClick={async () => {
                       try {
-                        const email = customerEmail || prompt('Enter email address for all vouchers:');
+                        const email = customerEmail || prompt(`Enter email address${registeredVouchers.length > 1 ? ' for all vouchers' : ''}:`);
                         if (!email) return;
 
                         const voucherIds = registeredVouchers.map(v => v.id);
                         await api.post('/vouchers/bulk-email', { voucherIds, email });
                         toast({
                           title: 'Emails Sent',
-                          description: `${registeredVouchers.length} vouchers sent to ${email}`
+                          description: `${registeredVouchers.length} voucher${registeredVouchers.length > 1 ? 's' : ''} sent to ${email}`
                         });
                       } catch (error) {
                         toast({
                           variant: 'destructive',
                           title: 'Error',
-                          description: 'Failed to send bulk emails'
+                          description: 'Failed to send email'
                         });
                       }
                     }}
                   >
-                    Email All ({registeredVouchers.length})
+                    {registeredVouchers.length === 1 ? 'Email Voucher' : `Email All (${registeredVouchers.length})`}
                   </Button>
 
                   {/* Print Thermal Receipts - Only for Counter_Agent and Flex_Admin at airport kiosk */}
@@ -367,9 +376,21 @@ export default function IndividualPurchase() {
                       size="lg"
                     >
                       <Printer className="w-4 h-4 mr-2" />
-                      Print All ({registeredVouchers.length})
+                      {registeredVouchers.length === 1 ? 'Print Thermal' : `Print All (${registeredVouchers.length})`}
                     </Button>
                   )}
+
+                  {/* View/Print Regular A4 Format */}
+                  <Button
+                    onClick={() => {
+                      const voucherCodes = registeredVouchers.map(v => v.voucherCode).join(',');
+                      navigate(`/app/voucher-print?codes=${voucherCodes}`);
+                    }}
+                    variant="outline"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    {registeredVouchers.length === 1 ? 'View A4 Format' : `View All (A4)`}
+                  </Button>
 
                   <Button
                     onClick={async () => {
@@ -401,19 +422,32 @@ export default function IndividualPurchase() {
                         window.URL.revokeObjectURL(url);
                         toast({
                           title: 'Download Started',
-                          description: `Downloading ${voucherIds.length} vouchers as ZIP`
+                          description: `Downloading ${voucherIds.length} voucher${voucherIds.length > 1 ? 's' : ''} as ZIP`
                         });
                       } catch (error) {
                         console.error('Bulk download error:', error);
+                        console.error('Error response:', error.response);
+                        console.error('Error response data:', error.response?.data);
+                        console.error('Error response details:', error.response?.data?.details);
+
+                        let errorMessage = 'Failed to download vouchers';
+                        if (error.response?.data?.error) {
+                          errorMessage = error.response.data.error;
+                        } else if (error.response?.data?.details?.[0]?.msg) {
+                          errorMessage = error.response.data.details[0].msg;
+                        } else if (error.message) {
+                          errorMessage = error.message;
+                        }
+
                         toast({
                           variant: 'destructive',
-                          title: 'Error',
-                          description: error.response?.data?.error || 'Failed to download bulk vouchers'
+                          title: 'Download Error',
+                          description: errorMessage
                         });
                       }
                     }}
                   >
-                    Download All as ZIP ({vouchers.length})
+                    {vouchers.length === 1 ? 'Download as PDF' : `Download All as ZIP (${vouchers.length})`}
                   </Button>
                 </div>
               </div>
@@ -767,13 +801,19 @@ export default function IndividualPurchase() {
 
                     <div>
                       <Label htmlFor="nationality">Nationality *</Label>
-                      <Input
-                        id="nationality"
-                        placeholder="e.g., Papua New Guinea"
-                        value={nationality}
-                        onChange={(e) => setNationality(e.target.value)}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Full nationality name (auto-filled by MRZ scanner)</p>
+                      <Select value={nationality} onValueChange={setNationality}>
+                        <SelectTrigger id="nationality">
+                          <SelectValue placeholder="Select nationality..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {countries.map((country) => (
+                            <SelectItem key={country.value} value={country.value}>
+                              {country.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">Select from list or auto-filled by MRZ scanner</p>
                     </div>
 
                     <div>
