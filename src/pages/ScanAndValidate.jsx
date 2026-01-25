@@ -638,26 +638,14 @@ const ScanAndValidate = () => {
             </div>
           </details>
 
-          {/* QR Code Scanner View - CAMERA FIRST, THEN INSTRUCTIONS */}
+          {/* QR Code Scanner View - CAMERA ONLY, NO TEXT ABOVE */}
           <AnimatePresence>
             {showCameraScanner && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                {/* CAMERA VIEW - Most prominent and visible */}
-                <div className="mb-4 bg-black rounded-lg overflow-hidden border-4 border-emerald-500 shadow-xl">
+                {/* CAMERA VIEW - Clean and prominent */}
+                <div className="bg-black rounded-lg overflow-hidden border-4 border-emerald-500 shadow-xl">
                   <div id="qr-reader" className="w-full"></div>
                 </div>
-
-                {/* Camera Instructions - Below camera for visibility */}
-                <Card className="mb-4 bg-emerald-50 border-emerald-300">
-                  <CardContent className="p-3">
-                    <div className="text-center">
-                      <h3 className="font-bold text-emerald-900 mb-1 text-base">📷 Position Voucher in Frame Above</h3>
-                      <p className="text-emerald-800 text-xs">
-                        Hold steady • Listen for beep when scanned
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
               </motion.div>
             )}
           </AnimatePresence>
