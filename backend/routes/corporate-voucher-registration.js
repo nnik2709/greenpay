@@ -2,7 +2,6 @@ const express = require('express');
 const { serverError } = require('../utils/apiResponse');
 const router = express.Router();
 const db = require('../config/database');
-const { serverError } = require('../utils/apiResponse');
 const { auth, checkRole } = require('../middleware/auth');
 const {
   voucherLookupLimiter,

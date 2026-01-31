@@ -2,7 +2,6 @@ const express = require('express');
 const { serverError } = require('../utils/apiResponse');
 const router = express.Router();
 const db = require('../config/database');
-const { serverError } = require('../utils/apiResponse');
 const { auth, checkRole } = require('../middleware/auth');
 const {
   voucherValidationLimiter,
@@ -668,7 +667,7 @@ router.post('/bulk-corporate', auth, checkRole('Flex_Admin', 'Finance_Manager', 
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Bulk corporate voucher creation error:', error);
-    return return serverError(res, error, 'Error creating bulk corporate vouchers');
+    return serverError(res, error, 'Error creating bulk corporate vouchers');
   } finally {
     client.release();
   }

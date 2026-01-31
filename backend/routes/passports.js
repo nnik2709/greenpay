@@ -2,7 +2,6 @@ const express = require('express');
 const { serverError } = require('../utils/apiResponse');
 const router = express.Router();
 const { body, param, query } = require('express-validator');
-const { serverError } = require('../utils/apiResponse');
 const db = require('../config/database');
 const validate = require('../middleware/validator');
 const { auth, checkRole } = require('../middleware/auth');
