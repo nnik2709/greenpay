@@ -1,6 +1,8 @@
 const express = require('express');
+const { serverError } = require('../utils/apiResponse');
 const router = express.Router();
 const pool = require('../config/database');
+const { serverError } = require('../utils/apiResponse');
 
 /**
  * Cash Reconciliation Routes
@@ -106,10 +108,7 @@ router.get('/transactions', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching transactions for reconciliation:', error);
-    res.status(500).json({
-      error: 'Failed to fetch transactions',
-      message: error.message
-    });
+    return serverError(res, error, 'Failed to fetch transactions');
   }
 });
 
@@ -173,10 +172,7 @@ router.get('/', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching reconciliations:', error);
-    res.status(500).json({
-      error: 'Failed to fetch reconciliations',
-      message: error.message
-    });
+    return serverError(res, error, 'Failed to fetch reconciliations');
   }
 });
 
@@ -202,10 +198,22 @@ router.post('/', async (req, res) => {
       status = 'pending'
     } = req.body;
 
+    console.log('[CASH_RECONCILIATION] Creating reconciliation for agent_id:', agent_id, 'type:', typeof agent_id);
+
     // Validate required fields
     if (!agent_id || !reconciliation_date) {
       return res.status(400).json({
         error: 'Agent ID and reconciliation date are required'
+      });
+    }
+
+    // Verify agent exists in User table
+    const userCheck = await pool.query('SELECT id FROM "User" WHERE id = $1', [agent_id]);
+    if (userCheck.rows.length === 0) {
+      console.error('[CASH_RECONCILIATION] Agent ID not found in User table:', agent_id);
+      return res.status(400).json({
+        error: 'Invalid agent ID',
+        message: `User with ID ${agent_id} does not exist`
       });
     }
 
@@ -254,10 +262,7 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     console.error('Error creating reconciliation:', error);
-    res.status(500).json({
-      error: 'Failed to create reconciliation',
-      message: error.message
-    });
+    return serverError(res, error, 'Failed to create reconciliation');
   }
 });
 
@@ -304,10 +309,7 @@ router.put('/:id', async (req, res) => {
 
   } catch (error) {
     console.error('Error updating reconciliation:', error);
-    res.status(500).json({
-      error: 'Failed to update reconciliation',
-      message: error.message
-    });
+    return serverError(res, error, 'Failed to update reconciliation');
   }
 });
 
@@ -347,10 +349,7 @@ router.get('/:id', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching reconciliation:', error);
-    res.status(500).json({
-      error: 'Failed to fetch reconciliation',
-      message: error.message
-    });
+    return serverError(res, error, 'Failed to fetch reconciliation');
   }
 });
 

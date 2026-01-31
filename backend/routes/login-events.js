@@ -1,6 +1,8 @@
 const express = require('express');
+const { serverError } = require('../utils/apiResponse');
 const router = express.Router();
 const db = require('../config/database');
+const { serverError } = require('../utils/apiResponse');
 const { auth, checkRole } = require('../middleware/auth');
 
 /**
@@ -58,11 +60,8 @@ router.get('/', auth, checkRole('Flex_Admin', 'IT_Support'), async (req, res) =>
 
   } catch (error) {
     console.error('Error fetching login events:', error);
-    res.status(500).json({
-      type: 'error',
-      message: 'Failed to fetch login events',
-      error: error.message
-    });
+    return serverError(res, error, ',
+      message: ');
   }
 });
 
@@ -109,11 +108,8 @@ router.get('/user/:userId', auth, checkRole('Flex_Admin', 'IT_Support'), async (
 
   } catch (error) {
     console.error('Error fetching user login events:', error);
-    res.status(500).json({
-      type: 'error',
-      message: 'Failed to fetch user login events',
-      error: error.message
-    });
+    return serverError(res, error, ',
+      message: ');
   }
 });
 
@@ -144,11 +140,8 @@ router.get('/stats', auth, checkRole('Flex_Admin', 'IT_Support'), async (req, re
 
   } catch (error) {
     console.error('Error fetching login stats:', error);
-    res.status(500).json({
-      type: 'error',
-      message: 'Failed to fetch login stats',
-      error: error.message
-    });
+    return serverError(res, error, ',
+      message: ');
   }
 });
 

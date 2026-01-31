@@ -54,6 +54,10 @@ router.post('/login',
 
       const user = result.rows[0];
 
+      console.log(`[AUTH] Login attempt for user ID: ${user.id}, email: ${email}`);
+      console.log(`[AUTH] User isActive: ${user.isActive}`);
+      console.log(`[AUTH] passwordHash exists: ${!!user.passwordHash}, length: ${user.passwordHash ? user.passwordHash.length : 0}`);
+
       if (!user.isActive) {
         // Record failed login attempt (account inactive)
         await recordLoginEvent(user.id, email, 'failed', req, 'Account inactive');
@@ -62,6 +66,7 @@ router.post('/login',
 
       // Verify password
       const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      console.log(`[AUTH] Password validation result: ${isValidPassword}`);
       if (!isValidPassword) {
         // Record failed login attempt (wrong password)
         await recordLoginEvent(user.id, email, 'failed', req, 'Invalid password');
@@ -216,7 +221,7 @@ router.post('/reset-password/:userId',
 
       // Update password
       const result = await db.query(
-        'UPDATE "User" SET password = $1 WHERE id = $2 RETURNING id',
+        'UPDATE "User" SET "passwordHash" = $1 WHERE id = $2 RETURNING id',
         [hashedPassword, userId]
       );
 

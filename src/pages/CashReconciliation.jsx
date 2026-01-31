@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CheckCircle, XCircle, Clock, Eye, AlertTriangle } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // Reviewer roles that can approve/reject reconciliations
 const REVIEWER_ROLES = ['Finance_Manager', 'Flex_Admin'];
@@ -602,20 +603,20 @@ const AgentReconciliationForm = ({ user, toast }) => {
   const [transactionSummary, setTransactionSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Reconciliation form data
-  const [openingFloat, setOpeningFloat] = useState(0);
+  // Reconciliation form data (using strings for input fields to allow proper typing)
+  const [openingFloat, setOpeningFloat] = useState('');
   const [denominations, setDenominations] = useState({
-    hundred: 0,
-    fifty: 0,
-    twenty: 0,
-    ten: 0,
-    five: 0,
-    two: 0,
-    one: 0,
-    fiftyCents: 0,
-    twentyCents: 0,
-    tenCents: 0,
-    fiveCents: 0,
+    hundred: '',
+    fifty: '',
+    twenty: '',
+    ten: '',
+    five: '',
+    two: '',
+    one: '',
+    fiftyCents: '',
+    twentyCents: '',
+    tenCents: '',
+    fiveCents: '',
   });
   const [notes, setNotes] = useState('');
   const [actualCash, setActualCash] = useState(0);
@@ -665,10 +666,13 @@ const AgentReconciliationForm = ({ user, toast }) => {
   };
 
   const handleDenominationChange = (key, value) => {
-    setDenominations(prev => ({
-      ...prev,
-      [key]: parseInt(value) || 0,
-    }));
+    // Allow empty string or valid numbers only
+    if (value === '' || /^\d+$/.test(value)) {
+      setDenominations(prev => ({
+        ...prev,
+        [key]: value,
+      }));
+    }
   };
 
   const handleSubmitReconciliation = async () => {
@@ -681,18 +685,44 @@ const AgentReconciliationForm = ({ user, toast }) => {
       return;
     }
 
-    const expectedCash = transactionSummary.cash + openingFloat;
-    const variance = calculateVariance(expectedCash, actualCash);
+    if (!user || !user.id) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "User not authenticated. Please log in again.",
+      });
+      return;
+    }
+
+    // Parse string values to numbers
+    const openingFloatNum = parseFloat(openingFloat) || 0;
+    const actualCashNum = calculatedActualCash; // Use the calculated value from denominations
+    const expectedCash = transactionSummary.cash + openingFloatNum;
+    const varianceToSubmit = calculateVariance(expectedCash, actualCashNum);
+
+    // Convert denomination strings to numbers
+    const denominationsAsNumbers = {};
+    Object.keys(denominations).forEach(key => {
+      denominationsAsNumbers[key] = parseInt(denominations[key]) || 0;
+    });
 
     try {
+      logger.log('[CASH_RECONCILIATION] Submitting with user ID:', user.id);
+      logger.log('[CASH_RECONCILIATION] Denominations (strings):', denominations);
+      logger.log('[CASH_RECONCILIATION] Denominations (numbers):', denominationsAsNumbers);
+      logger.log('[CASH_RECONCILIATION] Opening Float:', openingFloatNum);
+      logger.log('[CASH_RECONCILIATION] Expected Cash:', expectedCash);
+      logger.log('[CASH_RECONCILIATION] Actual Cash:', actualCashNum);
+      logger.log('[CASH_RECONCILIATION] Variance:', varianceToSubmit);
+
       const reconciliationData = {
         agentId: user.id,
         date: selectedDate,
-        openingFloat: openingFloat,
+        openingFloat: openingFloatNum,
         expectedCash: expectedCash,
-        actualCash: actualCash,
-        variance: variance,
-        denominations: denominations,
+        actualCash: actualCashNum,
+        variance: varianceToSubmit,
+        denominations: denominationsAsNumbers,
         cardTotal: transactionSummary.card,
         bankTransferTotal: transactionSummary.bankTransfer,
         eftposTotal: transactionSummary.eftpos,
@@ -700,21 +730,39 @@ const AgentReconciliationForm = ({ user, toast }) => {
         notes: notes,
       };
 
-      await createReconciliation(reconciliationData);
+      const result = await createReconciliation(reconciliationData);
+
+      // Capture the variance value before any state changes
+      const finalVariance = varianceToSubmit;
+      const finalActualCash = actualCashNum;
+      const finalExpectedCash = expectedCash;
+
+      logger.log('[CASH_RECONCILIATION] Final variance for toast:', finalVariance);
+
+      // Reset form first
+      setDenominations({
+        hundred: '', fifty: '', twenty: '', ten: '', five: '', two: '', one: '',
+        fiftyCents: '', twentyCents: '', tenCents: '', fiveCents: '',
+      });
+      setNotes('');
+      setOpeningFloat('');
+
+      // Clear transaction summary to hide the confusing reset state
+      setTransactionSummary(null);
+
+      // Reload reconciliation history
+      loadReconciliations();
+
+      // Show toast after reset with captured values
+      const toastMessage = `Variance: PGK ${finalVariance.toFixed(2)}. Awaiting manager approval.`;
+      logger.log('[CASH_RECONCILIATION] Toast message string:', toastMessage);
+      logger.log('[CASH_RECONCILIATION] finalVariance value:', finalVariance);
+      logger.log('[CASH_RECONCILIATION] finalVariance.toFixed(2):', finalVariance.toFixed(2));
 
       toast({
         title: "Reconciliation Submitted!",
-        description: `Variance: PGK ${variance.toFixed(2)}. Awaiting manager approval.`,
+        description: toastMessage,
       });
-
-      // Reset form
-      setDenominations({
-        hundred: 0, fifty: 0, twenty: 0, ten: 0, five: 0, two: 0, one: 0,
-        fiftyCents: 0, twentyCents: 0, tenCents: 0, fiveCents: 0,
-      });
-      setNotes('');
-      setOpeningFloat(0);
-      loadTransactionSummary();
     } catch (error) {
       toast({
         variant: "destructive",
@@ -724,20 +772,26 @@ const AgentReconciliationForm = ({ user, toast }) => {
     }
   };
 
+  // Calculate actual cash from denominations in real-time for display
+  const calculatedActualCash = calculateDenominationTotal(denominations);
+
   const variance = transactionSummary ? calculateVariance(
-    transactionSummary.cash + openingFloat,
-    actualCash
+    transactionSummary.cash + (parseFloat(openingFloat) || 0),
+    calculatedActualCash
   ) : 0;
 
   const DenominationInput = ({ label, value, onChange, denomination }) => (
     <div className="flex items-center gap-3">
       <Label className="w-20 text-right">{label}</Label>
       <Input
-        type="number"
-        min="0"
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-24"
+        onFocus={(e) => e.target.select()}
+        className="w-24 text-center"
+        placeholder="0"
       />
       <span className="text-sm text-slate-500">
         = PGK {((denomination) * (value || 0)).toFixed(2)}
@@ -781,9 +835,18 @@ const AgentReconciliationForm = ({ user, toast }) => {
             <div className="flex-1">
               <Label>Opening Float (PGK)</Label>
               <Input
-                type="number"
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*\.?[0-9]*"
                 value={openingFloat}
-                onChange={(e) => setOpeningFloat(parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow empty string or valid decimal numbers
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setOpeningFloat(value);
+                  }
+                }}
+                onFocus={(e) => e.target.select()}
                 placeholder="0.00"
               />
             </div>
@@ -882,15 +945,15 @@ const AgentReconciliationForm = ({ user, toast }) => {
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-3 bg-slate-50 rounded">
                   <span>Opening Float:</span>
-                  <span className="font-semibold">PGK {openingFloat.toFixed(2)}</span>
+                  <span className="font-semibold">PGK {(parseFloat(openingFloat) || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-slate-50 rounded">
                   <span>Expected Cash (Float + Cash Sales):</span>
-                  <span className="font-semibold">PGK {(transactionSummary.cash + openingFloat).toFixed(2)}</span>
+                  <span className="font-semibold">PGK {(transactionSummary.cash + (parseFloat(openingFloat) || 0)).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-emerald-50 rounded">
                   <span className="font-semibold">Actual Cash Counted:</span>
-                  <span className="font-bold text-emerald-700">PGK {actualCash.toFixed(2)}</span>
+                  <span className="font-bold text-emerald-700">PGK {calculatedActualCash.toFixed(2)}</span>
                 </div>
                 <div className={`flex justify-between items-center p-4 rounded-lg ${
                   variance === 0 ? 'bg-green-100 border-green-300' :

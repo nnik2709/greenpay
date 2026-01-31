@@ -74,7 +74,7 @@ const CorporateVoucherReports = () => {
 
   const handleSearch = () => {
     setPage(1); // Reset to page 1 when searching
-    fetchVouchers(1);
+    fetchVouchers(1); // Call fetchVouchers directly with page 1
   };
 
   const handlePrintVoucher = (voucher) => {

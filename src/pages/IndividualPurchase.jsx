@@ -13,6 +13,7 @@ import api from '@/lib/api/client';
 import { useWebSerial } from '@/hooks/useWebSerial';
 import { ScannerStatusFull } from '@/components/ScannerStatus';
 import { countries } from '@/lib/countries';
+import { logger } from '@/utils/logger';
 
 const VOUCHER_AMOUNT = 50;
 
@@ -150,7 +151,7 @@ export default function IndividualPurchase() {
 
           // Check if already registered - prevent duplicate registration
           if (wizardProgress.registeredVouchers.has(currentVoucher.id)) {
-            console.log('[Auto-scan] Voucher already registered, skipping:', currentVoucher.voucherCode);
+            logger.log('[Auto-scan] Voucher already registered, skipping:', currentVoucher.voucherCode);
             return;
           }
 
@@ -211,7 +212,7 @@ export default function IndividualPurchase() {
               }
             });
           } catch (error) {
-            console.error('Error auto-registering passport:', error);
+            logger.error('Error auto-registering passport:', error);
             toast({
               variant: 'destructive',
               title: 'Auto-Registration Failed',
@@ -280,13 +281,13 @@ export default function IndividualPurchase() {
       });
 
       // Log response for debugging
-      console.log('Individual Purchase API Response:', response);
+      logger.log('Individual Purchase API Response:', response);
 
       // batch-simple endpoint returns data at root level (not in response.data)
       if (response.status === 'success' || response.type === 'success') {
         // Verify we have the required data
         if (!response.batchId || !response.vouchers) {
-          console.error('Missing batchId or vouchers in response:', response);
+          logger.error('Missing batchId or vouchers in response:', response);
           throw new Error('Invalid response from server: missing batchId or vouchers');
         }
 
@@ -302,12 +303,12 @@ export default function IndividualPurchase() {
         });
       } else {
         // Response didn't have success status
-        console.error('Unexpected response status:', response);
+        logger.error('Unexpected response status:', response);
         throw new Error(response.message || 'Failed to create vouchers');
       }
 
     } catch (error) {
-      console.error('Error creating vouchers:', error);
+      logger.error('Error creating vouchers:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -395,12 +396,12 @@ export default function IndividualPurchase() {
                   <Button
                     onClick={async () => {
                       try {
-                        console.log('Bulk download - All vouchers:', vouchers);
-                        console.log('Bulk download - Registered vouchers:', registeredVouchers);
+                        logger.log('Bulk download - All vouchers:', vouchers);
+                        logger.log('Bulk download - Registered vouchers:', registeredVouchers);
 
                         // Download ALL vouchers in the batch (registered and unregistered)
                         const voucherIds = vouchers.map(v => v.id).filter(id => id !== undefined && id !== null);
-                        console.log('Bulk download - Voucher IDs:', voucherIds);
+                        logger.log('Bulk download - Voucher IDs:', voucherIds);
 
                         if (voucherIds.length === 0) {
                           toast({
@@ -425,10 +426,10 @@ export default function IndividualPurchase() {
                           description: `Downloading ${voucherIds.length} voucher${voucherIds.length > 1 ? 's' : ''} as ZIP`
                         });
                       } catch (error) {
-                        console.error('Bulk download error:', error);
-                        console.error('Error response:', error.response);
-                        console.error('Error response data:', error.response?.data);
-                        console.error('Error response details:', error.response?.data?.details);
+                        logger.error('Bulk download error:', error);
+                        logger.error('Error response:', error.response);
+                        logger.error('Error response data:', error.response?.data);
+                        logger.error('Error response details:', error.response?.data?.details);
 
                         let errorMessage = 'Failed to download vouchers';
                         if (error.response?.data?.error) {
@@ -865,7 +866,7 @@ export default function IndividualPurchase() {
                               description: `Voucher ${currentVoucher.voucherCode} registered to passport ${passportNumber}`
                             });
                           } catch (error) {
-                            console.error('Error registering passport:', error);
+                            logger.error('Error registering passport:', error);
                             toast({
                               variant: 'destructive',
                               title: 'Registration Failed',

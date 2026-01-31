@@ -33,6 +33,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { logger } from '@/utils/logger';
 import {
   Select,
   SelectContent,
@@ -110,7 +111,7 @@ const Invoices = () => {
       const data = await getInvoices(filters);
       setInvoices(data);
     } catch (error) {
-      console.error('Error loading invoices:', error);
+      logger.error('Error loading invoices:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -126,7 +127,7 @@ const Invoices = () => {
       const stats = await getInvoiceStatistics();
       setStatistics(stats);
     } catch (error) {
-      console.error('Error loading statistics:', error);
+      logger.error('Error loading statistics:', error);
     }
   };
 
@@ -222,14 +223,14 @@ const Invoices = () => {
 
   const handleDownloadVouchers = async (invoice) => {
     try {
-      console.log('[VOUCHER DOWNLOAD] Starting download for invoice:', invoice.id);
+      logger.log('[VOUCHER DOWNLOAD] Starting download for invoice:', invoice.id);
 
       // Note: api.get with responseType: 'blob' returns the Blob directly, not an axios-style response
       const blob = await api.get(`/invoices/${invoice.id}/vouchers-pdf`, {
         responseType: 'blob'
       });
 
-      console.log('[VOUCHER DOWNLOAD] Blob received:', {
+      logger.log('[VOUCHER DOWNLOAD] Blob received:', {
         dataType: typeof blob,
         dataSize: blob?.size,
         isBlob: blob instanceof Blob
@@ -237,7 +238,7 @@ const Invoices = () => {
 
       // Create a blob URL and trigger download
       const url = window.URL.createObjectURL(blob);
-      console.log('[VOUCHER DOWNLOAD] Blob URL created:', url);
+      logger.log('[VOUCHER DOWNLOAD] Blob URL created:', url);
 
       const link = document.createElement('a');
       link.href = url;
@@ -247,14 +248,14 @@ const Invoices = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      console.log('[VOUCHER DOWNLOAD] Download triggered successfully');
+      logger.log('[VOUCHER DOWNLOAD] Download triggered successfully');
 
       toast({
         title: 'Download Started',
         description: `Downloading vouchers for invoice ${invoice.invoice_number}`
       });
     } catch (error) {
-      console.error('[VOUCHER DOWNLOAD] Error:', {
+      logger.error('[VOUCHER DOWNLOAD] Error:', {
         message: error.message,
         response: error.response,
         responseData: error.response?.data,

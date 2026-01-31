@@ -1,6 +1,8 @@
 const express = require('express');
+const { serverError } = require('../utils/apiResponse');
 const router = express.Router();
 const db = require('../config/database');
+const { serverError } = require('../utils/apiResponse');
 const { auth, checkRole } = require('../middleware/auth');
 
 // Columns now exist in table schema - no need for ALTER TABLE
@@ -189,11 +191,8 @@ router.put('/', auth, checkRole('Flex_Admin'), async (req, res) => {
 
   } catch (error) {
     console.error('Error updating settings:', error);
-    res.status(500).json({
-      type: 'error',
-      message: 'Failed to update settings',
-      error: error.message
-    });
+    return serverError(res, error, ',
+      message: ');
   }
 });
 

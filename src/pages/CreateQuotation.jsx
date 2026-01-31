@@ -23,11 +23,18 @@ const CreateQuotation = () => {
   // Edit mode flag
   const isEditMode = !!id;
 
+  // Calculate default validity date (7 days from today)
+  const getDefaultValidityDate = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + 7);
+    return date.toISOString().split('T')[0];
+  };
+
   // Form state
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [totalVouchers, setTotalVouchers] = useState(1);
   const [discount, setDiscount] = useState(0);
-  const [validUntil, setValidUntil] = useState('');
+  const [validUntil, setValidUntil] = useState(getDefaultValidityDate());
   const [notes, setNotes] = useState('');
   const [applyGst, setApplyGst] = useState(false); // Default: no GST
 
@@ -84,11 +91,11 @@ const CreateQuotation = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!selectedCustomer || !validUntil) {
+    if (!selectedCustomer) {
       toast({
         variant: "destructive",
         title: "Missing Required Fields",
-        description: "Please select a customer and set valid until date.",
+        description: "Please select a customer.",
       });
       return;
     }
@@ -249,13 +256,13 @@ const CreateQuotation = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="valid_until">Valid Until *</Label>
+                <Label htmlFor="valid_until">Valid Until (Default: 7 days)</Label>
                 <Input
                   id="valid_until"
                   type="date"
                   value={validUntil}
                   onChange={(e) => setValidUntil(e.target.value)}
-                  required
+                  placeholder="7 days from today"
                 />
               </div>
             </div>

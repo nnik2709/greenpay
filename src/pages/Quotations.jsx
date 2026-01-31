@@ -15,6 +15,7 @@ import { convertQuotationToInvoice } from '@/lib/invoiceService';
 import { formatPGK, calculateGST } from '@/lib/gstUtils';
 import QuotationPDF from '@/components/QuotationPDF';
 import { downloadQuotationPDF, emailQuotationPDF } from '@/lib/quotationPdfService';
+import { logger } from '@/utils/logger';
 
 const StatCard = ({ title, value }) => {
   return (
@@ -72,7 +73,7 @@ const Quotations = () => {
       const data = await getQuotations(filters);
       setQuotations(data);
     } catch (error) {
-      console.error('Error loading quotations:', error);
+      logger.error('Error loading quotations:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -88,7 +89,7 @@ const Quotations = () => {
       const stats = await getQuotationStatistics();
       setStatistics(stats);
     } catch (error) {
-      console.error('Error loading statistics:', error);
+      logger.error('Error loading statistics:', error);
     }
   };
 
@@ -123,7 +124,7 @@ const Quotations = () => {
       });
       setSelectedAction('');
     } catch (error) {
-      console.error('Error downloading quotation:', error);
+      logger.error('Error downloading quotation:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -428,7 +429,7 @@ const Quotations = () => {
                   const data = await getQuotations({});
                   setQuotations(data);
                 } catch (error) {
-                  console.error('Error loading quotations:', error);
+                  logger.error('Error loading quotations:', error);
                   toast({
                     variant: 'destructive',
                     title: 'Error',

@@ -1,6 +1,8 @@
 const express = require('express');
+const { serverError } = require('../utils/apiResponse');
 const router = express.Router();
 const db = require('../config/database');
+const { serverError } = require('../utils/apiResponse');
 const { auth } = require('../middleware/auth');
 
 /**
@@ -66,13 +68,7 @@ router.get('/', auth, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching transactions:', error);
-    res.status(500).json({
-      type: 'error',
-      status: 'error',
-      message: 'Failed to fetch transactions',
-      error: error.message
-    });
+    return serverError(res, error, 'Failed to fetch transactions');
   }
 });
 
@@ -136,12 +132,7 @@ router.get('/:id', auth, async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching transaction:', error);
-    res.status(500).json({
-      type: 'error',
-      status: 'error',
-      message: 'Failed to fetch transaction',
-      error: error.message
-    });
+    return serverError(res, error, 'Failed to fetch transaction');
   }
 });
 

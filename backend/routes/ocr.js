@@ -10,6 +10,7 @@
  */
 
 const express = require('express');
+const { serverError } = require('../utils/apiResponse');
 const router = express.Router();
 const multer = require('multer');
 const FormData = require('form-data');
@@ -161,10 +162,7 @@ router.post('/passport-scan', async (req, res) => {
 
   } catch (error) {
     console.error('[OCR] Passport scan error:', error);
-    res.status(500).json({
-      status: 'ERROR',
-      message: error.message
-    });
+    return serverError(res, error, 'ERROR');
   }
 });
 
@@ -273,10 +271,10 @@ router.get('/health', async (req, res) => {
   } catch (error) {
     console.error('[OCR Health Check] Error:', error.message);
 
+    console.error('OCR service error:', error);
     res.status(503).json({
       success: false,
       error: 'OCR service unavailable',
-      message: error.message,
       serviceUrl: OCR_SERVICE_URL,
       fallback: 'Client-side Tesseract.js available'
     });
@@ -419,12 +417,7 @@ router.post('/scan-mrz', upload.single('file'), async (req, res) => {
   } catch (error) {
     console.error('[OCR] Unexpected error:', error);
 
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      message: error.message,
-      fallback: 'client-tesseract'
-    });
+    return serverError(res, error, 'Internal server error');
   }
 });
 

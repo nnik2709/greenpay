@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Mail, User, Send, Loader2 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 const AdminPasswordResetModal = ({ isOpen, onClose }) => {
   const [selectedUser, setSelectedUser] = useState('');
@@ -24,7 +25,7 @@ const AdminPasswordResetModal = ({ isOpen, onClose }) => {
   const fetchUsers = async () => {
     setIsLoadingUsers(true);
     try {
-      console.log('Fetching users...');
+      logger.log('Fetching users...');
       const { data, error } = await supabase
         .from('profiles')
         .select('id, email, role, active')
@@ -32,14 +33,14 @@ const AdminPasswordResetModal = ({ isOpen, onClose }) => {
         .order('email');
 
       if (error) {
-        console.error('Supabase error:', error);
+        logger.error('Supabase error:', error);
         throw error;
       }
 
-      console.log('Users loaded successfully:', data);
+      logger.log('Users loaded successfully:', data);
       setUsers(data || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      logger.error('Error fetching users:', error);
 
       // Show error state - no hardcoded fallback data
       setUsers([]);
@@ -95,7 +96,7 @@ const AdminPasswordResetModal = ({ isOpen, onClose }) => {
       onClose();
 
     } catch (error) {
-      console.error('Password reset error:', error);
+      logger.error('Password reset error:', error);
       
       let errorMessage = 'Failed to send password reset email. Please try again.';
       
@@ -134,8 +135,8 @@ const AdminPasswordResetModal = ({ isOpen, onClose }) => {
           <div className="space-y-2">
             <Label htmlFor="user-select">Select User</Label>
             {(() => {
-              console.log('Rendering Select component, isLoadingUsers:', isLoadingUsers, 'users.length:', users.length);
-              console.log('Users data:', users);
+              logger.log('Rendering Select component, isLoadingUsers:', isLoadingUsers, 'users.length:', users.length);
+              logger.log('Users data:', users);
               return null;
             })()}
             

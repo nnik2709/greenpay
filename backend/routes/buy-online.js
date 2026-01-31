@@ -11,6 +11,7 @@
  */
 
 const express = require('express');
+const { serverError } = require('../utils/apiResponse');
 const router = express.Router();
 const { Pool } = require('pg');
 const QRCode = require('qrcode');
@@ -1035,10 +1036,7 @@ router.post('/voucher/:code/register', async (req, res) => {
       });
     }
 
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to register passport'
-    });
+    return serverError(res, error, 'Failed to register passport');
   } finally {
     client.release();
   }

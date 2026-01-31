@@ -1,6 +1,8 @@
 const express = require('express');
+const { serverError } = require('../utils/apiResponse');
 const router = express.Router();
 const db = require('../config/database');
+const { serverError } = require('../utils/apiResponse');
 const { auth, checkRole } = require('../middleware/auth');
 const {
   voucherValidationLimiter,
@@ -134,12 +136,7 @@ router.get('/corporate-vouchers', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching corporate vouchers:', error);
-    res.status(500).json({
-      type: 'error',
-      status: 'error',
-      message: 'Failed to fetch corporate vouchers',
-      error: error.message
-    });
+    return serverError(res, error, 'Failed to fetch corporate vouchers');
   }
 });
 
@@ -671,10 +668,7 @@ router.post('/bulk-corporate', auth, checkRole('Flex_Admin', 'Finance_Manager', 
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Bulk corporate voucher creation error:', error);
-    return res.status(500).json({
-      error: 'Error creating bulk corporate vouchers',
-      message: error.message
-    });
+    return return serverError(res, error, 'Error creating bulk corporate vouchers');
   } finally {
     client.release();
   }
@@ -1319,10 +1313,7 @@ router.post('/bulk-email',
 
   } catch (error) {
     console.error('Bulk email error:', error);
-    res.status(500).json({
-      error: 'Failed to send bulk email',
-      message: error.message
-    });
+    return serverError(res, error, 'Failed to send bulk email');
   }
 });
 
@@ -1382,10 +1373,7 @@ router.post('/bulk-download',
   } catch (error) {
     console.error('Bulk download error:', error);
     if (!res.headersSent) {
-      res.status(500).json({
-        error: 'Failed to generate bulk download',
-        message: error.message
-      });
+      return serverError(res, error, 'Failed to generate bulk download');
     }
   }
 });

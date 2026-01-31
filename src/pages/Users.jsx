@@ -41,7 +41,8 @@ function Users() {
   const [editingUser, setEditingUser] = useState(null);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', confirmPassword: '', role: '' });
   const [searchQuery, setSearchQuery] = useState('');
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [entriesPerPage, setEntriesPerPage] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
 
   // Check if current user is Flex_Admin (full access) or IT_Support (view only)
@@ -266,12 +267,16 @@ function Users() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-slate-600">Show</span>
-              <Select value={entriesPerPage.toString()} onValueChange={(val) => setEntriesPerPage(parseInt(val))}>
+              <Select value={entriesPerPage.toString()} onValueChange={(val) => {
+                setEntriesPerPage(parseInt(val));
+                setCurrentPage(1); // Reset to page 1 when changing entries per page
+              }}>
                 <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
                   <SelectItem value="25">25</SelectItem>
                   <SelectItem value="50">50</SelectItem>
                   <SelectItem value="100">100</SelectItem>
@@ -319,7 +324,7 @@ function Users() {
                       (user.email || '').toLowerCase().includes(query) ||
                       (user.role_name || user.role || '').toLowerCase().includes(query)
                     );
-                  }).slice(0, entriesPerPage).map(user => {
+                  }).slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage).map(user => {
                     const isActive = user.isActive !== undefined ? user.isActive : user.active;
                     const userRole = user.role_name || user.role || 'N/A';
 
@@ -376,12 +381,37 @@ function Users() {
           </div>
 
           <div className="flex items-center justify-between pt-4 text-sm text-slate-600">
-            <div>Showing 1 to {Math.min(entriesPerPage, users.length)} of {users.length} entries</div>
+            <div>
+              Showing {((currentPage - 1) * entriesPerPage) + 1} to {Math.min(currentPage * entriesPerPage, users.length)} of {users.length} entries
+            </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled>Previous</Button>
-              <Button variant="outline" size="sm" className="bg-emerald-100 text-emerald-700">1</Button>
-              <Button variant="outline" size="sm">2</Button>
-              <Button variant="outline" size="sm">Next</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              {Array.from({ length: Math.ceil(users.length / entriesPerPage) }, (_, i) => i + 1).map(pageNum => (
+                <Button
+                  key={pageNum}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={currentPage === pageNum ? "bg-emerald-100 text-emerald-700" : ""}
+                >
+                  {pageNum}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(Math.ceil(users.length / entriesPerPage), prev + 1))}
+                disabled={currentPage >= Math.ceil(users.length / entriesPerPage)}
+              >
+                Next
+              </Button>
             </div>
           </div>
         </div>

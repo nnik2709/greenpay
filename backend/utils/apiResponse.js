@@ -160,22 +160,37 @@ const forbiddenError = (res, message = 'Insufficient permissions') => {
  *
  * @param {object} res - Express response object
  * @param {Error} err - Error object (will NOT be sent to client in production)
+ * @param {string} userMessage - Optional user-friendly message
  * @returns {object} Express response
  */
-const serverError = (res, err) => {
-  // Log error for debugging
-  console.error('Internal Server Error:', err);
+const serverError = (res, err, userMessage = 'An error occurred while processing your request') => {
+  // Always log full error details server-side
+  console.error('Internal Server Error:', {
+    message: err.message,
+    stack: err.stack,
+    timestamp: new Date().toISOString()
+  });
 
-  // Don't expose internal error details to client in production
-  const errorDetails = process.env.NODE_ENV === 'production' ? null : {
-    code: 'INTERNAL_SERVER_ERROR',
+  // In production: only send generic user-friendly message
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(500).json({
+      type: 'error',
+      status: 'error',
+      error: userMessage
+    });
+  }
+
+  // In development: include detailed error for debugging
+  return res.status(500).json({
+    type: 'error',
+    status: 'error',
+    error: userMessage,
     details: {
+      code: 'INTERNAL_SERVER_ERROR',
       message: err.message,
       stack: err.stack
     }
-  };
-
-  return error(res, 500, 'Internal server error', errorDetails);
+  });
 };
 
 module.exports = {

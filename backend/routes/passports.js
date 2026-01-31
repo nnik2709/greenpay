@@ -1,6 +1,8 @@
 const express = require('express');
+const { serverError } = require('../utils/apiResponse');
 const router = express.Router();
 const { body, param, query } = require('express-validator');
+const { serverError } = require('../utils/apiResponse');
 const db = require('../config/database');
 const validate = require('../middleware/validator');
 const { auth, checkRole } = require('../middleware/auth');
@@ -105,12 +107,7 @@ router.get('/', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Get passports error:', error);
-    res.status(500).json({
-      type: 'error',
-      status: 'error',
-      message: 'Failed to fetch passports',
-      error: error.message
-    });
+    return serverError(res, error, 'Failed to fetch passports');
   }
 });
 

@@ -84,7 +84,7 @@ router.post('/',
 
       // Create user
       const result = await db.query(
-        `INSERT INTO "User" (name, email, password, "roleId", "isActive", "createdAt")
+        `INSERT INTO "User" (name, email, "passwordHash", "roleId", "isActive", "createdAt")
          VALUES ($1, $2, $3, $4, $5, NOW())
          RETURNING id, name, email, "roleId", "isActive", "createdAt"`,
         [name, email, hashedPassword, roleId, isActive]
@@ -120,7 +120,7 @@ router.put('/:id',
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, email, roleId, isActive } = req.body;
+      const { name, email, roleId, isActive, password } = req.body;
 
       // Build update query dynamically
       const updates = [];
@@ -150,6 +150,13 @@ router.put('/:id',
       if (isActive !== undefined) {
         updates.push(`"isActive" = $${paramCount++}`);
         values.push(isActive);
+      }
+      if (password !== undefined && password !== '') {
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        updates.push(`"passwordHash" = $${paramCount++}`);
+        values.push(hashedPassword);
+        console.log(`[USERS] Resetting password for user ID: ${id}`);
       }
 
       if (updates.length === 0) {

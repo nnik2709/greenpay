@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DataTable from 'react-data-table-component';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -83,7 +83,7 @@ const IndividualPurchaseReports = () => {
 
   const handleSearch = () => {
     setPage(1); // Reset to page 1 when searching
-    fetchVouchers(1);
+    fetchVouchers(1); // Call fetchVouchers directly with page 1
   };
 
   const formatDate = (dateStr) => {

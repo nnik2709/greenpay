@@ -7,6 +7,7 @@ const PaymentGatewayFactory = require('../services/payment-gateways/PaymentGatew
 const { sendVoucherNotification } = require('../services/notificationService');
 const voucherConfig = require('../config/voucherConfig');
 const { buildNationalityWhereClause, normalizeToCode } = require('../utils/nationalityNormalizer');
+const { serverError } = require('../utils/apiResponse');
 
 // Database connection
 const pool = new Pool({
@@ -174,10 +175,7 @@ router.post('/create-payment-session', async (req, res) => {
 
   } catch (error) {
     console.error('Error creating payment session:', error);
-    res.status(500).json({
-      error: 'Failed to create payment session',
-      message: error.message
-    });
+    return serverError(res, error, 'Failed to create payment session');
   }
 });
 
@@ -273,10 +271,7 @@ router.post('/create-session', async (req, res) => {
 
   } catch (error) {
     console.error('Error creating purchase session:', error);
-    res.status(500).json({
-      error: 'Failed to create purchase session',
-      message: error.message
-    });
+    return serverError(res, error, 'Failed to create purchase session');
   }
 });
 
@@ -442,10 +437,7 @@ router.post('/complete', async (req, res) => {
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error completing purchase:', error);
-    res.status(500).json({
-      error: 'Failed to complete purchase',
-      message: error.message
-    });
+    return serverError(res, error, 'Failed to complete purchase');
   } finally {
     client.release();
   }
@@ -498,10 +490,7 @@ router.get('/validate/:voucherCode', async (req, res) => {
 
   } catch (error) {
     console.error('Error validating voucher:', error);
-    res.status(500).json({
-      error: 'Failed to validate voucher',
-      message: error.message
-    });
+    return serverError(res, error, 'Failed to validate voucher');
   }
 });
 
@@ -647,10 +636,7 @@ router.post('/register-passport', async (req, res) => {
 
   } catch (error) {
     console.error('Error registering passport:', error);
-    res.status(500).json({
-      error: 'Failed to register passport',
-      message: error.message
-    });
+    return serverError(res, error, 'Failed to register passport');
   }
 });
 
@@ -719,10 +705,7 @@ router.get('/session-by-stripe/:stripeSessionId', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching session by Stripe ID:', error);
-    res.status(500).json({
-      error: 'Failed to fetch session',
-      message: error.message
-    });
+    return serverError(res, error, 'Failed to fetch session');
   }
 });
 
@@ -781,10 +764,7 @@ router.get('/session/:sessionId', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching session:', error);
-    res.status(500).json({
-      error: 'Failed to fetch session',
-      message: error.message
-    });
+    return serverError(res, error, 'Failed to fetch session');
   }
 });
 
@@ -839,7 +819,7 @@ router.post('/webhook/bsp', async (req, res) => {
   } catch (error) {
     console.error('Webhook processing error:', error);
     // Still acknowledge to prevent retries
-    res.status(200).json({ received: true, error: error.message });
+    res.status(200).json({ received: true, error: 'An error occurred' });
   }
 });
 
@@ -913,7 +893,7 @@ router.post('/webhook', async (req, res) => {
   } catch (error) {
     console.error('❌ Webhook processing error:', error);
     // Still acknowledge to prevent retries
-    res.status(200).json({ received: true, error: error.message });
+    res.status(200).json({ received: true, error: 'An error occurred' });
   }
 });
 
@@ -1061,10 +1041,7 @@ router.post('/cleanup-expired', async (req, res) => {
 
   } catch (error) {
     console.error('Error cleaning up sessions:', error);
-    res.status(500).json({
-      error: 'Cleanup failed',
-      message: error.message
-    });
+    return serverError(res, error, 'Cleanup failed');
   }
 });
 
@@ -1322,7 +1299,7 @@ router.post('/voucher/:voucherCode/email', async (req, res) => {
 
   } catch (error) {
     console.error('Error emailing voucher:', error);
-    res.status(500).json({ error: 'Failed to send email', message: error.message });
+    return serverError(res, error, 'Failed to send email');
   }
 });
 

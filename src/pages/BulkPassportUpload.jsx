@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import Payments from '@/pages/Payments';
 import { uploadBulkPassports, getBulkUploadHistory } from '@/lib/bulkUploadService';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/utils/logger';
 
 const steps = [
   { id: 1, name: 'Upload File' },
@@ -51,7 +52,7 @@ const BulkPassportUpload = () => {
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('Auth check on mount:', session ? 'Authenticated' : 'Not authenticated');
+      logger.log('Auth check on mount:', session ? 'Authenticated' : 'Not authenticated');
       if (!session || !session.user) {
         toast({
           title: "Authentication Required",
@@ -59,7 +60,7 @@ const BulkPassportUpload = () => {
           variant: "destructive"
         });
       } else {
-        console.log('User is logged in:', session.user.email);
+        logger.log('User is logged in:', session.user.email);
       }
     };
     checkAuth();
@@ -75,7 +76,7 @@ const BulkPassportUpload = () => {
         status: upload.status || 'Unknown'
       })));
     } catch (error) {
-      console.error('Error fetching recent uploads:', error);
+      logger.error('Error fetching recent uploads:', error);
     }
   };
 
@@ -98,11 +99,11 @@ const BulkPassportUpload = () => {
     setUploadedFile(file);
     setLoading(true);
     
-    console.log('Starting file upload:', file.name);
+    logger.log('Starting file upload:', file.name);
     
     try {
       const result = await uploadBulkPassports(file);
-      console.log('Upload result:', result);
+      logger.log('Upload result:', result);
       
       setUploadResult(result);
       setPassportCount(result.successCount);
@@ -126,7 +127,7 @@ const BulkPassportUpload = () => {
         throw new Error(result.message || 'Upload failed');
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', error);
       toast({
         title: "Upload Failed",
         description: error.message || 'Failed to process file',

@@ -1,6 +1,8 @@
 const express = require('express');
+const { serverError } = require('../utils/apiResponse');
 const router = express.Router();
 const db = require('../config/database');
+const { serverError } = require('../utils/apiResponse');
 const { auth, checkRole } = require('../middleware/auth');
 const {
   voucherLookupLimiter,
@@ -465,9 +467,10 @@ router.post('/bulk-register', async (req, res) => {
         results.success.push({ voucherCode, passportNumber });
 
       } catch (error) {
+        console.error('Error registering voucher:', error);
         results.errors.push({
           voucherCode: reg.voucherCode,
-          error: error.message
+          error: 'Failed to register voucher'
         });
       }
     }

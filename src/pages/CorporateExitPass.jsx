@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import VoucherPrint from '@/components/VoucherPrint';
 import CustomerSelector from '@/components/CustomerSelector';
+import { logger } from '@/utils/logger';
 
 const CorporateExitPass = () => {
   const { toast } = useToast();
@@ -166,7 +167,7 @@ const CorporateExitPass = () => {
         description: `Invoice ${response.invoice.invoice_number} created. Review and proceed to payment.`,
       });
     } catch (error) {
-      console.error('Error creating invoice:', error);
+      logger.error('Error creating invoice:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -199,7 +200,7 @@ const CorporateExitPass = () => {
       }
       toast({ title: 'Payment Recorded', description: `Invoice ${response.invoice.invoice_number} marked as ${response.invoice.status}` });
     } catch (error) {
-      console.error('Error recording payment:', error);
+      logger.error('Error recording payment:', error);
       toast({ variant: 'destructive', title: 'Payment Error', description: error.message || 'Failed to record payment.' });
     } finally {
       setIsProcessing(false);
@@ -215,7 +216,7 @@ const CorporateExitPass = () => {
       setStep(3);
       toast({ title: 'Vouchers Generated', description: `${response.vouchers?.length || 0} vouchers created.` });
     } catch (error) {
-      console.error('Error generating vouchers:', error);
+      logger.error('Error generating vouchers:', error);
       toast({ variant: 'destructive', title: 'Generation Error', description: error.message || 'Failed to generate vouchers.' });
     } finally {
       setIsProcessing(false);
@@ -253,7 +254,7 @@ const CorporateExitPass = () => {
         description: `Vouchers successfully emailed to ${recipientEmail}`,
       });
     } catch (error) {
-      console.error('Error emailing vouchers:', error);
+      logger.error('Error emailing vouchers:', error);
       toast({
         variant: "destructive",
         title: "Email Failed",
@@ -277,7 +278,7 @@ const CorporateExitPass = () => {
       link.click();
       link.parentNode.removeChild(link);
     } catch (error) {
-      console.error('Error downloading invoice PDF:', error);
+      logger.error('Error downloading invoice PDF:', error);
       toast({ variant: 'destructive', title: 'Download Error', description: 'Failed to download invoice PDF.' });
     } finally {
       setIsDownloadingInvoice(false);
@@ -297,7 +298,7 @@ const CorporateExitPass = () => {
       link.click();
       link.parentNode.removeChild(link);
     } catch (error) {
-      console.error('Error downloading vouchers PDF:', error);
+      logger.error('Error downloading vouchers PDF:', error);
       toast({ variant: 'destructive', title: 'Download Error', description: 'Failed to download vouchers PDF.' });
     } finally {
       setIsDownloadingVouchers(false);
