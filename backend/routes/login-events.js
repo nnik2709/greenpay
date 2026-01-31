@@ -59,8 +59,7 @@ router.get('/', auth, checkRole('Flex_Admin', 'IT_Support'), async (req, res) =>
 
   } catch (error) {
     console.error('Error fetching login events:', error);
-    return serverError(res, error, ',
-      message: ');
+    return serverError(res, error, 'Failed to fetch login events');
   }
 });
 
@@ -107,8 +106,7 @@ router.get('/user/:userId', auth, checkRole('Flex_Admin', 'IT_Support'), async (
 
   } catch (error) {
     console.error('Error fetching user login events:', error);
-    return serverError(res, error, ',
-      message: ');
+    return serverError(res, error, 'Failed to fetch user login events');
   }
 });
 
@@ -139,8 +137,7 @@ router.get('/stats', auth, checkRole('Flex_Admin', 'IT_Support'), async (req, re
 
   } catch (error) {
     console.error('Error fetching login stats:', error);
-    return serverError(res, error, ',
-      message: ');
+    return serverError(res, error, 'Failed to fetch login statistics');
   }
 });
 

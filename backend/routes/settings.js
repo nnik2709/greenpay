@@ -190,8 +190,7 @@ router.put('/', auth, checkRole('Flex_Admin'), async (req, res) => {
 
   } catch (error) {
     console.error('Error updating settings:', error);
-    return serverError(res, error, ',
-      message: ');
+    return serverError(res, error, 'Failed to update settings');
   }
 });
 
