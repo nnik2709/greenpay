@@ -13,6 +13,19 @@ import api from '@/lib/api/client';
 import { useScannerInput } from '@/hooks/useScannerInput';
 import { parseMrz as parseMrzUtil } from '@/lib/mrzParser';
 
+// Development-only logging utility
+const devLog = (...args) => {
+  if (import.meta.env.DEV) {
+    devLog(...args);
+  }
+};
+
+const devError = (...args) => {
+  if (import.meta.env.DEV) {
+    devError(...args);
+  }
+};
+
 const ScanAndValidate = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -113,7 +126,7 @@ const ScanAndValidate = () => {
       oscillator.start(audioContext.current.currentTime);
       oscillator.stop(audioContext.current.currentTime + 0.2);
     } catch (error) {
-      console.error('Beep sound error:', error);
+      devError('Beep sound error:', error);
     }
   };
 
@@ -143,7 +156,7 @@ const ScanAndValidate = () => {
       oscillator.start(audioContext.current.currentTime);
       oscillator.stop(audioContext.current.currentTime + 0.5);
     } catch (error) {
-      console.error('Error sound error:', error);
+      devError('Error sound error:', error);
     }
   };
 
@@ -172,17 +185,17 @@ const ScanAndValidate = () => {
 
   const validateVoucher = async (code) => {
     try {
-      console.log('Validating voucher code:', code.trim());
+      devLog('Validating voucher code:', code.trim());
 
       // Call the PostgreSQL API endpoint
       const result = await api.vouchers.validate(code.trim());
 
-      console.log('Validation result:', result);
+      devLog('Validation result:', result);
 
       return result;
     } catch (error) {
-      console.error('Voucher validation error:', error);
-      console.error('Error details:', {
+      devError('Voucher validation error:', error);
+      devError('Error details:', {
         message: error.message,
         response: error.response,
         stack: error.stack
@@ -209,11 +222,11 @@ const ScanAndValidate = () => {
   const handleValidation = useCallback(async (code) => {
     if (!code) return;
 
-    console.log('=== VALIDATION STARTED ===');
-    console.log('Raw code received:', code);
-    console.log('Code length:', code.length);
-    console.log('Code type:', typeof code);
-    console.log('Code chars:', Array.from(code).map((c, i) => `[${i}]='${c}' (${c.charCodeAt(0)})`));
+    devLog('=== VALIDATION STARTED ===');
+    devLog('Raw code received:', code);
+    devLog('Code length:', code.length);
+    devLog('Code type:', typeof code);
+    devLog('Code chars:', Array.from(code).map((c, i) => `[${i}]='${c}' (${c.charCodeAt(0)})`));
 
     // Show scanned code in toast for debugging
     toast({
@@ -266,8 +279,8 @@ const ScanAndValidate = () => {
         }
       }
     } catch (error) {
-      console.error('Validation error:', error);
-      console.error('Error details:', {
+      devError('Validation error:', error);
+      devError('Error details:', {
         message: error.message,
         stack: error.stack,
         code: code
@@ -287,12 +300,12 @@ const ScanAndValidate = () => {
     if (!showCameraScanner) {
       // Cleanup when camera is closed
       if (scannerRef.current) {
-        console.log('[Scanner] Stopping camera...');
+        devLog('[Scanner] Stopping camera...');
         scannerRef.current.stop().then(() => {
-          console.log('[Scanner] Camera stopped');
+          devLog('[Scanner] Camera stopped');
           scannerRef.current = null;
         }).catch(err => {
-          console.error("[Scanner] Stop error:", err);
+          devError("[Scanner] Stop error:", err);
           scannerRef.current = null;
         });
       }
@@ -301,11 +314,11 @@ const ScanAndValidate = () => {
 
     // Prevent double initialization
     if (scannerRef.current) {
-      console.log('[Scanner] Scanner already running, skipping...');
+      devLog('[Scanner] Scanner already running, skipping...');
       return;
     }
 
-    console.log('[Scanner] Starting camera scanner...');
+    devLog('[Scanner] Starting camera scanner...');
 
     // Check if we're in a secure context (HTTPS or localhost)
     const isSecureContext = window.isSecureContext ||
@@ -335,11 +348,11 @@ const ScanAndValidate = () => {
         };
 
         const onScanSuccess = (decodedText, decodedResult) => {
-          console.log('[Scanner] Scan successful:', decodedText);
+          devLog('[Scanner] Scan successful:', decodedText);
 
           // Prevent processing if already processing a scan
           if (isProcessingScan.current) {
-            console.log('[Scanner] Already processing a scan, ignoring...');
+            devLog('[Scanner] Already processing a scan, ignoring...');
             return;
           }
 
@@ -353,7 +366,7 @@ const ScanAndValidate = () => {
               scannerRef.current.stop().then(() => {
                 scannerRef.current = null;
                 setShowCameraScanner(false);
-              }).catch(err => console.error('[Scanner] Stop error:', err));
+              }).catch(err => devError('[Scanner] Stop error:', err));
             }
 
             // Process the validation
@@ -371,7 +384,7 @@ const ScanAndValidate = () => {
         };
 
         // Start camera with back camera (environment facing)
-        console.log('[Scanner] Requesting camera access...');
+        devLog('[Scanner] Requesting camera access...');
         await scanner.start(
           { facingMode: "environment" }, // Use back camera by default
           config,
@@ -379,10 +392,10 @@ const ScanAndValidate = () => {
           onScanFailure
         );
 
-        console.log('[Scanner] Camera started successfully');
+        devLog('[Scanner] Camera started successfully');
 
       } catch (err) {
-        console.error('[Scanner] Start error:', err);
+        devError('[Scanner] Start error:', err);
 
         if (err.toString().includes('NotAllowedError') || err.toString().includes('Permission denied')) {
           toast({
@@ -412,9 +425,9 @@ const ScanAndValidate = () => {
     startScanner();
 
     return () => {
-      console.log('[Scanner] Cleanup...');
+      devLog('[Scanner] Cleanup...');
       if (scannerRef.current) {
-        scannerRef.current.stop().catch(err => console.error("[Scanner] Cleanup stop error:", err));
+        scannerRef.current.stop().catch(err => devError("[Scanner] Cleanup stop error:", err));
         scannerRef.current = null;
       }
     };

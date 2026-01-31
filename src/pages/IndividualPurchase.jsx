@@ -607,38 +607,10 @@ export default function IndividualPurchase() {
                         </div>
 
                         {vIsRegistered && vData ? (
-                          <>
-                            <div>
-                              <p className="text-xs text-gray-500">Passport Number</p>
-                              <p className="font-semibold text-sm">{vData.passportNumber}</p>
-                            </div>
-                            <div className="pt-2 flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs h-7"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // TODO: Print PDF
-                                  toast({ title: 'Print feature coming soon' });
-                                }}
-                              >
-                                Print
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs h-7"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // TODO: Email
-                                  toast({ title: 'Email feature coming soon' });
-                                }}
-                              >
-                                Email
-                              </Button>
-                            </div>
-                          </>
+                          <div>
+                            <p className="text-xs text-gray-500">Passport Number</p>
+                            <p className="font-semibold text-sm">{vData.passportNumber}</p>
+                          </div>
                         ) : (
                           <p className="text-sm text-gray-500">PENDING</p>
                         )}

@@ -5,6 +5,19 @@ const { auth, checkRole } = require('../middleware/auth');
 const voucherConfig = require('../config/voucherConfig');
 
 /**
+ * Sanitize error for client response
+ * Logs detailed error server-side, returns generic message to client
+ */
+const sanitizeError = (error, userMessage = 'An error occurred') => {
+  console.error('Error details:', error);
+  return {
+    type: 'error',
+    status: 'error',
+    error: userMessage
+  };
+};
+
+/**
  * Generate a unique voucher code - 8-character alphanumeric
  * Uses centralized config for consistency
  */
@@ -117,13 +130,7 @@ router.get('/', auth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching individual purchases:', error);
-    res.status(500).json({
-      type: 'error',
-      status: 'error',
-      message: 'Failed to fetch individual purchases',
-      error: error.message
-    });
+    res.status(500).json(sanitizeError(error, 'Failed to fetch individual purchases'));
   }
 });
 
@@ -218,13 +225,7 @@ router.post('/', auth, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error creating individual purchase:', error);
-    res.status(500).json({
-      type: 'error',
-      status: 'error',
-      message: 'Failed to create individual purchase',
-      error: error.message
-    });
+    res.status(500).json(sanitizeError(error, 'Failed to create individual purchase'));
   }
 });
 
@@ -427,13 +428,7 @@ router.post('/batch', auth, async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Error creating batch purchase:', error);
-    res.status(500).json({
-      type: 'error',
-      status: 'error',
-      message: 'Failed to create batch purchase',
-      error: error.message
-    });
+    res.status(500).json(sanitizeError(error, 'Failed to create batch purchase'));
   }
 });
 
@@ -493,13 +488,7 @@ router.get('/batch/:batchId/pdf', auth, async (req, res) => {
     res.send(pdfBuffer);
 
   } catch (error) {
-    console.error('Error generating batch PDF:', error);
-    res.status(500).json({
-      type: 'error',
-      status: 'error',
-      message: 'Failed to generate batch PDF',
-      error: error.message
-    });
+    res.status(500).json(sanitizeError(error, 'Failed to generate batch PDF'));
   }
 });
 
@@ -643,13 +632,7 @@ This is an automated email from PNG Green Fees System. Please do not reply to th
     });
 
   } catch (error) {
-    console.error('Error sending batch email:', error);
-    res.status(500).json({
-      type: 'error',
-      status: 'error',
-      message: 'Failed to send batch email',
-      error: error.message
-    });
+    res.status(500).json(sanitizeError(error, 'Failed to send batch email'));
   }
 });
 
@@ -689,13 +672,7 @@ router.get('/:id', auth, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching individual purchase:', error);
-    res.status(500).json({
-      type: 'error',
-      status: 'error',
-      message: 'Failed to fetch individual purchase',
-      error: error.message
-    });
+    res.status(500).json(sanitizeError(error, 'Failed to fetch individual purchase'));
   }
 });
 
@@ -772,13 +749,7 @@ router.patch('/:id', auth, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating individual purchase:', error);
-    res.status(500).json({
-      type: 'error',
-      status: 'error',
-      message: 'Failed to update individual purchase',
-      error: error.message
-    });
+    res.status(500).json(sanitizeError(error, 'Failed to update individual purchase'));
   }
 });
 
@@ -819,12 +790,7 @@ router.get('/:id/update-payment-method', auth, checkRole('Flex_Admin', 'Finance_
       data: result.rows[0]
     });
   } catch (error) {
-    console.error('Error updating payment method:', error);
-    res.status(500).json({
-      type: 'error',
-      message: 'Failed to update payment method',
-      error: error.message
-    });
+    res.status(500).json(sanitizeError(error, 'Failed to update payment method'));
   }
 });
 
@@ -878,12 +844,7 @@ router.get('/:id/refund', auth, checkRole('Flex_Admin', 'Finance_Manager'), asyn
       data: result.rows[0]
     });
   } catch (error) {
-    console.error('Error processing refund:', error);
-    res.status(500).json({
-      type: 'error',
-      message: 'Failed to process refund',
-      error: error.message
-    });
+    res.status(500).json(sanitizeError(error, 'Failed to process refund'));
   }
 });
 
@@ -932,12 +893,7 @@ router.get('/:id/update-refund-status', auth, checkRole('Flex_Admin', 'Finance_M
       data: result.rows[0]
     });
   } catch (error) {
-    console.error('Error updating refund status:', error);
-    res.status(500).json({
-      type: 'error',
-      message: 'Failed to update refund status',
-      error: error.message
-    });
+    res.status(500).json(sanitizeError(error, 'Failed to update refund status'));
   }
 });
 
@@ -1041,13 +997,7 @@ router.post('/batch-simple', auth, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[BATCH_SIMPLE] Error creating batch:', error);
-    res.status(500).json({
-      type: 'error',
-      status: 'error',
-      message: 'Failed to create vouchers',
-      error: error.message
-    });
+    res.status(500).json(sanitizeError(error, 'Failed to create vouchers'));
   }
 });
 
@@ -1107,13 +1057,7 @@ router.get('/batch/:batchId', auth, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[BATCH_SIMPLE] Error fetching batch:', error);
-    res.status(500).json({
-      type: 'error',
-      status: 'error',
-      message: 'Failed to fetch batch vouchers',
-      error: error.message
-    });
+    res.status(500).json(sanitizeError(error, 'Failed to fetch batch vouchers'));
   }
 });
 
